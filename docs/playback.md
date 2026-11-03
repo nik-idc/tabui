@@ -176,7 +176,9 @@ scheduled note source rather than articulation-specific samples. See
 [Let Ring passage rules](techniques.md#let-ring).
 
 - Bends automate the source pitch according to bend options.
-- Palm Mute shortens and softens only the marked note's attack.
+- Palm Mute keeps rhythmic accents but softens the peak, decays faster at higher
+  pitches, and darkens through a 30 ms low-pass sweep after the attack. Duration
+  is capped at 180 ms unless tied; ties still decay.
 - Ties are scheduled as one logical note with one source and attack. Written
   durations are converted from ticks at each bar's tempo and summed.
 - Let Ring extends that source's stop time through marked coverage. Empty markers

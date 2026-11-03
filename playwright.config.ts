@@ -10,12 +10,20 @@ const browserProjects: BrowserProject[] = [
   {
     // Chromium covers Chrome, Edge, and other Chromium-based desktop browsers.
     name: "chromium",
-    use: { ...devices["Desktop Chrome"] },
+    use: {
+      ...devices["Desktop Chrome"],
+      // Mute device output, not the Web Audio graph, including in headed runs.
+      launchOptions: { args: ["--mute-audio"] },
+    },
   },
   {
     // Firefox uses its own browser engine and often exposes CSS differences.
     name: "firefox",
-    use: { ...devices["Desktop Firefox"] },
+    use: {
+      ...devices["Desktop Firefox"],
+      // Cubeb scales device output after the Web Audio graph has processed it.
+      launchOptions: { firefoxUserPrefs: { "media.volume_scale": "0.0" } },
+    },
   },
 ];
 

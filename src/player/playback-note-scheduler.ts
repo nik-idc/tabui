@@ -33,6 +33,15 @@ const attackSeconds = 0.01;
 const releaseSeconds = 0.02;
 // Palm mutes are quieter because the string is damped at the bridge.
 const palmMuteGain = 0.038 * playbackGainMultiplier;
+/** Preserves the picked transient before palm damping takes over. */
+const palmMuteAttackSeconds = 0.003;
+/** Damping time constant at A3; low notes keep more body than high notes. */
+const palmMuteDecaySeconds = 0.035;
+/** Bounds pitch-dependent decay so bass notes stay tight and high notes stay audible. */
+const palmMuteMinimumDecaySeconds = 0.025;
+const palmMuteMaximumDecaySeconds = 0.05;
+/** Lets the pick attack through before darkening the damped string body. */
+const palmMuteFilterSweepSeconds = 0.03;
 // Hammer-ons/pull-offs are quieter than picked notes in this single-note model.
 const hammerOnPullOffGain = 0.048 * playbackGainMultiplier;
 // Hammer-ons/pull-offs bloom slightly after the fret-hand articulation.
@@ -606,7 +615,8 @@ export class PlaybackNoteScheduler {
 
     const palmMuted = note.hasTechnique(GuitarTechniqueType.PalmMute);
     if (palmMuted) {
-      settings.peakGain = palmMuteGain;
+      settings.attackSeconds = palmMuteAttackSeconds;
+      settings.peakGain *= palmMuteGain / notePeakGain;
       settings.stopTime = Math.min(
         settings.stopTime,
         startTime + palmMuteMaxDurationSeconds
@@ -893,7 +903,10 @@ export class PlaybackNoteScheduler {
       resonanceStopTime,
       maxStopTime ?? Infinity
     );
-    const attackEndTime = startTime + envelopeSettings.attackSeconds;
+    const attackEndTime = Math.min(
+      startTime + envelopeSettings.attackSeconds,
+      effectiveStopTime
+    );
     const releaseStartTime = Math.max(
       attackEndTime,
       effectiveStopTime - envelopeSettings.releaseSeconds
@@ -911,7 +924,22 @@ export class PlaybackNoteScheduler {
       envelopeSettings.peakGain,
       attackEndTime
     );
-    gainNode.gain.setValueAtTime(envelopeSettings.peakGain, releaseStartTime);
+    let releaseGain = envelopeSettings.peakGain;
+    if (note.hasTechnique(GuitarTechniqueType.PalmMute)) {
+      const decaySeconds = Math.min(
+        palmMuteMaximumDecaySeconds,
+        Math.max(
+          palmMuteMinimumDecaySeconds,
+          palmMuteDecaySeconds * Math.sqrt(220 / frequency)
+        )
+      );
+      gainNode.gain.setTargetAtTime(0, attackEndTime, decaySeconds);
+      // Anchor the final fade at the decayed level, not the original peak.
+      releaseGain *= Math.exp(
+        -(releaseStartTime - attackEndTime) / decaySeconds
+      );
+    }
+    gainNode.gain.setValueAtTime(releaseGain, releaseStartTime);
     gainNode.gain.linearRampToValueAtTime(0, effectiveStopTime);
     for (const segment of segments) {
       if (segment.startTime >= effectiveStopTime) {
@@ -933,8 +961,31 @@ export class PlaybackNoteScheduler {
       );
     }
 
+    const intermediateNodes: AudioNode[] = [];
+    if (note.hasTechnique(GuitarTechniqueType.PalmMute)) {
+      const filter = this._audioContext.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.Q.value = 0.5;
+      // Follow pitch so high notes keep their body; leave low strings some bite.
+      const maximumCutoff = this._audioContext.sampleRate * 0.45;
+      const cutoff = Math.min(maximumCutoff, Math.max(800, frequency * 4));
+      const attackCutoff = Math.min(maximumCutoff, cutoff * 4);
+      filter.frequency.setValueAtTime(attackCutoff, startTime);
+      filter.frequency.setValueAtTime(attackCutoff, attackEndTime);
+      filter.frequency.linearRampToValueAtTime(
+        cutoff,
+        Math.min(attackEndTime + palmMuteFilterSweepSeconds, effectiveStopTime)
+      );
+      intermediateNodes.push(filter);
+    }
+
     try {
-      sourceNode.connect(gainNode);
+      if (intermediateNodes.length > 0) {
+        sourceNode.connect(intermediateNodes[0]);
+        intermediateNodes[0].connect(gainNode);
+      } else {
+        sourceNode.connect(gainNode);
+      }
       gainNode.connect(trackBus.gainNode);
       sourceNode.start(startTime);
       sourceNode.stop(effectiveStopTime);
@@ -946,6 +997,9 @@ export class PlaybackNoteScheduler {
       }
       sourceNode.disconnect();
       gainNode.disconnect();
+      for (const node of intermediateNodes) {
+        node.disconnect();
+      }
       throw error;
     }
 
@@ -954,6 +1008,8 @@ export class PlaybackNoteScheduler {
       track,
       pitchShiftParam,
       gainNode,
+      intermediateNodes:
+        intermediateNodes.length > 0 ? intermediateNodes : undefined,
       startTime,
     };
   }

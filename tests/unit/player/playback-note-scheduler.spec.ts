@@ -21,6 +21,7 @@ type RecordedAudioParam = {
   value: number;
   setValueAtTime: jest.Mock<void, [number, number]>;
   linearRampToValueAtTime: jest.Mock<void, [number, number]>;
+  setTargetAtTime: jest.Mock<void, [number, number, number]>;
 };
 
 function createParam(value = 0): RecordedAudioParam {
@@ -28,6 +29,7 @@ function createParam(value = 0): RecordedAudioParam {
     value,
     setValueAtTime: jest.fn(),
     linearRampToValueAtTime: jest.fn(),
+    setTargetAtTime: jest.fn(),
   };
 }
 
@@ -61,6 +63,8 @@ function createAudioContext(startError?: Error, currentTime = 0) {
   const filters: Array<{
     type: BiquadFilterType;
     frequency: ReturnType<typeof createParam>;
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- Mirrors the browser API.
+    Q: ReturnType<typeof createParam>;
     connect: jest.Mock;
     disconnect: jest.Mock;
   }> = [];
@@ -123,6 +127,8 @@ function createAudioContext(startError?: Error, currentTime = 0) {
       const filter = {
         type: "lowpass" as BiquadFilterType,
         frequency: createParam(),
+        // eslint-disable-next-line @typescript-eslint/naming-convention -- Mirrors the browser API.
+        Q: createParam(),
         connect: jest.fn(),
         disconnect: jest.fn(),
       };
@@ -532,6 +538,91 @@ describe("PlaybackNoteScheduler", () => {
     expect(audio.oscillators[0].stop).toHaveBeenCalledWith(0.18);
     expect(audio.oscillators[1].stop).toHaveBeenCalledWith(1);
     expect(audio.oscillators[2].stop).toHaveBeenCalledWith(1);
+    expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+      expect.closeTo(0.24624, 8),
+      0.003
+    );
+    expect(audio.gains[0].gain.setTargetAtTime).toHaveBeenCalledWith(
+      0,
+      0.003,
+      0.025
+    );
+    expect(audio.gains[0].gain.setValueAtTime).toHaveBeenLastCalledWith(
+      expect.closeTo(0.000461, 6),
+      0.16
+    );
+    expect(audio.gains[1].gain.setTargetAtTime).not.toHaveBeenCalled();
+    expect(audio.gains[2].gain.setTargetAtTime).not.toHaveBeenCalled();
+    expect(audio.filters).toHaveLength(1);
+    expect(audio.oscillators[1].connect).toHaveBeenCalledWith(audio.gains[1]);
+    expect(audio.oscillators[2].connect).toHaveBeenCalledWith(audio.gains[2]);
+  });
+
+  test("darkens palm mutes after the attack and gives lower notes more decay", () => {
+    // A3 and A4 exercise pitch scaling without a full fret/string matrix.
+    const notes = notesAtFrets(5, 5);
+    const lowNote = notes[0].beat.notes?.[2] as GuitarNote;
+    lowNote.setFret(2);
+    const audio = createAudioContext();
+    const player = scheduler(audio.context);
+
+    for (const [index, note] of [lowNote, notes[1]].entries()) {
+      note.setTechnique(GuitarTechniqueType.PalmMute);
+      const scheduled = player.scheduleNote(note, 0, 0.5, trackBus());
+      const filter = audio.filters[index];
+      expect(filter.type).toBe("lowpass");
+      expect(filter.frequency.setValueAtTime).toHaveBeenCalledWith(
+        [3520, 7040][index],
+        0.003
+      );
+      expect(filter.frequency.linearRampToValueAtTime).toHaveBeenCalledWith(
+        [880, 1760][index],
+        0.033
+      );
+      expect(audio.gains[index].gain.setTargetAtTime).toHaveBeenCalledWith(
+        0,
+        0.003,
+        [0.035, 0.025][index]
+      );
+      expect(audio.oscillators[index].connect).toHaveBeenCalledWith(filter);
+      expect(filter.connect).toHaveBeenCalledWith(audio.gains[index]);
+      expect(scheduled?.intermediateNodes).toEqual([filter]);
+    }
+  });
+
+  test("preserves instrument gain and rhythmic accents on palm mutes", () => {
+    const notes = notesAtFrets(5, 5, 7);
+    notes[0].beat.voiceBar.bar.staff.track.setInstrument(
+      new Guitar(undefined, ElectricGuitarTone.Distortion)
+    );
+    const peaks = [0.221616, 0.188784, 0.2052];
+    const audio = createAudioContext();
+    const player = scheduler(audio.context);
+
+    for (const [index, note] of notes.entries()) {
+      note.setTechnique(GuitarTechniqueType.PalmMute);
+      player.scheduleNote(note, index * 0.5, (index + 1) * 0.5, trackBus());
+      expect(
+        audio.gains[index].gain.linearRampToValueAtTime
+      ).toHaveBeenCalledWith(
+        expect.closeTo(peaks[index], 8),
+        index * 0.5 + 0.003
+      );
+    }
+  });
+
+  test("disconnects a palm-mute filter when source startup fails", () => {
+    const [note] = notesAtFrets(5);
+    note.setTechnique(GuitarTechniqueType.PalmMute);
+    const audio = createAudioContext(new Error("start failed"));
+
+    expect(() =>
+      scheduler(audio.context).scheduleNote(note, 1, 2, trackBus())
+    ).toThrow("start failed");
+
+    expect(audio.filters[0].disconnect).toHaveBeenCalled();
+    expect(audio.oscillators[0].disconnect).toHaveBeenCalled();
+    expect(audio.gains[0].disconnect).toHaveBeenCalled();
   });
 
   test.each([
@@ -563,8 +654,8 @@ describe("PlaybackNoteScheduler", () => {
 
       expect(audio.oscillators[0].stop).toHaveBeenCalledWith(stop);
       expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
-        0.038 * 6,
-        1.01
+        expect.closeTo(0.24624, 8),
+        1.003
       );
       expect(
         audio.oscillators[0].frequency.linearRampToValueAtTime
@@ -573,7 +664,7 @@ describe("PlaybackNoteScheduler", () => {
         expect.closeTo(bendEnd, 8)
       );
       expect(audio.gains[0].gain.setValueAtTime).toHaveBeenCalledWith(
-        0.038 * 6,
+        expect.any(Number),
         expect.closeTo(release, 8)
       );
       expect(
