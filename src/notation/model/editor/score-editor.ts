@@ -1198,7 +1198,7 @@ export class ScoreEditor {
   /**
    * Inserts a master bar and corresponding bars on every staff.
    * @param index Integer insertion position from zero through the number of master bars.
-   * @param masterBarData Meter, tempo, and repeat settings for the new master bar.
+   * @param masterBarData Explicit settings; undefined inherits tempo and meter at the score end, otherwise uses defaults.
    * @param voiceNumber Voice slot to create with a quarter rest on each staff.
    * @returns Live master/staff bars and insertion position.
    * @throws If the index, master-bar settings, or new voice timing are invalid.
@@ -1206,7 +1206,7 @@ export class ScoreEditor {
   public static insertMasterBar(
     score: Score,
     index: number,
-    masterBarData: MasterBarData,
+    masterBarData: MasterBarData | undefined,
     voiceNumber: VoiceNumber
   ): MasterBarArrayOperationOutput {
     const affected = this.getBarEditBeats(score, [index]);
@@ -1222,13 +1222,14 @@ export class ScoreEditor {
 
   /**
    * Appends a master bar and corresponding bars on every staff.
+   * @param masterBarData Explicit settings; undefined inherits the last bar's tempo and meter without repeat markers.
    * @param voiceNumber Voice slot to create with a quarter rest on each staff.
    * @returns Live master/staff bars and their zero-based insertion position.
    * @throws If master-bar settings or new voice timing are invalid.
    */
   public static appendMasterBar(
     score: Score,
-    masterBarData: MasterBarData,
+    masterBarData: MasterBarData | undefined,
     voiceNumber: VoiceNumber
   ): MasterBarArrayOperationOutput {
     return score.appendMasterBar(masterBarData, voiceNumber);

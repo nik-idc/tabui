@@ -169,11 +169,25 @@ describe("Score model", () => {
     const staves = [...firstTrack.staves, ...secondTrack.staves];
     const firstBars = staves.map((s) => s.bars[0]);
     const firstMasterBar = score.masterBars[0];
+    firstMasterBar.tempo = 150;
+    firstMasterBar.beatsCount = 6;
+    firstMasterBar.duration = NoteDuration.Eighth;
+    firstMasterBar.isRepeatStart = true;
+    firstMasterBar.isRepeatEnd = true;
+    firstMasterBar.repeatCount = 3;
 
-    const output = score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const output = score.appendMasterBar();
 
     expect(output.index).toBe(1);
     expect(output.bars.size).toBe(3);
+    expect(output.masterBar).not.toBe(firstMasterBar);
+    expect(output.masterBar.uuid).not.toBe(firstMasterBar.uuid);
+    expect(output.masterBar.barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 150,
+      beatsCount: 6,
+      duration: NoteDuration.Eighth,
+    });
     expect(score.masterBars).toEqual([firstMasterBar, output.masterBar]);
     for (const [i, staff] of staves.entries()) {
       expect(staff.bars).toHaveLength(2);

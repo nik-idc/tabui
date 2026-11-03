@@ -21,7 +21,7 @@ export class InsertBarCommand implements Command {
   /** Index of insertion */
   private _index: number;
   /** Data of the master bar to add */
-  private _masterBarData: MasterBarData;
+  private _masterBarData: MasterBarData | undefined;
   private _voiceNumber: VoiceNumber;
   /** Existing boundary content before bar insertion. */
   private _before: BeatSnapshot[] = [];
@@ -40,7 +40,7 @@ export class InsertBarCommand implements Command {
   constructor(
     score: Score,
     index: number,
-    masterBarData: MasterBarData,
+    masterBarData: MasterBarData | undefined,
     voiceNumber: VoiceNumber = 1
   ) {
     this._score = score;

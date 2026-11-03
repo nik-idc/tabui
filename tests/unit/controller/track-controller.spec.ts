@@ -518,12 +518,17 @@ describe("TrackController", () => {
 
   test("moving right past a full bar restores the cursor around bar append", () => {
     const { score, track } = createScoreGraph();
+    score.masterBars[0].tempo = 150;
+    score.masterBars[0].duration = NoteDuration.Eighth;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[0].isRepeatEnd = true;
+    score.masterBars[0].repeatCount = 3;
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     setBarDurations(controller, 0, [
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
     ]);
     const firstVoiceBar = required(track.staves[0].bars[0].getVoiceBar(1));
 
@@ -531,6 +536,12 @@ describe("TrackController", () => {
       controller.moveSelectedNote(SelectedMoveDirection.Right);
     }
     expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars[1].barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 150,
+      duration: NoteDuration.Eighth,
+    });
+    const appendedMasterBar = score.masterBars[1];
     expect(controller.selectionCursor?.beat).toBe(
       required(track.staves[0].bars[1].getVoiceBar(1)).beats[0]
     );
@@ -540,6 +551,7 @@ describe("TrackController", () => {
     expect(controller.selectionCursor?.beat).toBe(firstVoiceBar.beats[3]);
     controller.redo();
     expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars[1]).toBe(appendedMasterBar);
     expect(controller.selectionCursor?.beat).toBe(
       required(track.staves[0].bars[1].getVoiceBar(1)).beats[0]
     );
@@ -1800,6 +1812,9 @@ describe("TrackController", () => {
 
   test("insert bar after selected note inserts and selects the new bar", () => {
     const { track, score } = createScoreGraph();
+    score.masterBars[0].tempo = 150;
+    score.masterBars[0].beatsCount = 6;
+    score.masterBars[0].duration = NoteDuration.Eighth;
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const originalUUID = score.masterBars[0].uuid;
 
@@ -1812,6 +1827,12 @@ describe("TrackController", () => {
 
     expect(score.masterBars).toHaveLength(2);
     expect(score.masterBars[0].uuid).toBe(originalUUID);
+    expect(score.masterBars[1].barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 150,
+      beatsCount: 6,
+      duration: NoteDuration.Eighth,
+    });
     expect(controller.selectionBeats).toHaveLength(0);
     expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });

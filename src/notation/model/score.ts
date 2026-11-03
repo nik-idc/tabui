@@ -229,14 +229,14 @@ export class Score {
   /**
    * Inserts a master bar and corresponding bars on every staff.
    * @param index Integer insertion position from zero through the master-bar count.
-   * @param masterBarData Tempo, meter, and repeat settings; omitted uses DEFAULT_MASTER_BAR.
+   * @param masterBarData Tempo, meter, and repeat settings; omitted inherits tempo and meter when appending, otherwise uses DEFAULT_MASTER_BAR.
    * @param voiceNumber Voice to seed with a quarter rest, alongside the staff's existing non-empty voices.
    * @returns Live master bar and staff bars keyed by staff UUID, with the supplied index.
    * @throws If settings, timing, or staff bookkeeping are invalid.
    */
   public insertMasterBar(
     index: number,
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
     const invalidIndex =
@@ -244,7 +244,10 @@ export class Score {
     if (invalidIndex) {
       throw Error(`${index} is invalid bar index`);
     }
-    const newMasterBar = new MasterBar(masterBarData);
+    if (index === this._masterBars.length) {
+      return this.appendMasterBar(masterBarData, voiceNumber);
+    }
+    const newMasterBar = new MasterBar(masterBarData ?? DEFAULT_MASTER_BAR);
     this._masterBars.splice(index, 0, newMasterBar);
 
     const staffBars: Map<number, Bar> = new Map();
@@ -262,16 +265,24 @@ export class Score {
 
   /**
    * Appends a master bar and corresponding bars on every staff.
-   * @param masterBarData Tempo, meter, and repeat settings; omitted uses DEFAULT_MASTER_BAR.
+   * @param masterBarData Explicit settings; omitted inherits the last bar's tempo and meter without repeats, or uses defaults for an empty score.
    * @param voiceNumber Voice to seed with a quarter rest, alongside existing non-empty voices.
    * @returns Live bars keyed by staff UUID and their zero-based position.
    * @throws If settings, timing, or staff bookkeeping are invalid.
    */
   public appendMasterBar(
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
-    const newMasterBar = new MasterBar(masterBarData);
+    const previousBar = this._masterBars[this._masterBars.length - 1];
+    const newMasterBar = new MasterBar(
+      masterBarData ?? {
+        ...DEFAULT_MASTER_BAR,
+        tempo: previousBar?.tempo ?? DEFAULT_MASTER_BAR.tempo,
+        beatsCount: previousBar?.beatsCount ?? DEFAULT_MASTER_BAR.beatsCount,
+        duration: previousBar?.duration ?? DEFAULT_MASTER_BAR.duration,
+      }
+    );
     this._masterBars.push(newMasterBar);
 
     const staffBars: Map<number, Bar> = new Map();

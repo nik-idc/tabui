@@ -396,7 +396,7 @@ export class TrackControllerEditor {
     this.executeCommand(
       new AppendBarCommand(
         selectionCursor.bar.staff.track.score,
-        selectionCursor.bar.masterBar.barData,
+        undefined,
         selectionCursor.voiceBar.voiceNumber
       ),
       () => selectionCursor.afterAddedBar(),
@@ -1167,9 +1167,9 @@ export class TrackControllerEditor {
 
   /**
    * Appends a bar to the track and all the score tracks
-   * @param bar Bar to append
+   * @param masterBarData Explicit settings; omitted inherits the last bar's tempo and meter without repeat markers.
    */
-  public appendBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
+  public appendBar(masterBarData?: MasterBarData): void {
     if (!this.editingEnabled) {
       return;
     }
@@ -1210,12 +1210,9 @@ export class TrackControllerEditor {
 
   /**
    * Inserts a bar to the track at specified index and all the score tracks
-   * @param bar Bar to insert
+   * @param masterBarData Explicit settings; omitted inherits tempo and meter only at the score end.
    */
-  public insertBar(
-    barIndex: number,
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
-  ): void {
+  public insertBar(barIndex: number, masterBarData?: MasterBarData): void {
     if (!this.editingEnabled) {
       return;
     }
@@ -1314,7 +1311,7 @@ export class TrackControllerEditor {
       new InsertBarCommand(
         selectedBar.staff.track.score,
         insertIndex + 1,
-        DEFAULT_MASTER_BAR,
+        undefined,
         this._selectionManager.activeVoiceNumber
       ),
       () => this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1])
