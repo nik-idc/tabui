@@ -14,6 +14,8 @@ import { SelectedMoveDirection } from "../../../src/notation/controller";
 import { withNotationDialog } from "./notation-dialog-fixture";
 import { required } from "../required";
 import { serializeScore } from "../../../src/notation/model/serialization";
+import { ScorePlayer } from "../../../src/player/score-player";
+import { installTransportAudio } from "../player/transport-audio";
 
 function createKeyboardEvent(
   key: string,
@@ -52,8 +54,8 @@ class FakeClipboardData {
 }
 
 function clipboardEvent(
-  type: "copy" | "paste",
-  data: FakeClipboardData
+  type: "copy" | "cut" | "paste",
+  data: FakeClipboardData | null
 ): Event {
   const event = new window.Event(type, { bubbles: true, cancelable: true });
   Object.defineProperty(event, "clipboardData", { value: data });
@@ -391,9 +393,52 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(source.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
   });
 
-  test.each([false, true])(
-    "Ctrl shortcuts copy, paste, undo and redo note values (uppercase=%s)",
-    (uppercase) => {
+  test("select all includes unrendered bars", () => {
+    const { callbacks, notationComponent, rootElement, renderFunc } =
+      createHarness();
+    const { track, score, staff, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[0].makeRest();
+    for (let i = 0; i < 30; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    controller.trackElement.update({
+      lineRange: { startLineIndex: 0, endLineIndex: 0 },
+    });
+    const lastBeat = required(staff.bars[30].getVoiceBar(1)).beats[0];
+    expect(controller.trackElement.getBeatElement(lastBeat)).toBeUndefined();
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+    const before = serializeScore(score);
+    rootElement.focus();
+
+    const event = createKeyboardEvent("A", { ctrlKey: true });
+    callbacks.onKeyDown(event);
+
+    expect(controller.selectionBeats).toHaveLength(32);
+    expect(controller.selectionBeats[0]).toBe(beats[0]);
+    expect(controller.selectionEndBeat).toBe(lastBeat);
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(event.preventDefault).toHaveBeenCalledTimes(1);
+    expect(renderFunc).toHaveBeenCalledTimes(1);
+    expect(serializeScore(score)).toEqual(before);
+    expect(controller.trackElement.getBeatElement(lastBeat)).toBeUndefined();
+    controller.clearSelectionRange();
+    expect(controller.selectionCursor?.beat).toBe(beats[0]);
+  });
+
+  test.each([
+    [false, false, false],
+    [true, false, true],
+    [true, true, true],
+  ])(
+    "clipboard history (uppercase=%s, Meta=%s, Shift+Z redo=%s)",
+    (uppercase, metaKey, shiftRedo) => {
       const { callbacks, notationComponent, rootElement, renderFunc } =
         createHarness();
       const { track, beats } = createBarWithBeats([
@@ -417,11 +462,13 @@ describe("EditorKeyboardDefCallbacks", () => {
 
       for (const [key, fret] of [
         ["z", 5],
-        ["y", 9],
+        [shiftRedo ? "z" : "y", 9],
       ] as const) {
         renderFunc.mockClear();
         const event = createKeyboardEvent(uppercase ? key.toUpperCase() : key, {
-          ctrlKey: true,
+          ctrlKey: !metaKey,
+          metaKey,
+          shiftKey: fret === 9 && shiftRedo,
         });
         callbacks.onKeyDown(event);
         expect(beats[1].notes?.[0]).toEqual(expect.objectContaining({ fret }));
@@ -784,6 +831,8 @@ describe("EditorKeyboardDefCallbacks", () => {
   test.each([
     { altKey: true },
     { metaKey: true },
+    { metaKey: true, shiftKey: true },
+    { metaKey: true, ctrlKey: true },
     { isComposing: true },
     { keyCode: 229 },
     { ctrlKey: true, shiftKey: true },
@@ -812,8 +861,17 @@ describe("EditorKeyboardDefCallbacks", () => {
         "z",
         "y",
         "c",
+        "ArrowLeft",
+        "ArrowRight",
         " ",
       ]) {
+        const command = options.metaKey && !options.ctrlKey;
+        const allowed =
+          (command && key === "a" && !options.shiftKey) ||
+          (key === "z" && (command || (options.ctrlKey && !options.metaKey)));
+        if (allowed || (key.startsWith("Arrow") && !options.metaKey)) {
+          continue;
+        }
         const event = new window.KeyboardEvent("keydown", {
           key,
           ...options,
@@ -909,7 +967,7 @@ describe("EditorKeyboardDefCallbacks", () => {
   );
 
   test("dialog events leave native keys available without enabling toolbar playback", () => {
-    withKeyboardFixture(({ callbacks, root }) => {
+    withKeyboardFixture(({ callbacks, controller, root }) => {
       const button = document.createElement("button");
       const dialog = document.createElement("dialog");
       const dialogButton = document.createElement("button");
@@ -921,15 +979,25 @@ describe("EditorKeyboardDefCallbacks", () => {
       callbacks.bind();
       dialog.setAttribute("open", "");
       dialogButton.focus();
-      for (const key of ["Tab", "ArrowRight", " "]) {
+      controller.setSelectedNoteFret(5);
+      const selected = controller.selectionCursor;
+      for (const [key, ctrlKey, shiftKey] of [
+        ["Tab", false, false],
+        ["ArrowRight", false, false],
+        [" ", false, false],
+        ["a", true, false],
+        ["a", true, true],
+      ] as const) {
         const event = new window.KeyboardEvent("keydown", {
           key,
-          shiftKey: true,
+          ctrlKey,
+          shiftKey,
           bubbles: true,
           cancelable: true,
         });
         dialogButton.dispatchEvent(event);
         expect(event.defaultPrevented).toBe(false);
+        expect(controller.selectionCursor).toBe(selected);
       }
       expect(toggle).not.toHaveBeenCalled();
       dialog.removeAttribute("open");
@@ -1049,6 +1117,18 @@ describe("EditorKeyboardDefCallbacks", () => {
           expect(controller.selectionCursor?.note).toEqual(
             expect.objectContaining({ fret: null })
           );
+          if (target !== root) {
+            const selected = controller.selectionCursor;
+            const selectAll = new window.KeyboardEvent("keydown", {
+              key: "a",
+              ctrlKey: true,
+              bubbles: true,
+              cancelable: true,
+            });
+            target.dispatchEvent(selectAll);
+            expect(selectAll.defaultPrevented).toBe(false);
+            expect(controller.selectionCursor).toBe(selected);
+          }
         }
         root.focus();
         const accepted = new window.KeyboardEvent("keydown", {
@@ -1067,8 +1147,122 @@ describe("EditorKeyboardDefCallbacks", () => {
     });
   });
 
+  test("native cut is ignored during playback preparation or playback", async () => {
+    jest.useFakeTimers();
+    const audio = installTransportAudio();
+    const { track } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const player = new ScorePlayer(track.score, track);
+    try {
+      const { callbacks, notationComponent, rootElement, renderFunc } =
+        createHarness();
+      const controller = new TrackController(
+        track,
+        TEST_LAYOUT_DIMENSIONS,
+        player
+      );
+      notationComponent.trackController = controller;
+      controller.setSelectedNoteFret(7);
+      const before = serializeScore(track.score);
+      callbacks.bind();
+      rootElement.focus();
+      const start = player.start();
+      for (const state of ["starting", "playing"]) {
+        expect(player.playbackState).toBe(state);
+        const data = new FakeClipboardData();
+        data.setData("text/plain", "unchanged");
+        const cut = clipboardEvent("cut", data);
+        document.body.dispatchEvent(cut);
+        expect(cut.defaultPrevented).toBe(false);
+        expect(data.getData("text/plain")).toBe("unchanged");
+        expect(serializeScore(track.score)).toEqual(before);
+        await start;
+      }
+      callbacks.unbind();
+      expect(renderFunc).not.toHaveBeenCalled();
+    } finally {
+      player.dispose();
+      audio.restore();
+      jest.useRealTimers();
+    }
+  });
+
+  test.each([false, true])(
+    "native cut copies before deleting beats and keeps bars (range=%s)",
+    (range) => {
+      withKeyboardFixture(({ callbacks, controller, root, beats }) => {
+        controller.setSelectedNoteFret(7);
+        controller.setDuration(NoteDuration.Eighth);
+        if (range) {
+          controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+          controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+        }
+        const score = controller.track.score;
+        const voiceBar = required(
+          controller.track.staves[0].bars[0].getVoiceBar(1)
+        );
+        const bars = [...score.masterBars];
+        const before = serializeScore(score);
+        callbacks.bind();
+        callbacks.bind();
+        root.focus();
+        const data = new FakeClipboardData();
+        const cut = clipboardEvent("cut", data);
+        document.body.dispatchEvent(cut);
+        expect(cut.defaultPrevented).toBe(true);
+        const text = data.getData("text/plain");
+        expect(JSON.parse(text)).toMatchObject(
+          range
+            ? {
+                kind: "beats",
+                beats: [
+                  {
+                    duration: "eighth",
+                    dots: 0,
+                    notes: [
+                      expect.objectContaining({ fret: 7 }),
+                      null,
+                      null,
+                      null,
+                      null,
+                      null,
+                    ],
+                  },
+                  { duration: "quarter", dots: 0 },
+                ],
+              }
+            : { kind: "note", fret: 7 }
+        );
+        if (range) {
+          expect(voiceBar.beats).toHaveLength(1);
+          expect(voiceBar.beats[0]).toEqual(
+            expect.objectContaining({ notes: null })
+          );
+        } else {
+          expect(voiceBar.beats).toEqual([beats[1]]);
+        }
+        expect(score.masterBars).toEqual(bars);
+        const after = serializeScore(score);
+        controller.undo();
+        expect(serializeScore(score)).toEqual(before);
+        controller.redo();
+        expect(serializeScore(score)).toEqual(after);
+        expect(controller.paste(text)).toBe(true);
+        expect(controller.selectionAsBeats[0].notes?.[0]).toEqual(
+          expect.objectContaining({ fret: 7 })
+        );
+        if (range) {
+          expect(controller.selectionAsBeats[0].baseDuration).toBe(
+            NoteDuration.Eighth
+          );
+        }
+      });
+    }
+  );
+
   test("native clipboard uses the focused viewport and stops after disposal", () => {
-    withKeyboardFixture(({ callbacks, controller, root }) => {
+    withKeyboardFixture(({ callbacks, controller, root, note, beats }) => {
       controller.setSelectedNoteFret(7);
       callbacks.bind();
       root.focus();
@@ -1081,20 +1275,62 @@ describe("EditorKeyboardDefCallbacks", () => {
       const input = document.createElement("input");
       root.append(input);
       input.focus();
-      const ignoredPaste = clipboardEvent("paste", copiedData);
-      document.body.dispatchEvent(ignoredPaste);
-      expect(ignoredPaste.defaultPrevented).toBe(false);
+      const before = serializeScore(controller.track.score);
+      for (const type of ["paste", "cut"] as const) {
+        const ignored = clipboardEvent(type, copiedData);
+        document.body.dispatchEvent(ignored);
+        expect(ignored.defaultPrevented).toBe(false);
+      }
+      root.focus();
+      for (const guard of [
+        "prevented",
+        "no data",
+        "dialog",
+        "empty",
+      ] as const) {
+        const data = new FakeClipboardData();
+        data.setData("text/plain", "unchanged");
+        const cut = clipboardEvent("cut", guard === "no data" ? null : data);
+        if (guard === "prevented") {
+          cut.preventDefault();
+        }
+        if (guard === "dialog") {
+          note.showTupletControls();
+          root.focus();
+        }
+        if (guard === "empty") {
+          controller.selectBeat(
+            required(controller.trackElement.getBeatElement(beats[0]))
+          );
+          controller.clearSelection();
+        }
+        document.body.dispatchEvent(cut);
+        expect(cut.defaultPrevented).toBe(guard === "prevented");
+        expect(data.getData("text/plain")).toBe("unchanged");
+        expect(serializeScore(controller.track.score)).toEqual(before);
+        if (guard === "dialog") {
+          note.tupletComponent.dialog.close();
+        }
+      }
 
       callbacks.unbind();
       root.focus();
-      const afterDispose = clipboardEvent("paste", copiedData);
-      document.body.dispatchEvent(afterDispose);
-      expect(afterDispose.defaultPrevented).toBe(false);
+      controller.selectBeat(
+        required(controller.trackElement.getBeatElement(beats[0]))
+      );
+      expect(controller.copy()).toBeDefined();
+      for (const type of ["paste", "cut"] as const) {
+        const afterDispose = clipboardEvent(type, copiedData);
+        document.body.dispatchEvent(afterDispose);
+        expect(afterDispose.defaultPrevented).toBe(false);
+      }
+      expect(serializeScore(controller.track.score)).toEqual(before);
     });
   });
 
   test("view-only blocks mutations without changing score, selection, or history", () => {
-    withKeyboardFixture(({ callbacks, controller, root, host, render }) => {
+    withKeyboardFixture((fixture) => {
+      const { callbacks, controller, root, host, render, beats } = fixture;
       controller.setSelectedNoteFret(5);
       controller.setSelectedNoteFret(7);
       controller.undo();
@@ -1102,6 +1338,13 @@ describe("EditorKeyboardDefCallbacks", () => {
       const before = serializeScore(controller.track.score);
       const selected = controller.selectionCursor?.note;
       root.focus();
+      callbacks.bind();
+      const data = new FakeClipboardData();
+      data.setData("text/plain", "unchanged");
+      const cut = clipboardEvent("cut", data);
+      document.body.dispatchEvent(cut);
+      expect(cut.defaultPrevented).toBe(false);
+      expect(data.getData("text/plain")).toBe("unchanged");
       for (const key of [
         "7",
         "Backspace",
@@ -1146,6 +1389,16 @@ describe("EditorKeyboardDefCallbacks", () => {
       }
       expect(serializeScore(controller.track.score)).toEqual(before);
       expect(render).not.toHaveBeenCalled();
+      const metaSelectAll = new window.KeyboardEvent("keydown", {
+        key: "a",
+        metaKey: true,
+        cancelable: true,
+      });
+      callbacks.onKeyDown(metaSelectAll);
+      expect(metaSelectAll.defaultPrevented).toBe(true);
+      expect(serializeScore(controller.track.score)).toEqual(before);
+      expect(controller.selectionBeats).toEqual(beats);
+      expect(controller.selectionCursor).toBeUndefined();
       controller.setEditingEnabled(true);
       controller.redo();
       expect(controller.selectionCursor?.note).toEqual(

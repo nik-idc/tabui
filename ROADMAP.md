@@ -93,6 +93,10 @@ replace release validation.
 - [x] Fix focus issues
 - [x] Use system clipboard
 - [x] Fix LR/PM markings logic
+- [x] Ctrl+A to select all
+      I was thinking. How hard would it be to modify the insertion algo a bit to fill the bars as long as they are empty. Here is my thought process with this
+- [ ] Appended bars don't inherit the BPM & Time Signature
+- [ ] Revisit Palm Mute sound
 
 ## Follow-up inbox
 

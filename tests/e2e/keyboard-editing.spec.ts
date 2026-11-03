@@ -570,7 +570,7 @@ for (const [key, name, buttonName, increase] of [
   });
 }
 
-test("ignores composition, prevented events, and unsupported modifiers", async ({
+test("handles composition, prevented events, and unsupported modifiers while selecting all", async ({
   page,
 }) => {
   const editor = await openEditor(page);
@@ -578,8 +578,8 @@ test("ignores composition, prevented events, and unsupported modifiers", async (
   const before = await editingState(editor);
   for (const key of [
     "Alt+a",
-    "Meta+a",
-    "Control+a",
+    "Meta+y",
+    "Control+Shift+a",
     "Control+Shift+X",
     "Shift+P",
     "Shift+B",
@@ -611,6 +611,13 @@ test("ignores composition, prevented events, and unsupported modifiers", async (
       });
     });
   expect(prevented).toEqual([false, false, true]);
+  expect(await editingState(editor)).toEqual(before);
+
+  await page.keyboard.press("Control+a");
+  const clearRangeButton = editor.getByRole("button", { name: "Clear range" });
+  await expect(clearRangeButton).toHaveAttribute("aria-pressed", "true");
+  await expect(editor.locator('[id^="selection-rect-"]')).toHaveCount(1);
+  await page.keyboard.press("Escape");
   expect(await editingState(editor)).toEqual(before);
 });
 

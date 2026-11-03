@@ -731,6 +731,15 @@ export class TrackController {
     );
   }
 
+  /** Selects all beats in the current staff's active voice while playback is idle. */
+  public selectAllBeats(): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+
+    return this._trackControllerEditor.selectionManager.selectAllBeats();
+  }
+
   /** Extends the current selection by one beat in either direction. */
   public extendSelectionByBeat(direction: SelectedMoveDirection): boolean {
     if (this.playbackState !== PlaybackState.Idle) {

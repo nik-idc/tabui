@@ -945,6 +945,68 @@ describe("TrackController", () => {
     expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[0]);
   });
 
+  test("select all stays in the active voice and skips missing and empty voice bars", () => {
+    const { score, track, staff, bar } = createScoreGraph();
+    for (let i = 0; i < 3; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const first = bar.insertVoiceBar(2).beats[0];
+    const empty = staff.bars[2].insertVoiceBar(2);
+    empty.beats.splice(0);
+    empty.rebuildTiming();
+    const last = staff.bars[3].insertVoiceBar(2).beats[0];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.setActiveVoiceNumber(2);
+    controller.clearSelection();
+
+    expect(controller.selectAllBeats()).toBe(true);
+    expect(controller.selectionBeats).toEqual([first, last]);
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.activeVoiceNumber).toBe(2);
+    expect(staff.bars[1].getVoiceBar(2)).toBeNull();
+    expect(empty.beats).toEqual([]);
+  });
+
+  test.each(["note", "rest"])(
+    "select all handles a single %s beat without adding history",
+    (state) => {
+      const { track, score, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      if (state === "rest") {
+        controller.setSelectedBeatRest();
+      } else {
+        controller.setSelectedNoteFret(5);
+      }
+      const before = serializeScore(score);
+      expect(controller.selectAllBeats()).toBe(true);
+      expect(controller.selectionBeats).toEqual(beats);
+      expect(controller.selectionCursor).toBeUndefined();
+      expect(serializeScore(score)).toEqual(before);
+      controller.undo();
+      expect(beats[0].isRest()).toBe(false);
+      expect(beats[0].notes?.[0]).toEqual(
+        expect.objectContaining({ fret: null })
+      );
+    }
+  );
+
+  test("select all preserves selection during playback preparation and playback", async () => {
+    const { track } = createScoreGraph();
+    const { controller, player } = realTransport(track);
+    const selected = controller.selectionCursor;
+    const start = player.start();
+    expect(player.playbackState).toBe("starting");
+    expect(controller.selectAllBeats()).toBe(false);
+    expect(controller.selectionCursor).toBe(selected);
+    await start;
+    expect(player.playbackState).toBe("playing");
+    expect(controller.selectAllBeats()).toBe(false);
+    expect(controller.selectionCursor).toBe(selected);
+    expect(controller.selectionBeats).toEqual([]);
+  });
+
   test("beat selection extension keeps its anchor while moving the endpoint", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

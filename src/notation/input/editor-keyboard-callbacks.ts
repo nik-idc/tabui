@@ -26,7 +26,9 @@ import {
  */
 /* eslint-disable @typescript-eslint/no-duplicate-enum-values -- Actions share keys; modifiers distinguish shortcuts. */
 export enum EditorKey {
-  // Ctrl only.
+  // Ctrl or Command for Select All and Undo; clipboard uses native events.
+  // Redo also accepts Ctrl/Command+Shift+Z; Y stays Ctrl-only.
+  SelectAll = "a",
   Copy = "c",
   Paste = "v",
   Undo = "z",
@@ -122,6 +124,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   private _boundOnKeyDown: (event: KeyboardEvent) => void;
   /** Stable document copy listener owned by this editor instance. */
   private _boundOnCopy: (event: ClipboardEvent) => void;
+  /** Stable document cut listener owned by this editor instance. */
+  private _boundOnCut: (event: ClipboardEvent) => void;
   /** Stable document paste listener owned by this editor instance. */
   private _boundOnPaste: (event: ClipboardEvent) => void;
 
@@ -140,6 +144,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     this._boundOnCopy = this.onCopy.bind(this);
+    this._boundOnCut = this.onCut.bind(this);
     this._boundOnPaste = this.onPaste.bind(this);
   }
 
@@ -478,11 +483,20 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   /** Routes shared actions before editing; true means consume the key. */
   private dispatchShortcut(event: KeyboardEvent): boolean {
     const key = event.key.toLowerCase();
-    const { ctrlKey, shiftKey } = event;
+    const { shiftKey } = event;
+    const ctrlKey = event.ctrlKey || event.metaKey;
     const controller = this._notationComponent.trackController;
 
     if (controller.playbackState !== PlaybackState.Idle) {
       return false;
+    }
+
+    if (key === EditorKey.SelectAll && ctrlKey && !shiftKey) {
+      if (!controller.selectAllBeats()) {
+        return false;
+      }
+      this._renderFunc();
+      return true;
     }
 
     if (key === EditorKey.CancelSelection && !ctrlKey && !shiftKey) {
@@ -583,10 +597,16 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return false;
     }
 
+    const key = event.key.toLowerCase();
+    // Leave other Command shortcuts to the browser, never to bare-letter actions.
+    const unsupportedMeta =
+      event.metaKey &&
+      (event.ctrlKey ||
+        (key !== EditorKey.SelectAll && key !== EditorKey.Undo));
     if (
       event.defaultPrevented ||
       event.altKey ||
-      event.metaKey ||
+      unsupportedMeta ||
       event.isComposing ||
       event.keyCode === 229 // Fallback for legacy browsers
     ) {
@@ -597,14 +617,14 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return false;
     }
 
-    const key = event.key.toLowerCase(); // normalize
     return key !== "tab" && !(key.length !== 1 && key[0] === "f");
   }
 
   /** Dispatches editing bindings only when their selection is available. */
   private dispatchEditingShortcut(event: KeyboardEvent): boolean {
     const key = event.key.toLowerCase();
-    const { ctrlKey, shiftKey } = event;
+    const { shiftKey } = event;
+    const ctrlKey = event.ctrlKey || event.metaKey;
     const controller = this._notationComponent.trackController;
     if (!ctrlKey) {
       const barActions: readonly string[] = [
@@ -636,7 +656,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     if (!ctrlKey && lengthen) {
       this.changeDurationEvent(true);
     } else if (ctrlKey && shiftKey) {
-      return false;
+      if (key !== EditorKey.Undo) {
+        return false;
+      }
+      this.redoEvent();
     } else if (ctrlKey) {
       if (key === EditorKey.Undo) {
         this.undoEvent();
@@ -734,6 +757,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     this._boundOnKeyDown = this.onKeyDown.bind(this);
     document.addEventListener("keydown", this._boundOnKeyDown);
     document.addEventListener("copy", this._boundOnCopy);
+    document.addEventListener("cut", this._boundOnCut);
     document.addEventListener("paste", this._boundOnPaste);
     this._bound = true;
   }
@@ -745,6 +769,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     document.removeEventListener("keydown", this._boundOnKeyDown);
     document.removeEventListener("copy", this._boundOnCopy);
+    document.removeEventListener("cut", this._boundOnCut);
     document.removeEventListener("paste", this._boundOnPaste);
     this._bound = false;
   }
@@ -770,6 +795,26 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     event.preventDefault();
     event.clipboardData.clearData();
     event.clipboardData.setData("text/plain", text);
+  }
+
+  /** Writes the selection before using the same beat removal action as Delete. */
+  private onCut(event: ClipboardEvent): void {
+    if (!this.clipboardEventEligible(event) || event.clipboardData === null) {
+      return;
+    }
+    const tc = this._notationComponent.trackController;
+    if (tc.playbackState !== PlaybackState.Idle || !tc.editingEnabled) {
+      return;
+    }
+    const clipboardText = tc.copy();
+    if (clipboardText === undefined) {
+      return;
+    }
+
+    event.clipboardData.clearData();
+    event.clipboardData.setData("text/plain", clipboardText);
+    event.preventDefault();
+    this.deleteSelectionEvent();
   }
 
   private onPaste(event: ClipboardEvent): void {

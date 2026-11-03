@@ -21,16 +21,18 @@ guidance, see the [usage guide](usage.md).
 - Clicking empty editor space or a toolbar button lets you continue using notation
   shortcuts. Press Tab to move to other controls. Text fields, sliders, and dialogs
   keep their normal keyboard controls.
-- Use **Ctrl**, including on macOS, for notation shortcuts. Copy and paste use
-  native system shortcuts, including **Command+C/V** on macOS. Other shortcuts with
-  Alt or Command/Meta are ignored, as are text-composition events.
+- On macOS, use **Command+A/C/X/V/Z** for select all, copy, cut, paste, and undo.
+  Use **Command+Shift+Z** for redo. Bar navigation and range extension with arrows
+  still require **Ctrl**, including Ctrl+Shift+Left/Right. Ctrl+Y also works for redo;
+  Command+Y keeps its browser action. Other Command shortcuts, Alt shortcuts, and
+  text-composition events are ignored by TabUI.
 - Letters below do not require Shift unless it is shown. For example, `V` and
   `Shift+V` are different actions. Keys follow the characters produced by your
   keyboard layout.
 - Navigation, range selection, copying, and playback are available in view-only
   mode. All other notation actions require editing to be enabled. Narrow layouts
   can force view-only mode or block interaction; see [responsive layout](usage.md#responsive-layout).
-- While playback is active or preparing, only Space, Shift+Space, and Ctrl+C remain available
+- While playback is active or preparing, only Space, Shift+Space, and copying remain available
   as notation shortcuts. Stop playback before navigating or editing.
 - Editing actions need a suitable note cursor or beat range. Some require a
   single note cursor, as described below. See also the
@@ -45,23 +47,25 @@ guidance, see the [usage guide](usage.md).
 | Ctrl+Left / Ctrl+Right             | Move by bar boundary.                                                                           |
 | Shift+Left / Shift+Right           | Select the current beat on the first press, then extend or shrink the range by one beat.        |
 | Ctrl+Shift+Left / Ctrl+Shift+Right | Extend or shrink a beat range by bar.                                                           |
+| Ctrl+A                             | Select all beats in the current staff and active voice, including offscreen bars.               |
 | Escape                             | Cancel a beat range and restore its anchor cursor.                                              |
 | Shift+V                            | Cycle the active voice: 1 → 2 → 3 → 4 → 1. Requires edit mode.                                  |
 
 ## Playback and clipboard
 
-| Key         | Action                                                                   |
-| ----------- | ------------------------------------------------------------------------ |
-| Space       | Start playback when idle; otherwise stop playback or cancel preparation. |
-| Shift+Space | Toggle playback from notation or an editor toolbar button.               |
-| Ctrl+C      | Copy the selected note or beat range.                                    |
-| Ctrl+V      | Paste the copied note or beats. Requires edit mode.                      |
-| Ctrl+Z      | Undo. Requires edit mode.                                                |
-| Ctrl+Y      | Redo. Requires edit mode.                                                |
+| Key                    | Action                                                                       |
+| ---------------------- | ---------------------------------------------------------------------------- |
+| Space                  | Start playback when idle; otherwise stop playback or cancel preparation.     |
+| Shift+Space            | Toggle playback from notation or an editor toolbar button.                   |
+| Ctrl+C                 | Copy the selected note or beat range.                                        |
+| Ctrl+X                 | Copy the selection, then remove its beats, keeping bars. Requires edit mode. |
+| Ctrl+V                 | Paste the copied note or beats. Requires edit mode.                          |
+| Ctrl+Z                 | Undo. Requires edit mode.                                                    |
+| Ctrl+Y or Ctrl+Shift+Z | Redo. Requires edit mode.                                                    |
 
-Copy notes or passages and paste them into another TabUI editor, including in
+Copy or cut notes or passages and paste them into another TabUI editor, including in
 another browser tab. Pasting text from other apps is not supported. On macOS,
-use Command+C and Command+V.
+use Command+C, Command+X, and Command+V.
 
 A single note copies only its fret, not its pitch, rhythm, or techniques. Beat
 ranges keep their frets on the same string numbers, even with different tuning.
@@ -96,6 +100,7 @@ Duration steps run from sixty-fourth to whole notes. For a range, duration, dots
 and tuplet cycling use the active-end beat as the reference and apply the result
 to the selected beats. Fret entry, clearing a fret, and dead-note entry use a
 single note cursor.
+Backspace does not clear a beat range.
 
 The `+` shortcut accepts either Shift state because some keyboard layouts need
 Shift to produce it. The `=` shortcut is unshifted.
@@ -108,7 +113,7 @@ These actions require edit mode and stopped playback.
 | ------------ | ------------------------------------------------------------- |
 | A            | Insert a beat after the selection.                            |
 | Shift+A      | Insert a beat before the selection.                           |
-| Delete       | Remove selected beats.                                        |
+| Delete       | Remove selected beats, keeping bars.                          |
 | I            | Insert a bar after the selection.                             |
 | Shift+I      | Insert a bar before the selection.                            |
 | Shift+Delete | Remove selected bars.                                         |

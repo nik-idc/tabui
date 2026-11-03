@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("@clipboard native copy and paste transfers a note between pages", async ({
+test("@clipboard native copy, cut and paste transfer a note between pages", async ({
   context,
 }) => {
   const sourcePage = await context.newPage();
@@ -34,6 +34,29 @@ test("@clipboard native copy and paste transfers a note between pages", async ({
   await expect(
     destinationEditor.locator('[id^="note-text-"]').first()
   ).toHaveText("7");
+  await sourcePage.bringToFront();
+  await sourceEditor.locator(".tu-notation-viewport").focus();
+  await sourcePage.keyboard.press("ArrowDown");
+  await sourcePage.keyboard.press("8");
+  await sourcePage.keyboard.press("Control+x");
+  await expect(sourceEditor.locator('[id^="note-text-"]')).toHaveCount(0);
+  await sourcePage.keyboard.press("Control+z");
+  await expect(sourceEditor.locator('[id^="note-text-"]').first()).toHaveText(
+    "7"
+  );
+  await sourcePage.keyboard.press("Control+Shift+z");
+  await expect(sourceEditor.locator('[id^="note-text-"]')).toHaveCount(0);
+
+  await destinationPage.bringToFront();
+  await destinationEditor.locator(".tu-notation-viewport").focus();
+  await destinationPage.keyboard.press("Control+z");
+  await expect(
+    destinationEditor.locator('[id^="note-text-"]').first()
+  ).toHaveText("3");
+  await destinationPage.keyboard.press("Control+v");
+  await expect(
+    destinationEditor.locator('[id^="note-text-"]').first()
+  ).toHaveText("8");
   await destinationPage.keyboard.press("Control+z");
   await expect(
     destinationEditor.locator('[id^="note-text-"]').first()
@@ -41,5 +64,5 @@ test("@clipboard native copy and paste transfers a note between pages", async ({
   await destinationPage.keyboard.press("Control+y");
   await expect(
     destinationEditor.locator('[id^="note-text-"]').first()
-  ).toHaveText("7");
+  ).toHaveText("8");
 });

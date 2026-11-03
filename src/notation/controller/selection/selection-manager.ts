@@ -348,6 +348,21 @@ export class SelectionManager {
       : targetBeats[targetBeats.length - 1];
   }
 
+  /** Selects every model beat in the current staff and active voice as a range. */
+  public selectAllBeats(): boolean {
+    const beats = this._staff.getBeatsSeq(this._activeVoiceNumber);
+    const first = beats[0];
+    const last = beats.at(-1);
+    if (first === undefined || last === undefined) {
+      return false;
+    }
+
+    this.clearSelection();
+    this.selectBeat(first);
+    this.selectBeat(last);
+    return true;
+  }
+
   /** Extends the fixed-anchor range by one beat in either direction. */
   public extendSelectionByBeat(direction: SelectedMoveDirection): boolean {
     const cursorBeat = this._selectionCursor?.beat;

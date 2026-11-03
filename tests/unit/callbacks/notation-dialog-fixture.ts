@@ -88,6 +88,7 @@ function createFixture() {
   );
   technique.bendControlsComponent.render();
   const ui = {
+    dialogEnforcer: enforcer,
     sideComponent: {
       measureControlsComponent: measure,
       noteControlsComponent: note,
