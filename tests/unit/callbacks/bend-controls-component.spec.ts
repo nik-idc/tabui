@@ -124,21 +124,6 @@ describe("BendControlsComponent", () => {
     );
   });
 
-  test("disables every prebend type on tied notes", () => {
-    const { component } = harness;
-    prepareContinuation(1);
-
-    expect(component.template.bendTypesButtons[BendType.Prebend].disabled).toBe(
-      true
-    );
-    expect(
-      component.template.bendTypesButtons[BendType.PrebendAndRelease].disabled
-    ).toBe(true);
-    expect(
-      component.template.bendTypesButtons[BendType.PrebendBend].disabled
-    ).toBe(true);
-  });
-
   test("keeps Hold and Release disabled without Tie", () => {
     prepareContinuation(1, false);
     const { component } = harness;

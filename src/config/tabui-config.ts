@@ -170,6 +170,8 @@ export interface TabUIConfig {
         ink?: string;
         /** Notation labels and fret text. */
         text?: string;
+        /** Bar number labels; defaults to a subdued version of notation text. */
+        barNumber?: string;
         /** Background behind fret numbers. */
         noteBackground?: string;
         /** Selection outline. */
@@ -279,6 +281,8 @@ const DEFAULT_THEME_CSS_VARS = {
   "--tu-font-notation": '"Roboto", sans-serif',
   "--tu-notation-ink": "#000000",
   "--tu-notation-text": "#000000",
+  "--tu-notation-bar-number":
+    "color-mix(in srgb, var(--tu-notation-text) 55%, transparent)",
   "--tu-notation-note-background": "#ffffff",
   "--tu-notation-selection-stroke": "#f97316",
   "--tu-notation-selection-fill": "#ffffff80",
@@ -420,6 +424,11 @@ function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
       : {}),
     ...(config.theme?.notation?.colors?.text !== undefined
       ? { "--tu-notation-text": config.theme.notation.colors.text }
+      : {}),
+    ...(config.theme?.notation?.colors?.barNumber !== undefined
+      ? {
+          "--tu-notation-bar-number": config.theme.notation.colors.barNumber,
+        }
       : {}),
     ...(config.theme?.notation?.colors?.noteBackground !== undefined
       ? {

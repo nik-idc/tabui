@@ -500,14 +500,17 @@ describe("Tie editing", () => {
     tieCommand(beats.slice(1, 3), 1).execute();
     const command = new SetFretCommand(beats[1], 1, 6);
     command.execute();
+    expect(beats.slice(0, 3).map((b) => noteAt(b).fret)).toEqual([6, 6, 6]);
     expect(beats.slice(1, 3).every((b) => noteAt(b).isTieContinuation)).toBe(
       true
     );
     command.undo();
+    expect(beats.slice(0, 3).map((b) => noteAt(b).fret)).toEqual([5, 5, 5]);
     expect(beats.slice(1, 3).every((b) => noteAt(b).isTieContinuation)).toBe(
       true
     );
     command.redo();
+    expect(beats.slice(0, 3).map((b) => noteAt(b).fret)).toEqual([6, 6, 6]);
     expect(beats.slice(1, 3).every((b) => noteAt(b).isTieContinuation)).toBe(
       true
     );

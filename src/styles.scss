@@ -182,6 +182,10 @@
     fill: var(--tu-notation-text);
   }
 
+  .tu-root-svg text.tu-bar-number {
+    fill: var(--tu-notation-bar-number);
+  }
+
   .tu-top-controls {
     padding: 0.5rem 1rem;
     border-radius: var(--tu-border-radius);

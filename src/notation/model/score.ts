@@ -229,7 +229,7 @@ export class Score {
   /**
    * Inserts a master bar and corresponding bars on every staff.
    * @param index Integer insertion position from zero through the master-bar count.
-   * @param masterBarData Tempo, meter, and repeat settings; omitted inherits tempo and meter when appending, otherwise uses DEFAULT_MASTER_BAR.
+   * @param masterBarData Explicit settings; omitted inherits the previous bar's tempo and meter, or the first bar's at index zero, without repeats.
    * @param voiceNumber Voice to seed with a quarter rest, alongside the staff's existing non-empty voices.
    * @returns Live master bar and staff bars keyed by staff UUID, with the supplied index.
    * @throws If settings, timing, or staff bookkeeping are invalid.
@@ -247,7 +247,9 @@ export class Score {
     if (index === this._masterBars.length) {
       return this.appendMasterBar(masterBarData, voiceNumber);
     }
-    const newMasterBar = new MasterBar(masterBarData ?? DEFAULT_MASTER_BAR);
+    const newMasterBar = new MasterBar(
+      masterBarData ?? this.getNewBarData(index)
+    );
     this._masterBars.splice(index, 0, newMasterBar);
 
     const staffBars: Map<number, Bar> = new Map();
@@ -274,14 +276,8 @@ export class Score {
     masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
-    const previousBar = this._masterBars[this._masterBars.length - 1];
     const newMasterBar = new MasterBar(
-      masterBarData ?? {
-        ...DEFAULT_MASTER_BAR,
-        tempo: previousBar?.tempo ?? DEFAULT_MASTER_BAR.tempo,
-        beatsCount: previousBar?.beatsCount ?? DEFAULT_MASTER_BAR.beatsCount,
-        duration: previousBar?.duration ?? DEFAULT_MASTER_BAR.duration,
-      }
+      masterBarData ?? this.getNewBarData(this._masterBars.length)
     );
     this._masterBars.push(newMasterBar);
 
@@ -304,16 +300,16 @@ export class Score {
 
   /**
    * Prepends a master bar and corresponding bars on every staff.
-   * @param masterBarData Tempo, meter, and repeat settings; omitted uses DEFAULT_MASTER_BAR.
+   * @param masterBarData Explicit settings; omitted inherits the first bar's tempo and meter without repeats.
    * @param voiceNumber Voice to seed with a quarter rest, alongside existing non-empty voices.
    * @returns Live bars keyed by staff UUID, at index zero.
    * @throws If settings, timing, or staff bookkeeping are invalid.
    */
   public prependMasterBar(
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
-    const newMasterBar = new MasterBar(masterBarData);
+    const newMasterBar = new MasterBar(masterBarData ?? this.getNewBarData(0));
     this._masterBars.unshift(newMasterBar);
 
     const staffBars: Map<number, Bar> = new Map();
@@ -330,6 +326,17 @@ export class Score {
       index: 0,
       masterBar: newMasterBar,
       bars: staffBars,
+    };
+  }
+
+  /** Gets musical context for a new bar, using defaults only when the score is empty. */
+  private getNewBarData(index: number): MasterBarData {
+    const context = this._masterBars[index - 1] ?? this._masterBars[0];
+    return {
+      ...DEFAULT_MASTER_BAR,
+      tempo: context?.tempo ?? DEFAULT_MASTER_BAR.tempo,
+      beatsCount: context?.beatsCount ?? DEFAULT_MASTER_BAR.beatsCount,
+      duration: context?.duration ?? DEFAULT_MASTER_BAR.duration,
     };
   }
 

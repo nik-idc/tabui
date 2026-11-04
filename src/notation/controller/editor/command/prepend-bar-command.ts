@@ -14,7 +14,7 @@ export class PrependBarCommand implements Command {
   /** Score */
   private _score: Score;
   /** Data of the master bar to add */
-  private _masterBarData: MasterBarData;
+  private _masterBarData: MasterBarData | undefined;
   private _voiceNumber: VoiceNumber;
   /** Created master bar & staff bars or null if not created yet */
   private _after: MasterBarArrayOperationOutput | null = null;
@@ -26,7 +26,7 @@ export class PrependBarCommand implements Command {
    */
   constructor(
     score: Score,
-    masterBarData: MasterBarData,
+    masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ) {
     this._score = score;

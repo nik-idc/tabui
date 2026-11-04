@@ -259,14 +259,24 @@ describe("PlaybackNoteScheduler", () => {
     expect(audio.gains).toHaveLength(0);
   });
 
-  test("plays a short filtered noise strike for a dead note in sampled mode", () => {
+  test("plays a short filtered noise strike for a dead note in sampled mode", async () => {
     const [note] = notesAtFrets(5);
     note.setNote(NoteValue.Dead, null);
     const audio = createAudioContext();
     const bus = trackBus();
+    const sample = {} as AudioBuffer;
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      value: jest.fn(async () => ({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(8),
+      })),
+    });
+    audio.context.decodeAudioData = jest.fn(async () => sample);
     const samples = new PlaybackSampleManager(audio.context, {
       [ElectricGuitarTone.Clean]: { url: "/clean.wav", rootFrequency: 220 },
     });
+    await samples.loadSamplesForTones([ElectricGuitarTone.Clean]);
 
     const scheduled = new PlaybackNoteScheduler(
       audio.context,
@@ -279,6 +289,8 @@ describe("PlaybackNoteScheduler", () => {
       .results[0].value as {
       getChannelData: (_channel: number) => Float32Array;
     };
+    expect(audio.bufferSources[0].buffer).toBe(noiseBuffer);
+    expect(audio.bufferSources[0].buffer).not.toBe(sample);
     expect(noiseBuffer.getChannelData(0).some((sample) => sample !== 0)).toBe(
       true
     );

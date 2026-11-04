@@ -1198,7 +1198,7 @@ export class ScoreEditor {
   /**
    * Inserts a master bar and corresponding bars on every staff.
    * @param index Integer insertion position from zero through the number of master bars.
-   * @param masterBarData Explicit settings; undefined inherits tempo and meter at the score end, otherwise uses defaults.
+   * @param masterBarData Explicit settings; undefined inherits the previous bar's tempo and meter, or the first bar's at index zero, without repeats.
    * @param voiceNumber Voice slot to create with a quarter rest on each staff.
    * @returns Live master/staff bars and insertion position.
    * @throws If the index, master-bar settings, or new voice timing are invalid.
@@ -1237,13 +1237,14 @@ export class ScoreEditor {
 
   /**
    * Prepends a master bar and corresponding bars on every staff.
+   * @param masterBarData Explicit settings; undefined inherits the first bar's tempo and meter without repeats.
    * @param voiceNumber Voice slot to create with a quarter rest on each staff.
    * @returns Live master/staff bars at insertion index zero.
    * @throws If master-bar settings or new voice timing are invalid.
    */
   public static prependMasterBar(
     score: Score,
-    masterBarData: MasterBarData,
+    masterBarData: MasterBarData | undefined,
     voiceNumber: VoiceNumber
   ): MasterBarArrayOperationOutput {
     return score.prependMasterBar(masterBarData, voiceNumber);

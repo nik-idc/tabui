@@ -175,6 +175,7 @@ async function checkConsumer(page, variant) {
   assert.equal(values.restoredTrackCount, "2");
   assert.equal(values.restoredTrack, "Track 1");
   assert.equal(values.hasInitialCursor, "true");
+  await expect(root).toHaveCSS("display", "grid");
 
   const background = await root.evaluate(
     (v) => getComputedStyle(v).backgroundColor
@@ -252,12 +253,30 @@ async function checkConsumer(page, variant) {
     "Second track"
   );
   await expect(page.locator("body")).toHaveAttribute("data-change-count", "1");
+  await root.getByRole("button", { name: "New track", exact: true }).click();
+  await page
+    .getByRole("textbox", { name: "Track name", exact: true })
+    .fill("Added by consumer");
+  await page.getByRole("button", { name: "Confirm", exact: true }).click();
+  await expect(tracks).toHaveCount(3);
+  await expect(tracks.nth(2)).toHaveAccessibleName(
+    "Select track: Added by consumer"
+  );
+  await expect(tracks.nth(2)).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator("body")).toHaveAttribute(
+    "data-active-track",
+    "Added by consumer"
+  );
+  assert(
+    Number(await page.locator("body").getAttribute("data-change-count")) > 1,
+    "Creating a track must publish a change to the consumer"
+  );
   await page
     .getByRole("button", { name: "Dispose editor", exact: true })
     .click();
   await expect(root).toBeEmpty();
   console.log(
-    `  ${variant}: rendering, assets, events, host API, unsubscribe, remount passed`
+    `  ${variant}: rendering, assets, events, host API, unsubscribe, remount, track creation passed`
   );
   return icons;
 }

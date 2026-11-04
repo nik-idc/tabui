@@ -7,6 +7,59 @@ import {
 } from "../../../src/notation/model";
 
 describe("Score model", () => {
+  test.each(["insert", "prepend"])(
+    "%s preserves explicit tempo, meter and repeats",
+    (operation) => {
+      const score = new Score();
+      score.masterBars[0].tempo = 180;
+      const data = {
+        ...DEFAULT_MASTER_BAR,
+        tempo: 90,
+        beatsCount: 3,
+        duration: NoteDuration.Eighth,
+        isRepeatStart: true,
+      };
+      const result =
+        operation === "insert"
+          ? score.insertMasterBar(0, data)
+          : score.prependMasterBar(data);
+      expect(result.masterBar.barData).toEqual(data);
+    }
+  );
+  test("prepended bars inherit the first bar without copying repeat markers", () => {
+    const score = new Score();
+    score.masterBars[0].tempo = 90;
+    score.masterBars[0].beatsCount = 3;
+    score.masterBars[0].isRepeatStart = true;
+    expect(score.prependMasterBar().masterBar.barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 90,
+      beatsCount: 3,
+    });
+  });
+  test.each([0, 1])(
+    "inserted bar at %s inherits nearby musical context without repeats",
+    (index) => {
+      const score = new Score();
+      Object.assign(score.masterBars[0], {
+        tempo: 150,
+        beatsCount: 6,
+        duration: NoteDuration.Eighth,
+        isRepeatStart: true,
+      });
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+
+      const result = score.insertMasterBar(index);
+
+      expect(result.masterBar.barData).toEqual({
+        ...DEFAULT_MASTER_BAR,
+        tempo: 150,
+        beatsCount: 6,
+        duration: NoteDuration.Eighth,
+      });
+    }
+  );
+
   test.each([-1, 0.5, 2])(
     "insertMasterBar rejects invalid index %s before changing staff content",
     (index) => {

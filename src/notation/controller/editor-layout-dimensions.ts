@@ -18,6 +18,11 @@ export interface EditorLayoutDimensionsConfig {
 
 /** Notation measurements in CSS pixels, derived from base font sizes and spacing. */
 export class EditorLayoutDimensions {
+  /** Height of the bar-number row, including space above the staff. */
+  public get barNumberRowHeight(): number {
+    return this.noteTextSize * 1.5;
+  }
+
   /* ==== NOTATION VIEW ==== */
   /** Width of the tab */
   private _width: number;

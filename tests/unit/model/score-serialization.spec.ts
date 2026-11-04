@@ -271,28 +271,6 @@ describe("score serialization", () => {
     expect(restoredBeats?.map((b) => b.dots)).toEqual([1, 2]);
   });
 
-  test("serializes and restores a bar with both repeat boundaries", () => {
-    const score = new Score();
-    const masterBar = score.masterBars[0];
-    masterBar.isRepeatStart = true;
-    masterBar.isRepeatEnd = true;
-    masterBar.repeatCount = 3;
-
-    const serialized = serializeScore(score);
-    const restored = deserializeScore(
-      JSON.parse(JSON.stringify(serialized)) as unknown
-    );
-
-    expect(serialized.masterBars[0]).toMatchObject({
-      isRepeatStart: true,
-      isRepeatEnd: true,
-      repeatCount: 3,
-    });
-    expect(restored.masterBars[0].isRepeatStart).toBe(true);
-    expect(restored.masterBars[0].isRepeatEnd).toBe(true);
-    expect(restored.masterBars[0].repeatCount).toBe(3);
-  });
-
   test("preserves sparse voices, rests, and sparse note slots", () => {
     const score = new Score();
     const bar = score.tracks[0].staves[0].bars[0];

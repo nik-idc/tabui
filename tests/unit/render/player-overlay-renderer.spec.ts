@@ -132,7 +132,7 @@ describe("PlayerOverlayRenderer", () => {
     if (!(element instanceof TabBeatElement)) throw Error("Expected tab beat");
 
     expect(view.center()).toBeCloseTo(element.attackXGlobal);
-    expect(Number(view.cursor().getAttribute("y"))).toBeCloseTo(42);
+    expect(Number(view.cursor().getAttribute("y"))).toBeCloseTo(60);
     const outline = required(
       element.owningTrackLineElement.outlineLinesGlobal
     ).left;

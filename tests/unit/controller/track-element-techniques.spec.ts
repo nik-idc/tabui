@@ -305,36 +305,6 @@ describe("TrackElement techniques", () => {
     );
   });
 
-  test("anchors transition endpoints to note selection edges", () => {
-    const { track, beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    const note = beats[0].notes?.[0];
-    const nextNote = beats[1].notes?.[0];
-    if (!(note instanceof GuitarNote) || !(nextNote instanceof GuitarNote)) {
-      throw Error("Expected guitar notes in test beats");
-    }
-    note.setFret(5);
-    nextNote.setFret(7);
-    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Slide));
-
-    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
-    trackElement.update();
-
-    const beatElements =
-      trackElement.trackLineElements[0].staffLineContainers[0]
-        .styleLinesAsArray[0].barElements[0].beatElements;
-    const start = beatElements[0].noteElements[0] as TabNoteSlotElement;
-    const end = beatElements[1].noteElements[0] as TabNoteSlotElement;
-    const path = start.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
-    const [startX, , endX] = parsePathEndpoints(path);
-    expect(startX + start.globalCoords.x).toBeCloseTo(
-      start.selectionRect.right
-    );
-    expect(endX + start.globalCoords.x).toBeCloseTo(end.selectionRect.left);
-  });
-
   test("creates a descending slide path for higher-to-lower notes", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

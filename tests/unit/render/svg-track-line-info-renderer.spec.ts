@@ -8,12 +8,85 @@ import { createScoreGraph } from "../model/helpers";
 import { createTestTrackController } from "../controller/helpers";
 import { SelectedMoveDirection } from "../../../src/notation/controller/selection/selection-cursor";
 import { required } from "../required";
-import { NoteDuration } from "../../../src/notation/model";
 import {
+  NoteDuration,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
 } from "../../../src/notation/model";
+import { resolveTabUIConfig } from "../../../src/config/tabui-config";
+
+test("bar numbers appear once across staves and follow insertion, deletion, undo and redo", () => {
+  const { track } = createScoreGraph();
+  track.insertStaff(1);
+  track.score.appendMasterBar();
+  const controller = createTestTrackController(track);
+  const viewport = document.createElement("div");
+  Object.defineProperties(viewport, {
+    clientWidth: { value: 800 },
+    clientHeight: { value: 1000 },
+  });
+  const renderer = new EditorSVGRenderer(viewport, controller, {
+    baseUrl: "/assets",
+    variant: "light",
+  });
+  const numbers = () =>
+    [...viewport.querySelectorAll(".tu-bar-number")].map((v) => v.textContent);
+  try {
+    renderer.render();
+    expect(numbers()).toEqual(["1", "2"]);
+    controller.insertBarBeforeSelected();
+    renderer.render();
+    expect(numbers()).toEqual(["1", "2", "3"]);
+    controller.undo();
+    renderer.render();
+    expect(numbers()).toEqual(["1", "2"]);
+    controller.redo();
+    renderer.render();
+    expect(numbers()).toEqual(["1", "2", "3"]);
+    controller.removeSelectedBar();
+    renderer.render();
+    expect(numbers()).toEqual(["1", "2"]);
+    controller.undo();
+    renderer.render();
+    expect(numbers()).toEqual(["1", "2", "3"]);
+  } finally {
+    renderer.unrender();
+  }
+});
+
+test("bar number fill uses the configured notation color", () => {
+  const { track } = createScoreGraph();
+  const controller = createTestTrackController(track);
+  controller.trackElement.update();
+  const config = resolveTabUIConfig({
+    theme: { notation: { colors: { barNumber: "#64748b" } } },
+  });
+  const root = document.createElement("div");
+  for (const [name, value] of Object.entries(config.theme.cssVars)) {
+    root.style.setProperty(name, value);
+  }
+  document.body.appendChild(root);
+  const renderer = new SVGTrackLineInfoRenderer(
+    controller,
+    required(controller.trackElement.trackLineElements[0].trackLineInfoElement),
+    { baseUrl: "/assets", variant: "light" }
+  );
+  root.appendChild(renderer.ensureContainerGroup());
+
+  try {
+    renderer.render();
+    expect(
+      required(root.querySelector(".tu-bar-number")).getAttribute("fill")
+    ).toBe("var(--tu-notation-bar-number)");
+    expect(root.style.getPropertyValue("--tu-notation-bar-number")).toBe(
+      "#64748b"
+    );
+  } finally {
+    renderer.unrender();
+    root.remove();
+  }
+});
 
 test("tempo callbacks resolve current bars and detach before renderer reuse", () => {
   const { track } = createScoreGraph();

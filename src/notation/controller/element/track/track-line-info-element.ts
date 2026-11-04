@@ -5,6 +5,12 @@ import { BarElement } from "../bar/bar-element";
 import { TrackLineElement } from "./track-line-element";
 import { GuitarTuningElement } from "./guitar-tuning-element";
 
+/** A score-wide bar number positioned in the track-line header. */
+type BarNumberLabel = {
+  number: number;
+  x: number;
+};
+
 /**
  * Class representing the visual info about all
  * info that needs to be on this track line element
@@ -42,6 +48,8 @@ export class TrackLineInfoElement implements NotationElement {
   private _barTempoRectsMap: Map<BarElement, Rect>;
   /** Displayed tempo captured during build for stale pre-update diffing. */
   private _barTempoState: Map<BarElement, number>;
+  /** Materialized bar numbers captured during build for stale pre-update diffing. */
+  private _barNumbers: BarNumberLabel[] = [];
   /**
    * Class representing the visual info about all
    * info that needs to be on this track line element
@@ -87,6 +95,7 @@ export class TrackLineInfoElement implements NotationElement {
     this._boundingBox.height = 0;
     this._barTempoRectsMap.clear();
     this._barTempoState.clear();
+    this._barNumbers = [];
 
     const barElements =
       this.trackLineElement.staffLineContainers[0].styleLinesAsArray[0]
@@ -94,7 +103,22 @@ export class TrackLineInfoElement implements NotationElement {
     if (barElements === undefined) {
       throw Error("Bar elements undefine in track line info build");
     }
+    const score = this.trackElement.track.score;
+    const barNumbers = new Map(
+      this.trackLineElement.trackLineBars.map(({ masterBarIndex }) => [
+        score.masterBars[masterBarIndex],
+        masterBarIndex + 1,
+      ])
+    );
     for (const barElement of barElements) {
+      const number = barNumbers.get(barElement.bar.masterBar);
+      if (number === undefined) {
+        throw Error("Bar number missing from track line");
+      }
+      this._barNumbers.push({
+        number,
+        x: barElement.boundingBox.x,
+      });
       if (barElement.showTempo) {
         const rect = new Rect(
           barElement.boundingBox.x,
@@ -117,7 +141,7 @@ export class TrackLineInfoElement implements NotationElement {
       : 0;
     this._boundingBox.setDimensions(
       this.trackLineElement.boundingBox.width,
-      height
+      height + this.trackElement.layoutDimensions.barNumberRowHeight
     );
     this._guitarTuningElement?.measure();
   }
@@ -131,6 +155,9 @@ export class TrackLineInfoElement implements NotationElement {
     ];
 
     const barRectsEntries = this._barTempoRectsMap.entries();
+    for (const label of this._barNumbers) {
+      hashArr.push(`number:${label.number}:${label.x}`);
+    }
     for (const [barElement, rect] of barRectsEntries) {
       hashArr.push(`${rect.x}`);
       hashArr.push(`${rect.y}`);
@@ -156,6 +183,20 @@ export class TrackLineInfoElement implements NotationElement {
 
   public get guitarTuningElement(): GuitarTuningElement | undefined {
     return this._guitarTuningElement;
+  }
+
+  /** Score-wide numbers for the materialized bars, once per track line. */
+  public get barNumbers(): readonly BarNumberLabel[] {
+    return this._barNumbers;
+  }
+
+  /** Baseline below the tempo row, leaving padding before the staff content. */
+  public get barNumberBaseline(): number {
+    const dimensions = this.trackElement.layoutDimensions;
+    return (
+      (this.trackLineElement.hasTempo ? dimensions.tempoRectHeight : 0) +
+      dimensions.noteTextSize
+    );
   }
 
   public update(): void {

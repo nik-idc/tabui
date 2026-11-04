@@ -268,14 +268,14 @@ describe("TrackElement tree", () => {
     const trackLineInfo = trackLine.trackLineInfoElement;
     const staffLine = trackLine.staffLineContainers[0];
 
-    // Six 24px string slots, a 60px rhythm row, and 30px tempo space = 234px.
-    expect(trackLine.globalCoords).toEqual({ x: 0, y: 234 });
+    // Six 24px string slots, 60px rhythm, 30px tempo and 18px numbers = 252px.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 252 });
     expect(trackLine.lineLocalCoords).toEqual({ x: 0, y: 0 });
     expect(trackLine.lineLocalBoundingBox).toEqual({
       x: 0,
       y: 0,
       width: 1200,
-      height: 234,
+      height: 252,
     });
 
     if (trackLineInfo === null) throw Error("Expected tempo information");
@@ -284,18 +284,18 @@ describe("TrackElement tree", () => {
       x: 0,
       y: 0,
       width: 1200,
-      height: 30,
+      height: 48,
     });
-    expect(trackLineInfo.globalCoords).toEqual({ x: 0, y: 234 });
+    expect(trackLineInfo.globalCoords).toEqual({ x: 0, y: 252 });
 
-    expect(staffLine.lineLocalCoords).toEqual({ x: 0, y: 30 });
+    expect(staffLine.lineLocalCoords).toEqual({ x: 0, y: 48 });
     expect(staffLine.lineLocalBoundingBox).toEqual({
       x: 0,
-      y: 30,
+      y: 48,
       width: 1200,
       height: 204,
     });
-    expect(staffLine.globalCoords).toEqual({ x: 0, y: 264 });
+    expect(staffLine.globalCoords).toEqual({ x: 0, y: 300 });
   });
 
   test("line-local geometry composes through bar beat note and label descendants", () => {
@@ -326,14 +326,14 @@ describe("TrackElement tree", () => {
     if (gapLine === undefined) throw Error("Expected technique gap line");
     const labelElement = gapLine.labelElements[0];
 
-    // The 30px tempo row precedes a 24px palm-mute label row.
-    expect(styleLine.lineLocalCoords).toEqual({ x: 0, y: 30 });
-    expect(barElement.lineLocalCoords).toEqual({ x: 18, y: 54 });
+    // The 48px tempo/number header precedes a 24px palm-mute label row.
+    expect(styleLine.lineLocalCoords).toEqual({ x: 0, y: 48 });
+    expect(barElement.lineLocalCoords).toEqual({ x: 18, y: 72 });
 
     // The first attack is 12px beyond the 85.5px signature/repeat reserve.
     expect(beatElement.voiceBarContainer.boundingBox.x).toBeCloseTo(85.5);
-    expect(beatElement.lineLocalCoords).toEqual({ x: 115.5, y: 54 });
-    expect(beatElement.globalCoords).toEqual({ x: 115.5, y: 54 });
+    expect(beatElement.lineLocalCoords).toEqual({ x: 115.5, y: 72 });
+    expect(beatElement.globalCoords).toEqual({ x: 115.5, y: 72 });
     expect(beatElement.lineLocalCoords.x).toBeCloseTo(
       barElement.lineLocalCoords.x + beatElement.barLocalCoords.x
     );
@@ -347,8 +347,8 @@ describe("TrackElement tree", () => {
       barElement.globalCoords.y + beatElement.barLocalCoords.y
     );
 
-    expect(noteElement.lineLocalCoords).toEqual({ x: 115.5, y: 54 });
-    expect(labelElement.lineLocalCoords).toEqual({ x: 115.5, y: 30 });
+    expect(noteElement.lineLocalCoords).toEqual({ x: 115.5, y: 72 });
+    expect(labelElement.lineLocalCoords).toEqual({ x: 115.5, y: 48 });
   });
 
   test("tempo and technique origins include the preceding line height only in global space", () => {
@@ -398,10 +398,10 @@ describe("TrackElement tree", () => {
     if (tempoRectGlobal === undefined || tempoRectLineLocal === undefined) {
       throw Error("Expected tempo rectangles");
     }
-    // The first line is 234px tall; the new tempo occupies the next 30px.
-    expect(trackLine.globalCoords).toEqual({ x: 0, y: 234 });
+    // The first line is 252px tall; the new tempo occupies the next 30px.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 252 });
     expect(tempoRectLineLocal).toEqual({ x: 0, y: 0, width: 30, height: 30 });
-    expect(tempoRectGlobal).toEqual({ x: 0, y: 234, width: 30, height: 30 });
+    expect(tempoRectGlobal).toEqual({ x: 0, y: 252, width: 30, height: 30 });
 
     const tempoTextGlobal =
       trackLineInfo.getBarTempoTextCoordsGlobal(barElement);
@@ -411,13 +411,13 @@ describe("TrackElement tree", () => {
       throw Error("Expected tempo text coordinates");
     }
     expect(tempoTextLineLocal).toEqual({ x: 30, y: 24 });
-    expect(tempoTextGlobal).toEqual({ x: 30, y: 258 });
+    expect(tempoTextGlobal).toEqual({ x: 30, y: 276 });
 
     // This line has no time signature: 49.5px repeat reserve + 12px attack padding.
-    expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 61.5, y: 54 });
-    expect(techniqueElement.pathOrigin).toEqual({ x: 61.5, y: 288 });
-    expect(labelElement.descriptorOriginLineLocal).toEqual({ x: 61.5, y: 30 });
-    expect(labelElement.descriptorOrigin).toEqual({ x: 61.5, y: 264 });
+    expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 61.5, y: 72 });
+    expect(techniqueElement.pathOrigin).toEqual({ x: 61.5, y: 324 });
+    expect(labelElement.descriptorOriginLineLocal).toEqual({ x: 61.5, y: 48 });
+    expect(labelElement.descriptorOrigin).toEqual({ x: 61.5, y: 300 });
   });
 
   test("staff outlines borders and note text use the owning line coordinate space", () => {
@@ -461,31 +461,31 @@ describe("TrackElement tree", () => {
       throw Error("Expected a two-staff outline");
     }
 
-    // Two 204px staves and 30px tempo space precede this line (438px).
-    // Its first string is 12px below its own 30px tempo row.
-    expect(trackLine.globalCoords).toEqual({ x: 0, y: 438 });
-    expect(outlineLineLocal.left).toEqual({ x: 0, y1: 42, y2: 366 });
-    expect(outlineGlobal.left).toEqual({ x: 0, y1: 480, y2: 804 });
-    expect(outlineLineLocal.right.y2).toBe(366);
-    expect(outlineGlobal.right.y2).toBe(804);
+    // Two 204px staves and a 48px tempo/number header precede this line.
+    // Its first string is 12px below its own 48px header.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 456 });
+    expect(outlineLineLocal.left).toEqual({ x: 0, y1: 60, y2: 384 });
+    expect(outlineGlobal.left).toEqual({ x: 0, y1: 516, y2: 840 });
+    expect(outlineLineLocal.right.y2).toBe(384);
+    expect(outlineGlobal.right.y2).toBe(840);
 
     expect(barElement.barLeftBorderLineLineLocal).toEqual({
       x: 0,
-      y1: 42,
-      y2: 162,
+      y1: 60,
+      y2: 180,
     });
     expect(barElement.barLeftBorderLineGlobal).toEqual({
       x: 0,
-      y1: 480,
-      y2: 600,
+      y1: 516,
+      y2: 636,
     });
-    expect(barElement.barRightBorderLineLineLocal.y1).toBe(42);
-    expect(barElement.barRightBorderLineGlobal.y1).toBe(480);
+    expect(barElement.barRightBorderLineLineLocal.y1).toBe(60);
+    expect(barElement.barRightBorderLineGlobal.y1).toBe(516);
     expect(barElement.staffLinesLineLocal.map((v) => v.y)).toEqual([
-      42, 66, 90, 114, 138, 162,
+      60, 84, 108, 132, 156, 180,
     ]);
     expect(barElement.staffLinesGlobal.map((v) => v.y)).toEqual([
-      480, 504, 528, 552, 576, 600,
+      516, 540, 564, 588, 612, 636,
     ]);
     expect(barElement.staffLinesLineLocal[0].x1).toBe(0);
     expect(barElement.staffLinesGlobal[0].x1).toBe(0);
@@ -493,18 +493,18 @@ describe("TrackElement tree", () => {
     // A 12px fret glyph is centered on the 61.5px attack and first string.
     expect(noteElement.textRectLineLocal).toEqual({
       x: 55.5,
-      y: 36,
+      y: 54,
       width: 12,
       height: 12,
     });
     expect(noteElement.textRectGlobal).toEqual({
       x: 55.5,
-      y: 474,
+      y: 510,
       width: 12,
       height: 12,
     });
-    expect(noteElement.textCoordsLineLocal).toEqual({ x: 61.5, y: 42 });
-    expect(noteElement.textCoordsGlobal).toEqual({ x: 61.5, y: 480 });
+    expect(noteElement.textCoordsLineLocal).toEqual({ x: 61.5, y: 60 });
+    expect(noteElement.textCoordsGlobal).toEqual({ x: 61.5, y: 516 });
   });
 
   test("registry lookup returns the beat element by model beat", () => {

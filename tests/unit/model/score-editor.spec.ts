@@ -232,6 +232,10 @@ describe("ScoreEditor", () => {
     expect(voiceBar.beats[0].dots).toBe(1);
     expect(voiceBar.beats[0]).not.toBe(replacements[0]);
     expect(voiceBar.beats[1].baseDuration).toBe(NoteDuration.Sixteenth);
+    expect(voiceBar.beats.map((b) => b.tupletSettings)).toEqual([
+      { normalCount: 3, tupletCount: 2 },
+      { normalCount: 5, tupletCount: 4 },
+    ]);
   });
 
   test("replaceBeats copies note techniques independently of the source", () => {

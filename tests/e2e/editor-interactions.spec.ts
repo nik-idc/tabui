@@ -1,4 +1,82 @@
 import { expect, test } from "@playwright/test";
+import { TabUILayoutMode } from "../../src/config/tabui-config";
+
+for (const layoutMode of [
+  TabUILayoutMode.Wrapped,
+  TabUILayoutMode.SingleLine,
+]) {
+  test(`uses subdued and custom bar number colors in ${layoutMode} mode`, async ({
+    page,
+  }) => {
+    await page.goto("/tabui/?fixture=empty");
+    for (const colors of [
+      { text: "#000000" },
+      { text: "#ffffff" },
+      { text: "#ffffff", barNumber: "#123456" },
+    ]) {
+      const mounted = await page.evaluateHandle(
+        async ({ colors, layoutMode }) => {
+          const path = "/tabui/e2e-fixture.js";
+          const { TabUIEditor: editorClass, resolveEditorFixture } =
+            (await import(path)) as typeof import("./browser-fixture");
+          const root = document.createElement("div");
+          root.id = "bar-number-editor";
+          document.body.appendChild(root);
+          const editor = new editorClass(
+            root,
+            resolveEditorFixture(new URLSearchParams("fixture=empty")),
+            { layout: { mode: layoutMode }, theme: { notation: { colors } } }
+          );
+          editor.init();
+          return { editor, root };
+        },
+        { colors, layoutMode }
+      );
+      try {
+        const editor = page.locator("#bar-number-editor");
+        await editor.locator('[id^="note-rect-"]').first().click();
+        await page.keyboard.press("5");
+        const note = editor.locator('[id^="note-text-"]').first();
+        const number = editor.locator(".tu-bar-number").first();
+        const normalFill =
+          colors.text === "#000000" ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)";
+        await expect(note).toHaveCSS("fill", normalFill);
+        if (colors.barNumber !== undefined) {
+          await expect(number).toHaveCSS("fill", "rgb(18, 52, 86)");
+        } else {
+          // Resolve color-mix through the browser, not its engine-specific serialization.
+          const channels = await number.evaluate((element) => {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            if (context === null) {
+              throw Error("Expected a canvas context");
+            }
+            context.fillStyle = getComputedStyle(element).fill;
+            context.fillRect(0, 0, 1, 1);
+            return [...context.getImageData(0, 0, 1, 1).data];
+          });
+          const channel = colors.text === "#000000" ? 0 : 255;
+          // Canvas premultiplied-alpha rounding can differ by one between engines.
+          for (const value of channels.slice(0, 3)) {
+            expect(Math.abs(value - channel)).toBeLessThanOrEqual(1);
+          }
+          expect(channels[3]).toBeCloseTo(140, 0);
+        }
+        await editor.evaluate((root) =>
+          root.style.setProperty("--tu-notation-bar-number", "#654321")
+        );
+        await expect(number).toHaveCSS("fill", "rgb(101, 67, 33)");
+        await expect(note).toHaveCSS("fill", normalFill);
+      } finally {
+        await mounted.evaluate(({ editor, root }) => {
+          editor.dispose();
+          root.remove();
+        });
+        await mounted.dispose();
+      }
+    }
+  });
+}
 
 test("accepts timed keyboard fret input", async ({ page }) => {
   // Load one deterministic editable score.

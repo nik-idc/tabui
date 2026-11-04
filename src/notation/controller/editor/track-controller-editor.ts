@@ -7,7 +7,6 @@ import {
   MasterBarData,
   MasterBar,
   TupletSettings,
-  DEFAULT_MASTER_BAR,
   VoiceNumber,
   ScoreEditor,
   Score,
@@ -1193,9 +1192,9 @@ export class TrackControllerEditor {
 
   /**
    * Prepends a bar to the track and all the score tracks
-   * @param bar Bar to prepend
+   * @param masterBarData Explicit settings; omitted inherits the first bar's tempo and meter without repeats.
    */
-  public prependBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
+  public prependBar(masterBarData?: MasterBarData): void {
     if (!this.editingEnabled) {
       return;
     }
@@ -1210,7 +1209,7 @@ export class TrackControllerEditor {
 
   /**
    * Inserts a bar to the track at specified index and all the score tracks
-   * @param masterBarData Explicit settings; omitted inherits tempo and meter only at the score end.
+   * @param masterBarData Explicit settings; omitted inherits nearby tempo and meter without repeats.
    */
   public insertBar(barIndex: number, masterBarData?: MasterBarData): void {
     if (!this.editingEnabled) {
@@ -1291,7 +1290,7 @@ export class TrackControllerEditor {
       new InsertBarCommand(
         selectedBar.staff.track.score,
         insertIndex,
-        DEFAULT_MASTER_BAR,
+        undefined,
         this._selectionManager.activeVoiceNumber
       ),
       () => this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex])

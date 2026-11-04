@@ -37,6 +37,8 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
 
   /** Rendered tempo groups keyed by their current bar elements. */
   private _temposSVG: Map<BarElement, TempoSVG>;
+  /** Number labels owned by this header, removed on redraw or disposal. */
+  private _barNumbersSVG: SVGTextElement[] = [];
   /** Supplied callbacks keyed by event type. */
   private _attachedEvents = new Map<string, EventListener>();
 
@@ -314,6 +316,37 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
   public render(): void {
     this.renderGroup();
     this.renderTempoTexts();
+    this.renderBarNumbers();
+  }
+
+  /** Draws one unobtrusive score-wide number above each materialized bar. */
+  private renderBarNumbers(): void {
+    this.unrenderBarNumbers();
+    const group = this.ensureContainerGroup();
+    const info = this.trackLineInfoElement;
+    for (const label of info.barNumbers) {
+      const text = createSVGText();
+      text.classList.add("tu-bar-number");
+      text.setAttribute("x", `${label.x}`);
+      text.setAttribute("y", `${info.barNumberBaseline}`);
+      text.setAttribute(
+        "font-size",
+        `${this.trackController.layoutDimensions.noteTextSize}`
+      );
+      text.setAttribute("fill", "var(--tu-notation-bar-number)");
+      text.setAttribute("pointer-events", "none");
+      text.textContent = `${label.number}`;
+      group.appendChild(text);
+      this._barNumbersSVG.push(text);
+    }
+  }
+
+  /** Removes labels before renderer reuse or disposal. */
+  private unrenderBarNumbers(): void {
+    for (const text of this._barNumbersSVG) {
+      text.remove();
+    }
+    this._barNumbersSVG = [];
   }
 
   /**
@@ -325,5 +358,6 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
     }
 
     this.unrenderTempoTexts();
+    this.unrenderBarNumbers();
   }
 }

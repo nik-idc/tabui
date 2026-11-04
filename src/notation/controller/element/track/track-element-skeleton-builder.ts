@@ -111,7 +111,8 @@ function getTrackLineHeight(
   return track.staves.reduce(
     (sum, staff) =>
       sum + getStaffLineHeight(staff, trackLineBars, layoutDimensions),
-    hasTempo ? layoutDimensions.tempoRectHeight : 0
+    layoutDimensions.barNumberRowHeight +
+      (hasTempo ? layoutDimensions.tempoRectHeight : 0)
   );
 }
 

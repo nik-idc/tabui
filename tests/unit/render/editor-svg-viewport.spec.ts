@@ -50,6 +50,7 @@ test("renders a bounded horizontal window and its neighboring bars", () => {
     expect(initial).toContain(`bar-${track.staves[0].bars[0].uuid}`);
     expect(initial.length).toBeGreaterThan(1);
     expect(initial.length).toBeLessThanOrEqual(20);
+    expect(viewport.querySelector(".tu-bar-number")?.textContent).toBe("1");
 
     viewport.scrollLeft =
       controller.trackElement.trackLineElements[0].trackLineBars[40].x;
@@ -59,6 +60,12 @@ test("renders a bounded horizontal window and its neighboring bars", () => {
     expect(scrolledBars).toContain(`bar-${track.staves[0].bars[38].uuid}`);
     expect(scrolledBars.length).toBeLessThanOrEqual(20);
     expect(scrolledBars).not.toContain(initial[0]);
+    const numbers = [...viewport.querySelectorAll(".tu-bar-number")].map(
+      (v) => v.textContent
+    );
+    expect(numbers).toContain("41");
+    expect(numbers).not.toContain("1");
+    expect(numbers).toHaveLength(scrolledBars.length);
   } finally {
     renderer.unrender();
   }
@@ -77,6 +84,12 @@ test("renders the nearest final lines when vertical scroll is beyond the score",
     expect(bars.length).toBeGreaterThan(1);
     expect(bars.length).toBeLessThanOrEqual(20);
     expect(bars).not.toContain(`bar-${track.staves[0].bars[0].uuid}`);
+    const numbers = [...viewport.querySelectorAll(".tu-bar-number")].map(
+      (v) => v.textContent
+    );
+    expect(numbers).toContain("81");
+    expect(numbers).not.toContain("1");
+    expect(numbers).toHaveLength(bars.length);
   } finally {
     renderer.unrender();
   }

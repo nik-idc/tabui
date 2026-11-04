@@ -250,12 +250,13 @@ describe("PlaybackAudioEngine", () => {
       0.625,
       5.501
     );
-    engine.setMetronomeEnabled(false);
-    engine.setMetronomeEnabled(true);
     const metronomeGain = audio.gains.find((gain) =>
       gain.connect.mock.calls.some((call) => call[0] === audio.gains[0])
     );
     if (metronomeGain === undefined) throw Error("Expected metronome bus");
+    engine.setMetronomeEnabled(false);
+    expect(metronomeGain.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 4);
+    engine.setMetronomeEnabled(true);
     expect(clickEnvelope.connect).toHaveBeenCalledWith(metronomeGain);
     expect(metronomeGain.connect).toHaveBeenCalledWith(audio.gains[0]);
     expect(metronomeGain.gain.setValueAtTime).toHaveBeenLastCalledWith(0.48, 4);

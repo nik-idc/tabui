@@ -1,5 +1,6 @@
 import {
   NoteValue,
+  PlaybackErrorCode,
   SCORE_SERIALIZATION_VERSION,
   Score,
   SerializedNoteDuration,
@@ -66,6 +67,9 @@ function mount(): void {
   document.body.dataset.hasInitialCursor = String(cursor !== null);
   unsubscribe = editor.subscribe((event: TabUIEditorEvent) => {
     if (event.type === "error") {
+      if (event.error.code === PlaybackErrorCode.ContextStart) {
+        throw new Error("Consumer could not start the audio context");
+      }
       throw new Error(`Consumer received editor error: ${event.error.code}`);
     }
     changeCount++;

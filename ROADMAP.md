@@ -2,6 +2,7 @@
 
 TabUI's next milestone is `0.5.0`: a usable, embeddable tablature editor for
 browser applications. APIs and serialized formats may change before `1.0.0`.
+These priorities guide the work; they are not release commitments.
 
 This file replaces the phase roadmap and stabilization inbox. New findings belong
 here with their user impact and priority. Completed implementation does not
@@ -96,7 +97,10 @@ replace release validation.
 - [x] Ctrl+A to select all
       I was thinking. How hard would it be to modify the insertion algo a bit to fill the bars as long as they are empty. Here is my thought process with this
 - [x] Revisit Palm Mute sound
-- [ ] Appended bars don't inherit the BPM & Time Signature
+- [x] Appended bars don't inherit the BPM & Time Signature
+- [x] Trace & fix all other spots where BPM & Time Sig are **not** inherited
+- [x] Display bar number
+- [ ] Style interactivity of top buttons in the same way side buttons are
 
 ## Follow-up inbox
 

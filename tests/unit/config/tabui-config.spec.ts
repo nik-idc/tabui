@@ -31,6 +31,9 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-font-body"]).toContain("Segoe UI");
     expect(config.theme.cssVars["--tu-font-notation"]).toContain("Roboto");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#000000");
+    expect(config.theme.cssVars["--tu-notation-bar-number"]).toBe(
+      "color-mix(in srgb, var(--tu-notation-text) 55%, transparent)"
+    );
     expect(config.layout).toEqual({
       mode: TabUILayoutMode.Wrapped,
       width: undefined,
@@ -65,6 +68,7 @@ describe("tabui-config", () => {
           colors: {
             ink: "#f8fafc",
             noteBackground: "#020617",
+            barNumber: "#64748b",
           },
           fonts: {
             notation: "Bravura, serif",
@@ -86,6 +90,7 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-bend-curve"]).toBe("#f8fafc");
     expect(config.theme.cssVars["--tu-bend-handle"]).toBe("#f8fafc");
     expect(config.theme.cssVars["--tu-notation-text"]).toBe("#000000");
+    expect(config.theme.cssVars["--tu-notation-bar-number"]).toBe("#64748b");
     expect(config.theme.cssVars["--tu-notation-note-background"]).toBe(
       "#020617"
     );
