@@ -1,5 +1,68 @@
 import { expect, test } from "@playwright/test";
 
+for (const theme of ["paper", "midnight"]) {
+  test(`top buttons match voice button interaction styles in ${theme}`, async ({
+    page,
+  }) => {
+    await page.goto(`/tabui/?fixture=empty&theme=${theme}`);
+    const editor = page.locator("#tabui-editor");
+    const loop = editor.getByRole("button", { name: "Loop", exact: true });
+    const voice = editor.getByRole("button", { name: "Voice 1", exact: true });
+    const styles = (button: typeof loop) =>
+      button.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          radius: style.borderRadius,
+          background: style.backgroundColor,
+          shadow: style.boxShadow,
+          outline: style.outline,
+          outlineOffset: style.outlineOffset,
+        };
+      });
+
+    await loop.click();
+    await page.mouse.move(0, 0);
+    await expect(loop).toHaveAttribute("aria-pressed", "true");
+    const selected = await styles(voice);
+    await expect.poll(() => styles(loop)).toEqual(selected);
+
+    await loop.hover();
+    await expect(loop).toHaveCSS("background-color", selected.background);
+    await loop.click();
+    await expect(loop).toHaveAttribute("aria-pressed", "false");
+    const otherVoice = editor.getByRole("button", {
+      name: "Voice 2",
+      exact: true,
+    });
+    await otherVoice.hover();
+    await expect(otherVoice).toHaveCSS(
+      "transform",
+      "matrix(1.1, 0, 0, 1.1, 0, 0)"
+    );
+    await expect(otherVoice).not.toHaveCSS(
+      "background-color",
+      selected.background
+    );
+    const hover = await styles(otherVoice);
+    await loop.hover();
+    await expect(loop).toHaveCSS("background-color", hover.background);
+    await page.mouse.move(0, 0);
+    await page.keyboard.press("Tab");
+    await loop.focus();
+    await expect(loop).toBeFocused();
+    const focused = await styles(loop);
+    await voice.focus();
+    await expect(voice).toHaveCSS("border-radius", focused.radius);
+    await expect(voice).toHaveCSS("outline", focused.outline);
+    await expect(voice).toHaveCSS("outline-offset", focused.outlineOffset);
+    expect(focused.outline).not.toContain("none");
+    await expect(loop.locator("img")).toHaveCSS(
+      "border-radius",
+      focused.radius
+    );
+  });
+}
+
 test("announces the tempo when it opens and changes", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");

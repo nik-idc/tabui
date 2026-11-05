@@ -1617,7 +1617,7 @@
   // min-height: 40px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--tu-border-radius);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -1625,7 +1625,7 @@
     background-color var(--tu-transition-speed),
     transform var(--tu-transition-speed);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--tu-hover-color);
     transform: scale(1.1);
   }
@@ -1637,6 +1637,7 @@
   > img {
     width: 32px;
     height: 32px;
+    border-radius: inherit;
     pointer-events: none;
     transform: none;
 
@@ -1671,7 +1672,6 @@
   min-width: 2.4rem;
   min-height: 2.4rem;
   padding: 0.25rem;
-  border-radius: var(--tu-border-radius);
 
   > img {
     width: 100%;
