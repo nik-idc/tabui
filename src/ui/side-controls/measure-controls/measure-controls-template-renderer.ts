@@ -108,11 +108,7 @@ export class MeasureControlsTemplateRenderer {
       "img/ui/repeat-end.svg",
       "Repeat End"
     );
-    setShortcutTooltip(
-      this.template.repeatEndButton,
-      "Repeat End and count",
-      "Shift+R"
-    );
+    setShortcutTooltip(this.template.repeatEndButton, "Repeat end", "Shift+R");
     setImageAsset(
       this.template.insertBarBeforeButton,
       this.assetsPath,
@@ -154,7 +150,7 @@ export class MeasureControlsTemplateRenderer {
     );
     setShortcutTooltip(
       this.template.removeBarButton,
-      "Remove all selected bars",
+      "Remove bars",
       "Shift+Delete"
     );
 

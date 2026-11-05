@@ -375,29 +375,8 @@
             position: relative;
             overflow: visible;
             padding: 0.25rem;
-            border: none;
             border-radius: var(--tu-border-radius);
-            background: transparent;
             box-sizing: border-box;
-
-            > img {
-              filter: brightness(0) saturate(100%) invert(40%) sepia(70%)
-                saturate(900%) hue-rotate(315deg) brightness(90%);
-            }
-
-            &:hover {
-              background: transparent !important;
-            }
-
-            &.tu-disabled-img {
-              cursor: not-allowed;
-              opacity: 1;
-
-              > img {
-                opacity: 0.35;
-                filter: grayscale(1);
-              }
-            }
           }
         }
       }

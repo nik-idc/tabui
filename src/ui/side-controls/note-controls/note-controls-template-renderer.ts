@@ -115,7 +115,7 @@ export class NoteControlsTemplateRenderer {
           "data-duration": dataDuration,
         }
       );
-      setShortcutTooltip(button, alt, "+: lengthen, -: shorten");
+      setShortcutTooltip(button, `1/${notes[i].num} note`, "+/−");
 
       // Mark applied status
       const beatsOfCurDuration = selectedBeats.find(
@@ -133,11 +133,7 @@ export class NoteControlsTemplateRenderer {
       "img/notes/rest-4.svg",
       "Quarter rest"
     );
-    setShortcutTooltip(
-      this.template.restButton,
-      "Set selected beat as rest",
-      "Shift+X"
-    );
+    setShortcutTooltip(this.template.restButton, "Rest", "Shift+X");
     this.template.restButton.dataset["beatAction"] = "rest";
     this.template.restButton.classList.add("tu-rest-button");
     this.template.restButton.classList.toggle(appliedCSSClass, hasRest);
@@ -158,7 +154,7 @@ export class NoteControlsTemplateRenderer {
         `img/ui/voice-${voiceNumber}.svg`,
         `Voice ${voiceNumber}`
       );
-      setShortcutTooltip(button, `Activate voice ${voiceNumber}`, "Shift+V");
+      setShortcutTooltip(button, `Voice ${voiceNumber}`, "Shift+V");
       button.dataset["voiceNumber"] = `${voiceNumber}`;
       button.classList.add("tu-voice-button");
       const isActive = voiceNumber === activeVoiceNumber;
@@ -329,11 +325,7 @@ export class NoteControlsTemplateRenderer {
       "img/ui/edit-fret.svg",
       "Edit fret"
     );
-    setShortcutTooltip(
-      this.template.fretButton,
-      "Edit fret",
-      "0–9 set fret / Backspace clear"
-    );
+    setShortcutTooltip(this.template.fretButton, "Edit fret", "0–9");
     const pitchButtons = [
       [this.template.shiftPitchUpButton, "shift-up.svg", "Increase pitch", 1],
       [

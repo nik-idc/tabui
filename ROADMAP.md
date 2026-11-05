@@ -103,13 +103,13 @@ replace release validation.
 - [x] Style interactivity of top buttons in the same way side buttons are
 - [ ] UI Polish:
       STYLING:
-  - [ ] Remove "()" from tooltips where the there is no key (e.g. - increase/decrease
+  - [x] Remove "()" from tooltips where the there is no key (e.g. - increase/decrease
         pitch buttons)
-  - [ ] Use lowercase letters in tooltips to avoid confusion. E.g.
+  - [x] Use lowercase letters in tooltips to avoid confusion. E.g.
         "Does 'Shift+L' mean 'Shift and `l` key' or 'Shift + Shift + `l` key'?"
   - [ ] Equalize the bottoms of the side control panel and the notation viewport.
         Currently notation's bottom seems a bit lower than that of side controls
-  - [ ] Remove the red color from the delete track button
+  - [x] Remove the red color from the delete track button
   - [ ] Use "volume.svg" & "pan.svg" icons for the volume & pan sliders
   - [ ] Make tempo vertically aligned with bar numbers
         DESIGN:
@@ -117,12 +117,14 @@ replace release validation.
         Consider drag & drop instead of buttons for reordering.
   - [ ] Reexamine the top controls layout. Possibly split into multiple sections
         to avoide crowding. Proposal:
-        `     |*******************************************|
-    |----------------SCORE TITLE----------------|
-    |------------------PLAYBACK-----------------|
-    |-----------MASTER & TRACK SETTINGS---------|
-    |*******************************************|
-    `
+
+```
+|*******************************************|
+|----------------SCORE TITLE----------------|
+|------------------PLAYBACK-----------------|
+|-----------MASTER & TRACK SETTINGS---------|
+|*******************************************|
+```
 
 ## Follow-up inbox
 

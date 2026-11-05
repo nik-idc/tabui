@@ -66,13 +66,16 @@ export function setImageAsset(
   }
 }
 
-/** Adds a keyboard binding to a tooltip without changing the button's name. */
+/** Displays letter keys in lowercase without changing the button's name. */
 export function setShortcutTooltip(
   button: HTMLButtonElement,
   label: string,
   shortcut: string
 ): void {
-  const text = `${label} (${shortcut})`;
+  const displayShortcut = shortcut
+    .trim()
+    .replace(/\b[A-Z]\b/g, (k) => k.toLowerCase());
+  const text = displayShortcut ? `${label} (${displayShortcut})` : label;
   button.title = text;
   button.dataset.tooltip = text;
 }

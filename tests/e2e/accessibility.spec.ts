@@ -415,10 +415,10 @@ test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
 
   for (const [name, tooltip] of [
     ["Tempo", "Tempo (m)"],
-    ["Repeat End", "Repeat End and count (Shift+R)"],
-    ["Time Signature", "Time Signature (Shift+M)"],
-    ["Whole note", "Whole note (+: lengthen, -: shorten)"],
-    ["Voice 1", "Activate voice 1 (Shift+V)"],
+    ["Repeat End", "Repeat end (Shift+r)"],
+    ["Time Signature", "Time Signature (Shift+m)"],
+    ["Whole note", "1/1 note (+/−)"],
+    ["Voice 1", "Voice 1 (Shift+v)"],
   ]) {
     const button = editor.getByRole("button", { name, exact: true });
     await button.hover();
