@@ -4,6 +4,7 @@ import { NotationElement, NotationNodeType } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { TrackLineElement } from "./track-line-element";
 import { GuitarTuningElement } from "./guitar-tuning-element";
+import { TabNoteSlotElement } from "../note/tab-note-slot-element";
 
 /** A score-wide bar number positioned in the track-line header. */
 type BarNumberLabel = {
@@ -177,7 +178,16 @@ export class TrackLineInfoElement implements NotationElement {
     this._guitarTuningElement?.layout();
 
     for (const [barElement, rect] of this._barTempoRectsMap) {
-      rect.setCoords(barElement.boundingBox.x, 0);
+      const firstBeatElement = barElement.firstBeatElement;
+      const firstNoteElement = firstBeatElement?.noteElements.find(
+        (noteElement) => noteElement.note !== null
+      );
+      const firstFretX =
+        firstNoteElement instanceof TabNoteSlotElement
+          ? firstNoteElement.textRectBarLocal.x
+          : (firstBeatElement?.barLocalCoords.x ?? 0);
+      const x = barElement.lineLocalCoords.x + firstFretX;
+      rect.setCoords(x, 0);
     }
   }
 
@@ -313,7 +323,7 @@ export class TrackLineInfoElement implements NotationElement {
     }
 
     const tempo = this._barTempoState.get(barElement);
-    return tempo === undefined ? undefined : `=${tempo}`;
+    return tempo === undefined ? undefined : `${tempo}`;
   }
 
   /** String encoding the state of this element */

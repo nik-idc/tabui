@@ -427,6 +427,13 @@ export class BarElement implements NotationElement {
     return this._voiceBarContainers.flatMap((element) => element.beatElements);
   }
 
+  /** Earliest laid-out beat across voices, independent of the active voice. */
+  public get firstBeatElement(): BeatElement | undefined {
+    return this.beatElements.sort(
+      (a, b) => a.barLocalCoords.x - b.barLocalCoords.x
+    )[0];
+  }
+
   public getStableIdentity(): string {
     return BarElement.createStableIdentity(this.notationStyle, this.bar);
   }

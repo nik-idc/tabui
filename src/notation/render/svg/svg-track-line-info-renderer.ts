@@ -218,7 +218,7 @@ export class SVGTrackLineInfoRenderer implements ElementRenderer {
       throw Error("Bar tempo elements undefined");
     }
 
-    const href = resolveAssetUrl(this.assetsPath, "img/notes/4.svg");
+    const href = resolveAssetUrl(this.assetsPath, "img/notes/tempo.svg");
     renderedTempo.image.setAttribute("x", `${tempoRect.x}`);
     renderedTempo.image.setAttribute("y", `${tempoRect.y}`);
     renderedTempo.image.setAttribute("width", `${tempoRect.width}`);

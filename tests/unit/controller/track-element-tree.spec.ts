@@ -400,8 +400,18 @@ describe("TrackElement tree", () => {
     }
     // The first line is 252px tall; the new tempo occupies the next 30px.
     expect(trackLine.globalCoords).toEqual({ x: 0, y: 252 });
-    expect(tempoRectLineLocal).toEqual({ x: 0, y: 0, width: 30, height: 30 });
-    expect(tempoRectGlobal).toEqual({ x: 0, y: 252, width: 30, height: 30 });
+    expect(tempoRectLineLocal).toEqual({
+      x: 55.5,
+      y: 0,
+      width: 30,
+      height: 30,
+    });
+    expect(tempoRectGlobal).toEqual({
+      x: 55.5,
+      y: 252,
+      width: 30,
+      height: 30,
+    });
 
     const tempoTextGlobal =
       trackLineInfo.getBarTempoTextCoordsGlobal(barElement);
@@ -410,8 +420,8 @@ describe("TrackElement tree", () => {
     if (tempoTextGlobal === undefined || tempoTextLineLocal === undefined) {
       throw Error("Expected tempo text coordinates");
     }
-    expect(tempoTextLineLocal).toEqual({ x: 30, y: 24 });
-    expect(tempoTextGlobal).toEqual({ x: 30, y: 276 });
+    expect(tempoTextLineLocal).toEqual({ x: 85.5, y: 24 });
+    expect(tempoTextGlobal).toEqual({ x: 85.5, y: 276 });
 
     // This line has no time signature: 49.5px repeat reserve + 12px attack padding.
     expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 61.5, y: 72 });

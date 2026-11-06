@@ -5,6 +5,12 @@ for (const theme of ["paper", "midnight"]) {
     page,
   }) => {
     await page.goto(`/tabui/?fixture=empty&theme=${theme}`);
+    // Compare static interaction states instead of transient transition frames.
+    await page.addStyleTag({
+      content:
+        "#tabui-editor .tu-icon-button, #tabui-editor .tu-icon-button img {" +
+        " transition: none !important; animation: none !important; }",
+    });
     const editor = page.locator("#tabui-editor");
     const loop = editor.getByRole("button", { name: "Loop", exact: true });
     const voice = editor.getByRole("button", { name: "Voice 1", exact: true });
@@ -26,8 +32,10 @@ for (const theme of ["paper", "midnight"]) {
     const selected = await styles(voice);
     await expect.poll(() => styles(loop)).toEqual(selected);
 
+    await voice.hover();
+    const selectedHover = await styles(voice);
     await loop.hover();
-    await expect(loop).toHaveCSS("background-color", selected.background);
+    await expect(loop).toHaveCSS("background-color", selectedHover.background);
     await loop.click();
     await expect(loop).toHaveAttribute("aria-pressed", "false");
     const otherVoice = editor.getByRole("button", {

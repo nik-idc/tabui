@@ -255,6 +255,7 @@ describe("PlaybackNoteScheduler", () => {
       scheduler(audio.context).scheduleNote(note, 0, 1, trackBus())
     ).toBeNull();
     expect(audio.context.createOscillator).not.toHaveBeenCalled();
+    expect(audio.context.createBuffer).not.toHaveBeenCalled();
     expect(audio.bufferSources).toHaveLength(0);
     expect(audio.gains).toHaveLength(0);
   });
@@ -390,18 +391,6 @@ describe("PlaybackNoteScheduler", () => {
       );
     }
   );
-
-  test("keeps empty notes silent", () => {
-    const [note] = notesAtFrets(5);
-    note.setFret(null);
-    const audio = createAudioContext();
-
-    expect(
-      scheduler(audio.context).scheduleNote(note, 0, 1, trackBus())
-    ).toBeNull();
-    expect(audio.context.createBuffer).not.toHaveBeenCalled();
-    expect(audio.gains).toHaveLength(0);
-  });
 
   test.each([
     {

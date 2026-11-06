@@ -192,9 +192,23 @@ describe("TrackElement rhythm", () => {
   });
 
   test("justifies wrapped non-final lines to full width while keeping beats contiguous", () => {
-    const { score, track } = createScoreGraph();
-    for (let i = 0; i < 12; i++) {
+    const { score, track, staff } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    for (let i = 1; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
+      const bar = staff.bars[i];
+      const voiceBar = bar.getVoiceBar(1);
+      if (voiceBar === null) {
+        throw Error("Expected test voice bar");
+      }
+      voiceBar.replaceBeats([
+        createBeat(voiceBar, NoteDuration.Quarter),
+        createBeat(voiceBar, NoteDuration.Eighth),
+        createBeat(voiceBar, NoteDuration.Sixteenth),
+      ]);
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -210,6 +224,11 @@ describe("TrackElement rhythm", () => {
       TEST_LAYOUT_DIMENSIONS.width
     );
 
+    expect(
+      firstLineStyle.barElements.every(
+        (barElement) => barElement.beatElements.length > 1
+      )
+    ).toBe(true);
     for (const barElement of firstLineStyle.barElements) {
       for (let i = 1; i < barElement.beatElements.length; i++) {
         expect(barElement.beatElements[i].boundingBox.x).toBeCloseTo(

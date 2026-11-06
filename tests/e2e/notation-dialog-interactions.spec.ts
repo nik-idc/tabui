@@ -76,13 +76,13 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("120");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
-  await expect(text).toHaveText("=121");
+  await expect(text).toHaveText("121");
 
   await hitArea.click();
   await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("121");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
-  await expect(text).toHaveText("=122");
+  await expect(text).toHaveText("122");
 
   await tempos.nth(1).locator(".tu-tempo-hit-area").click();
   await expect(
@@ -97,12 +97,12 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
     })
     .click();
   await page.keyboard.press("Control+z");
-  await expect(text).toHaveText("=121");
+  await expect(text).toHaveText("121");
   await page.keyboard.press("Control+y");
-  await expect(text).toHaveText("=122");
+  await expect(text).toHaveText("122");
   await page.keyboard.press("Control+z");
   await page.keyboard.press("Control+z");
-  await expect(text).toHaveText("=120");
+  await expect(text).toHaveText("120");
 });
 
 async function addTuplet(page: Page, complete: boolean) {

@@ -102,7 +102,7 @@ test("tempo callbacks resolve current bars and detach before renderer reuse", ()
   const group = renderer.ensureContainerGroup();
   const hitArea = required(group.querySelector(".tu-tempo-hit-area"));
   const text = required(group.querySelector("text"));
-  expect(text.textContent).toBe("=120");
+  expect(text.textContent).toBe("120");
   const oldBar = required([...currentInfo().barTempoRectsMap.keys()][0]);
   const oldHandler = jest.fn();
   const handler = jest.fn();
