@@ -1,4 +1,5 @@
 import { NotationComponent } from "../../../notation/notation-component";
+import { createDiv } from "../../../shared";
 import { renderOnce, setImageAsset } from "../../shared";
 import { PlayControlsTemplate } from "./play-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
@@ -31,17 +32,26 @@ export class PlayControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-play-controls";
     this.template.container.classList.add(cssClass);
-    this.template.container.append(
-      this.template.firstButton,
-      this.template.prevButton,
-      this.template.playButton,
-      this.template.nextButton,
-      this.template.lastButton,
+    const leftGroup = createDiv();
+    leftGroup.className = "tu-play-controls-left";
+    leftGroup.append(
       this.template.loopButton,
       this.template.rangeButton,
+      this.template.firstButton,
+      this.template.prevButton
+    );
+    const centerGroup = createDiv();
+    centerGroup.className = "tu-play-controls-center";
+    centerGroup.append(this.template.playButton);
+    const rightGroup = createDiv();
+    rightGroup.className = "tu-play-controls-right";
+    rightGroup.append(
+      this.template.nextButton,
+      this.template.lastButton,
       this.template.metronomeButton,
       this.template.pitchShiftControl.element
     );
+    this.template.container.append(leftGroup, centerGroup, rightGroup);
     this.parentDiv.appendChild(this.template.container);
   }
 
@@ -70,6 +80,7 @@ export class PlayControlsTemplateRenderer {
 
     const playbackState = this.notationComponent.trackController.playbackState;
     const isActive = playbackState !== PlaybackState.Idle;
+    this.template.playButton.classList.add("tu-play-button");
     const playLabel =
       playbackState === PlaybackState.Starting
         ? "Loading audio"

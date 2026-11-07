@@ -26,6 +26,7 @@ The guides above follow the repository's current `master` branch.
 - {@link ScoreEditor}: prepare or change scores without a mounted editor.
 - {@link serializeScore} and {@link deserializeScore}: save and load score data.
 
-Use the mounted editor's editing API for interactive changes. Direct model
-changes do not automatically provide undo, redraw, or host events. See the
-usage guide for lifecycle and editing rules.
+Use the editor's controls and shortcuts for interactive changes. Prepare scores
+with the public `ScoreEditor` before mounting when needed. Direct model changes
+do not automatically provide undo, redraw, or host events. See the usage guide
+for lifecycle and editing rules.

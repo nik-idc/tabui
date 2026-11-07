@@ -187,7 +187,7 @@ async function checkConsumer(page, variant) {
   );
   const icons = await checkIcons(page);
 
-  await root.getByRole("button", { name: "Tracks", exact: true }).click();
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   const tracks = root.locator(".tu-track-select-button");
   await expect(tracks).toHaveCount(2);
   await tracks.nth(1).click();
@@ -246,7 +246,7 @@ async function checkConsumer(page, variant) {
     .click();
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
   await expect(root.locator(".tu-root-svg")).toBeVisible();
-  await root.getByRole("button", { name: "Tracks", exact: true }).click();
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   await tracks.nth(1).click();
   await expect(page.locator("body")).toHaveAttribute(
     "data-active-track",

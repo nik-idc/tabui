@@ -230,6 +230,10 @@ test("editor renderer mounts and refreshes retained tuning after technique row c
       overlays: { selection: false, player: false },
     });
 
+  const originalGetBBox = Object.getOwnPropertyDescriptor(
+    SVGElement.prototype,
+    "getBBox"
+  );
   try {
     render();
     const tuningText = required(viewport.querySelector(".tu-tuning text"));
@@ -250,7 +254,15 @@ test("editor renderer mounts and refreshes retained tuning after technique row c
     const restoredText = required(viewport.querySelector(".tu-tuning text"));
     expect(Number(restoredText.getAttribute("y"))).toBe(initialY);
   } finally {
-    renderer.unrender();
+    try {
+      renderer.unrender();
+    } finally {
+      if (originalGetBBox === undefined) {
+        Reflect.deleteProperty(SVGElement.prototype, "getBBox");
+      } else {
+        Object.defineProperty(SVGElement.prototype, "getBBox", originalGetBBox);
+      }
+    }
   }
 });
 

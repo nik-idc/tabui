@@ -144,7 +144,10 @@ export class TabUICallbacks {
     }
     const contentEditable = target.closest("[contenteditable]");
     if (
-      target.closest("input, select, textarea, a, dialog, .tu-dialog") ||
+      target.closest(
+        `input, select, textarea, a, dialog, .tu-dialog,` +
+          ` .tu-track-controls-overlay, .tu-show-tracks-button`
+      ) ||
       (contentEditable !== null &&
         contentEditable.getAttribute("contenteditable") !== "false")
     ) {

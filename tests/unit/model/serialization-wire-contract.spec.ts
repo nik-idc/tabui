@@ -325,7 +325,7 @@ function wireDocument() {
     name: "Unknown",
     artist: "Unknown artist",
     song: "Unknown song",
-    masterVolume: 1,
+    masterVolume: 0.5,
     masterPan: 0,
     masterBars: [
       {

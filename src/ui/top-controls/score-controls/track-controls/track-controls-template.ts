@@ -15,6 +15,8 @@ export class TrackControlsTemplate {
   readonly removeButton: HTMLButtonElement = createButton();
   readonly volumeInput: HTMLInputElement = createInput();
   readonly panningInput: HTMLInputElement = createInput();
+  readonly volumeControls: HTMLDivElement = createDiv();
+  readonly panningControls: HTMLDivElement = createDiv();
   readonly muteButton: HTMLButtonElement = createButton();
   readonly soloButton: HTMLButtonElement = createButton();
   readonly settingsButton: HTMLButtonElement = createButton();

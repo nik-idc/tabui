@@ -18,9 +18,10 @@ guidance, see the [usage guide](usage.md).
 - Editing and navigation shortcuts apply only while the **Notation editor** area has focus.
   Use Tab to reach it, or activate **Skip to notation**. They do not apply while
   typing in a form field or using a dialog.
-- Clicking empty editor space or a toolbar button lets you continue using notation
-  shortcuts. Press Tab to move to other controls. Text fields, sliders, and dialogs
-  keep their normal keyboard controls.
+- Clicking empty editor space lets you continue using notation shortcuts. Track
+  toggles and track-overlay controls keep focus for their own controls. Press Tab
+  to move to other controls. Text fields, sliders, and dialogs keep their normal
+  keyboard controls.
 - On macOS, use **Command+A/C/X/V/Z** for select all, copy, cut, paste, and undo.
   Use **Command+Shift+Z** for redo. Bar navigation and range extension with arrows
   still require **Ctrl**, including Ctrl+Shift+Left/Right. Ctrl+Y also works for redo;
@@ -35,8 +36,7 @@ guidance, see the [usage guide](usage.md).
 - While playback is active or preparing, only Space, Shift+Space, and copying remain available
   as notation shortcuts. Stop playback before navigating or editing.
 - Editing actions need a suitable note cursor or beat range. Some require a
-  single note cursor, as described below. See also the
-  [known no-selection limitation](usage.md#editing-with-no-selection).
+  single note cursor, as described below.
 
 ## Navigation and selection
 
@@ -72,9 +72,9 @@ ranges keep their frets on the same string numbers, even with different tuning.
 For beat ranges, the destination must have at least as many strings as the
 source. Extra strings stay empty.
 
-After clicking a toolbar button, Space controls playback. When you use Tab to
-reach a toolbar button, Space or Enter activates that button; use Shift+Space
-for playback instead. After Shift+Space, you can use Space to stop playback.
+When a toolbar button has focus, Space or Enter activates that button. Use
+Shift+Space for playback instead. After Shift+Space, you can use Space to
+stop playback.
 Holding Space does not repeatedly start and stop playback.
 
 Playback shortcuts do not take over keys while you use a text field, dropdown,

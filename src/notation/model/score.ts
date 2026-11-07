@@ -93,7 +93,7 @@ export class Score {
     this._name = name;
     this._artist = artist;
     this._song = song;
-    this.masterVolume = 1;
+    this.masterVolume = 0.5;
     this.masterPan = 0;
     this._masterBars = [new MasterBar(DEFAULT_MASTER_BAR)];
 

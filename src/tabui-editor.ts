@@ -182,6 +182,7 @@ export class TabUIEditor {
     );
     this._uiComponent = new UIComponent(
       this._shellComponent.template.scorePanelHost,
+      this.rootDiv,
       this._shellComponent.template.sidePanelHost,
       this._shellComponent.dialogEnforcer,
       this._notationComponent,

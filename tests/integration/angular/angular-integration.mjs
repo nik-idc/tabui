@@ -194,8 +194,9 @@ async function checkAngular(page) {
   await expect(output("Active track")).toHaveText("Track 1");
   const lightIcon = await checkIcons(root);
   await checkTheme(root, false);
-  await root.getByRole("button", { name: "Tracks", exact: true }).click();
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   await selectTrack("Second track");
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   await expect(output("Change events")).toHaveText("1");
   await root.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   await page.keyboard.press("7");
@@ -259,6 +260,7 @@ async function checkAngular(page) {
   );
   await expect(root.getByRole("status")).toHaveText(selectionDescription);
   await notation.dispose();
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   await selectTrack("Track 1");
   await expect(preview).toHaveText("Warmup · Slow · Track 1");
   await expect(title).toHaveValue("Warmup");
@@ -278,7 +280,7 @@ async function checkAngular(page) {
   await button("Mount editor").click();
   await expect(output("Effect setups")).toHaveText("2");
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
-  await root.getByRole("button", { name: "Tracks", exact: true }).click();
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   await selectTrack("Second track");
   await expect(output("Change events")).toHaveText(String(beforeForm + 3));
   await expect(root.locator('[id^="note-text-"]')).toHaveText("7");
@@ -289,7 +291,9 @@ async function checkAngular(page) {
     exact: true,
   });
   await trackName.fill("Practice guitar");
-  await trackName.press("Tab");
+  await root
+    .getByRole("textbox", { name: "Practice guitar name", exact: true })
+    .press("Tab");
   // Theme replacement is checked with both lifecycle counters and DOM identity.
   for (const [variant, setups] of [
     ["dark", 3],
@@ -303,7 +307,7 @@ async function checkAngular(page) {
     assert.equal(await oldNotation.evaluate((v) => v.isConnected), false);
     await oldNotation.dispose();
     await checkTheme(root, variant === "dark");
-    await root.getByRole("button", { name: "Tracks", exact: true }).click();
+    await root.getByRole("button", { name: /^Tracks ·/ }).click();
     await expect(
       root.getByRole("button", {
         name: "Select track: Practice guitar",

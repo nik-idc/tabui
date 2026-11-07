@@ -16,6 +16,7 @@ export class UIComponent {
 
   constructor(
     topHost: HTMLDivElement,
+    editorRoot: HTMLDivElement,
     sideHost: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
@@ -30,6 +31,7 @@ export class UIComponent {
 
     this.topComponent = new TopControlsComponent(
       this.topHost,
+      editorRoot,
       this.dialogEnforcer,
       this.notationComponent,
       announce

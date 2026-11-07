@@ -40,6 +40,7 @@ describe("Score controls", () => {
     );
     controls = new ScoreControlsComponent(
       host,
+      root,
       new DialogEnforcer(dialogs, () => {}),
       notation,
       () => {}
@@ -94,6 +95,15 @@ describe("Score controls", () => {
   test("score controls toggle tracks, rename and open dialogs; unbind stops events", () => {
     controls.template.showTracksButton.click();
     expect(controls.tracksAreDisplayed).toBe(true);
+    expect(controls.template.showTracksButton.textContent).toBe(
+      "Tracks · Track 1 · 2 tracks"
+    );
+    expect(controls.template.showTracksButton.getAttribute("aria-label")).toBe(
+      "Tracks · Track 1 · 2 tracks"
+    );
+    expect(controls.template.showTracksButton.title).toBe(
+      "Tracks · Track 1 · 2 tracks"
+    );
     expect(controls.template.tracksContainer.children).toHaveLength(2);
     const lead = controls.trackComponents[1];
     lead.template.selectButton.click();
@@ -117,7 +127,7 @@ describe("Score controls", () => {
     input(controls.template.masterVolumeInput, "10");
     expect(controls.tracksAreDisplayed).toBe(true);
     expect(notation.score.name).toBe("Renamed");
-    expect(notation.score.masterVolume).toBe(1);
+    expect(notation.score.masterVolume).toBe(0.5);
   });
 
   test("master controls preserve score and per-track mix across rerenders and switches", () => {

@@ -81,7 +81,7 @@ replace release validation.
 - [x] Block the remaining editing interactions during playback.
 - [x] Add metronome and playback pitch-shift controls.
 - [x] Shift + Arrow selection selects the current beat before extending
-- [x] Eliminate all operations that can lead to no selection
+- [x] Keep a valid selection after range paste
   - [x] Restore cursor and range state with immutable snapshots owned by each
         undoable command, including valid post-edit context for structural edits
         and fallback restoration when model objects are recreated. The current

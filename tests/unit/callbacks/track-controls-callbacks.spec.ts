@@ -40,6 +40,7 @@ describe("Track controls", () => {
     );
     controls = new ScoreControlsComponent(
       host,
+      root,
       new DialogEnforcer(dialogs, () => {}),
       notation,
       () => {}

@@ -163,7 +163,7 @@ async function checkReact(page, development) {
   const lightIcon = await checkIcons(page);
   await checkTheme(page, false);
 
-  await root.getByRole("button", { name: "Tracks", exact: true }).click();
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   await root
     .getByRole("button", { name: "Select track: Second track", exact: true })
     .click();
@@ -201,7 +201,7 @@ async function checkReact(page, development) {
   await expect(output("Effect setups")).toHaveText(String(remountSetups));
   await expect(output("Effect cleanups")).toHaveText(String(remountSetups - 1));
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
-  await root.getByRole("button", { name: "Tracks", exact: true }).click();
+  await root.getByRole("button", { name: /^Tracks ·/ }).click();
   await root
     .getByRole("button", { name: "Select track: Second track", exact: true })
     .click();

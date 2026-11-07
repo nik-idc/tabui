@@ -11,6 +11,8 @@ export class ScoreControlsTemplate {
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
   /******/ readonly showTracksButton: HTMLButtonElement = createButton();
   /******/ readonly newTrackButton: HTMLButtonElement = createButton();
+  /******/ readonly masterVolumeControls: HTMLDivElement = createDiv();
+  /******/ readonly masterPanningControls: HTMLDivElement = createDiv();
   /******/ readonly masterVolumeInput: HTMLInputElement = createInput();
   /******/ readonly masterPanningInput: HTMLInputElement = createInput();
   /****/ readonly scoreNameInput: HTMLInputElement = createInput();

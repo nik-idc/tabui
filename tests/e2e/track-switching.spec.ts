@@ -55,7 +55,11 @@ test("switches the active track through the track controls", async ({
   const editor = page.locator("#tabui-editor");
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
 
-  await editor.getByRole("button", { name: "Tracks" }).click();
+  const tracksButton = editor.getByRole("button", { name: /^Tracks ·/ });
+  await tracksButton.click();
+  await expect(tracksButton).toHaveAccessibleName(
+    "Tracks · Rhythm track · 4 tracks"
+  );
   const trackButtons = editor.locator(".tu-track-select-button");
   await expect(trackButtons).toHaveCount(4);
   await expect(trackButtons.nth(0)).toHaveAttribute("aria-pressed", "true");
@@ -63,7 +67,34 @@ test("switches the active track through the track controls", async ({
   await selectTrack(editor, 1);
 
   await expect(trackButtons.nth(0)).toHaveAttribute("aria-pressed", "false");
+  await expect(editor.locator(".tu-track-controls-overlay")).toBeVisible();
   await expect(editor.locator(".tu-root-svg")).toHaveCount(1);
+});
+
+test("keeps the open track list after outside click and Escape", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  const tracksButton = editor.getByRole("button", {
+    name: /^Tracks ·/,
+  });
+
+  await tracksButton.click();
+  await expect(editor.locator(".tu-track-controls-overlay")).toBeVisible();
+  await editor.locator(".tu-score-name-input").click();
+  await expect(editor.locator(".tu-track-controls-overlay")).toBeVisible();
+
+  const trackNameInput = editor
+    .locator(".tu-track-controls-overlay .tu-track-name-input")
+    .first();
+  await trackNameInput.focus();
+  await expect(trackNameInput).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(editor.locator(".tu-track-controls-overlay")).toBeVisible();
+  await tracksButton.click();
+  await expect(editor.locator(".tu-track-controls-overlay")).toBeHidden();
 });
 
 test("keeps visible bar borders aligned across track switches", async ({

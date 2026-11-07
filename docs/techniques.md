@@ -89,7 +89,7 @@ beat can use them separately.
 The two techniques use separate rows. A passage starts with `L.R.` or `P.M.` text;
 consecutive markings continue with dashes. Text restarts after a gap or a wrapped
 line. These labels show markings, not a Tie or a promise of another attack.
-For label removal, see the [editing controls](usage.md#ties-and-let-ring).
+For editing these markings, see the [technique controls](usage.md#ties-and-let-ring).
 
 ## Bends
 

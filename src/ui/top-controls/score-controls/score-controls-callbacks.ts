@@ -42,8 +42,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
   private _listeners = new ListenerManager();
   private _bound = false;
-  private _minTrackNameLength = 1;
-  private _maxTrackNameLength = 32;
 
   constructor(
     scoreComponent: ScoreControlsComponent,

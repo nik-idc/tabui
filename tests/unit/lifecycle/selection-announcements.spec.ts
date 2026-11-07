@@ -74,6 +74,7 @@ describe("selection announcement behavior", () => {
     cleanups.push(() => notation.dispose());
     const ui = new UIComponent(
       fixture.shell.template.scorePanelHost,
+      fixture.root,
       fixture.shell.template.sidePanelHost,
       fixture.shell.dialogEnforcer,
       notation,

@@ -53,6 +53,7 @@ describe("TabUICallbacks", () => {
     cleanups.push(() => notation.dispose());
     const ui = new UIComponent(
       shell.template.scorePanelHost,
+      root,
       shell.template.sidePanelHost,
       shell.dialogEnforcer,
       notation,

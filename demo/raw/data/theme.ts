@@ -30,7 +30,7 @@ const EDITOR_THEMES: EditorThemeOption[] = [
             applied: "#2563eb55",
           },
           fonts: {
-            body: '"Inter", sans-serif',
+            default: { family: '"Inter", sans-serif' },
           },
           radius: "10px",
         },
@@ -71,7 +71,7 @@ const EDITOR_THEMES: EditorThemeOption[] = [
             applied: "#a3620044",
           },
           fonts: {
-            body: '"Segoe UI", sans-serif',
+            default: { family: '"Segoe UI", sans-serif' },
           },
           radius: "8px",
         },
@@ -112,7 +112,7 @@ const EDITOR_THEMES: EditorThemeOption[] = [
             applied: "#b0896855",
           },
           fonts: {
-            body: '"Merriweather", serif',
+            default: { family: '"Merriweather", serif' },
           },
           radius: "6px",
         },
@@ -153,7 +153,7 @@ const EDITOR_THEMES: EditorThemeOption[] = [
             applied: "#22c55e55",
           },
           fonts: {
-            body: '"Arial", sans-serif',
+            default: { family: '"Arial", sans-serif' },
           },
           radius: "0px",
         },

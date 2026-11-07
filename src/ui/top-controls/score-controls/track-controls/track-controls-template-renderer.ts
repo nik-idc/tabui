@@ -45,13 +45,15 @@ export class TrackControlsTemplateRenderer {
       this.template.moveUpButton,
       this.template.moveDownButton,
       this.template.trackNameInput,
-      this.template.volumeInput,
-      this.template.panningInput,
+      this.template.volumeControls,
+      this.template.panningControls,
       this.template.muteButton,
       this.template.soloButton,
       this.template.settingsButton,
       this.template.removeButton
     );
+    this.template.volumeControls.append(this.template.volumeInput);
+    this.template.panningControls.append(this.template.panningInput);
     this.parentDiv.appendChild(this.template.container);
   }
 
@@ -153,10 +155,12 @@ export class TrackControlsTemplateRenderer {
       "aria-label",
       `${this.track.name} volume`
     );
+    this.template.volumeInput.title = `${this.track.name} volume`;
 
     this.template.volumeInput.value = `${this.track.volume * maxVolume}`;
     this.template.volumeInput.disabled =
       !this.notationComponent.trackController.editingEnabled;
+    this.template.volumeControls.classList.add("tu-track-volume-controls");
   }
 
   private renderPanningInput(): void {
@@ -170,10 +174,12 @@ export class TrackControlsTemplateRenderer {
       "aria-label",
       `${this.track.name} panning`
     );
+    this.template.panningInput.title = `${this.track.name} pan`;
 
     this.template.panningInput.value = `${this.track.pan}`;
     this.template.panningInput.disabled =
       !this.notationComponent.trackController.editingEnabled;
+    this.template.panningControls.classList.add("tu-track-panning-controls");
   }
 
   private renderMuteButton(): void {

@@ -20,7 +20,6 @@ For installation and a minimal example, see the [README](../README.md).
 - [Interaction](#interaction)
   - [Editing and view-only modes](#editing-and-view-only-modes)
   - [Mouse, touch, and pen input](#mouse-touch-and-pen-input)
-  - [Editing with no selection](#editing-with-no-selection)
 - [Ties and Let Ring](#ties-and-let-ring)
 - [Accessibility](#accessibility)
   - [Keyboard navigation](#keyboard-navigation)
@@ -284,17 +283,6 @@ Notation selection uses Pointer Events for mouse, touch, and pen input. Desktop
 drag selection remains a single-pointer interaction. Full phone editing and
 two-handle touch selection are not currently supported.
 
-### Editing with no selection
-
-The shortcuts for rests and adding or removing beats and bars need a selected
-note slot or beat range.
-
-When you paste copied beats over a selected range, the editor can clear the
-selection. If you then press Shift+X, A, Shift+A, Delete, I, Shift+I, or
-Shift+Delete, the shortcut can cause an error instead of being ignored.
-
-This is a known limitation. Click a note slot to select it before editing again.
-
 ## Ties and Let Ring
 
 Use **Tie** or **J** (for “join”) to tie the selection to the immediately previous
@@ -307,16 +295,10 @@ toggle Palm Mute. A cursor edits one string; a beat or range selection
 edits eligible slots in musical order. Compatibility is checked per note, so
 different strings in a beat can use different techniques.
 
-Click a Let Ring or Palm Mute label to remove that technique from its beat, not
-the whole passage. See [Let Ring](techniques.md#let-ring) for passage support and
-editing effects, and [Palm Mute](techniques.md#palm-mute) for eligible note types.
-
-The controller uses the same direct toggle, for example:
-
-```ts
-controller.setTechnique(GuitarTechniqueType.LetRing);
-controller.setTechnique(GuitarTechniqueType.PalmMute);
-```
+Select a note, beat, or beat range, then use the **Let Ring** or **Palm Mute**
+button, or its shortcut, to toggle the technique. See [Let Ring](techniques.md#let-ring)
+for passage support and editing effects, and [Palm Mute](techniques.md#palm-mute)
+for eligible note types.
 
 These techniques have no options. For other techniques and their interpretation,
 see [Guitar techniques](techniques.md). For storage and editing responsibilities,
@@ -354,10 +336,9 @@ While notation has focus, these keys provide basic navigation and editing:
 | Space                              | Start or stop playback.                                                       |
 | Ctrl+Z / Ctrl+Y                    | Undo or redo an edit.                                                         |
 
-Editing shortcuts require edit mode; see [interaction modes](#editing-and-view-only-modes)
-and the [no-selection limitation](#editing-with-no-selection). Notation shortcuts
-apply while notation has focus, so typing in a host form or editor dialog does
-not edit the score.
+Editing shortcuts require edit mode; see [interaction modes](#editing-and-view-only-modes).
+Notation shortcuts apply while notation has focus, so typing in a host form or
+editor dialog does not edit the score.
 
 Buttons support normal keyboard activation. Open dialogs keep keyboard focus
 within their controls; Escape closes a dialog and returns focus to its opener.
@@ -392,6 +373,11 @@ both hover and keyboard focus. Applications can configure UI and notation colour
 through `theme.ui.colors` and `theme.notation.colors`. Choose contrasting text,
 background, selection, and cursor colours, and pair dark backgrounds with
 `assets.variant: "dark"` so icons remain visible.
+
+UI fonts use `theme.ui.fonts.default.family` and `.size` for the body and
+controls. `theme.ui.fonts.scoreName.family` falls back to the default family;
+its `.size` falls back to the default size, or `1.5rem` when no default size is
+set. The body defaults to Segoe UI at `1rem`.
 
 The [demo](#demo) includes light, dark, and **High Contrast** themes to try.
 Browser zoom can reduce the available notation width; the

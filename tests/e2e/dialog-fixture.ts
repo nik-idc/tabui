@@ -20,6 +20,7 @@ export function createDialogFixture() {
   );
   const ui = new UIComponent(
     shell.template.scorePanelHost,
+    root,
     shell.template.sidePanelHost,
     shell.dialogEnforcer,
     notation,

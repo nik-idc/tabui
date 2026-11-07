@@ -2457,7 +2457,8 @@ describe("TrackController", () => {
     expect(barTwoVoiceBar.beats[0].isRest()).toBe(true);
     expect(controller.selectionCursor).toBeDefined();
     expect(controller.selectionBeats).toEqual([]);
-    expect(controller.selectionCursor?.beat).toBe(barTwoVoiceBar.beats[0]);
+    expect(controller.selectionCursor?.beat).toBe(barOneVoiceBar.beats[0]);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
   });
 
   test("range paste reuses a sole empty ending suffix and preserves the other voice's boundary tie", () => {
@@ -2699,6 +2700,10 @@ describe("TrackController", () => {
       required(controller.trackElement.getBeatElement(voiceBars[2].beats[1]))
     );
     controller.paste(clipboard);
+    const pastedBeat = voiceBars[2].beats[1];
+    expect(controller.selectionCursor?.beat).toBe(pastedBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    expect(controller.selectionBeats).toEqual([]);
     const frets = (voiceBar: VoiceBar) =>
       voiceBar.beats.map((b) => (b.notes?.[0] as GuitarNote).fret);
     expect(score.masterBars).toHaveLength(5);
@@ -2721,25 +2726,36 @@ describe("TrackController", () => {
       isRepeatEnd: false,
       repeatCount: null,
     });
-    const after = serializeScore(score);
-    controller.selectNoteElement(
-      required(controller.trackElement.getBeatElement(overflow.beats[0]))
-        .noteElements[0]
-    );
+    const afterPaste = serializeScore(score);
     controller.setDuration(NoteDuration.Eighth);
+    expect(pastedBeat.baseDuration).toBe(NoteDuration.Eighth);
+    expect(overflow.beats[0].baseDuration).toBe(NoteDuration.Quarter);
+    const afterEdit = serializeScore(score);
     controller.undo();
+    expect(serializeScore(score)).toEqual(afterPaste);
     controller.undo();
     expect(serializeScore(score)).toEqual(before);
     controller.redo();
-    expect(serializeScore(score)).toEqual(after);
+    expect(serializeScore(score)).toEqual(afterPaste);
     expect(track.staves[0].bars[3].getVoiceBar(1)).toBe(overflow);
     expect(frets(voiceBars[3])).toEqual([6]);
     expect(voiceBars[3].beats.map((b) => b.baseDuration)).toEqual([
       NoteDuration.Half,
     ]);
+    expect(controller.selectionCursor?.beat).toBe(pastedBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    expect(frets(voiceBars[2])).toEqual([7, 1, 2]);
+    expect(frets(overflow)).toEqual([3, 4, 5, 8]);
+    expect(frets(voiceBars[3])).toEqual([6]);
     controller.redo();
-    expect(overflow.beats.map((b) => b.baseDuration)).toEqual([
+    expect(serializeScore(score)).toEqual(afterEdit);
+    expect(voiceBars[2].beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
       NoteDuration.Eighth,
+      NoteDuration.Quarter,
+    ]);
+    expect(overflow.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Quarter,
       NoteDuration.Quarter,
       NoteDuration.Quarter,
       NoteDuration.Eighth,

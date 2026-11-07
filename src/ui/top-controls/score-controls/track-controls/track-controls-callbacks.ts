@@ -84,10 +84,13 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     if (controller.isPlaybackActive) {
       return;
     }
-    this._notationComponent.trackController.setTrackName(
+    const changed = this._notationComponent.trackController.setTrackName(
       this._trackComponent.track,
       this._trackComponent.template.trackNameInput.value
     );
+    if (changed) {
+      this._renderFunc();
+    }
   }
 
   onTrackVolumeChanged(event: Event): void {

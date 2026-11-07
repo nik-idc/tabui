@@ -276,7 +276,19 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Tab");
   const tracks = editor.getByRole("button", { name: "Tracks" });
+  await expect(
+    editor.getByRole("textbox", { name: "Score name" })
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(editor.getByRole("button", { name: "New track" })).toBeFocused();
+  await page.keyboard.press("Tab");
   await expect(tracks).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(editor.getByRole("button", { name: "New track" })).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    editor.getByRole("textbox", { name: "Score name" })
+  ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Shift+Tab");
@@ -496,8 +508,9 @@ test("announces tuning changes without moving keyboard focus", async ({
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   for (const opener of ["New track", "Rhythm track settings"]) {
+    await editor.getByRole("button", { name: /^Tracks ·/ }).click();
     await editor.getByRole("button", { name: opener, exact: true }).click();
     const dialog = editor.getByRole("dialog");
     const region = dialog.getByRole("status");
@@ -528,7 +541,7 @@ test("names a delete confirmation with the track being deleted", async ({
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   const removeRhythm = editor.getByRole("button", {
     name: "Remove Rhythm track",
     exact: true,

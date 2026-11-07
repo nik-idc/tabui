@@ -126,7 +126,7 @@ describe("Score model", () => {
     expect(score.tracks).toHaveLength(1);
     expect(score.tracks[0].staves).toHaveLength(1);
     expect(score.tracks[0].staves[0].bars).toHaveLength(1);
-    expect(score.masterVolume).toBe(1);
+    expect(score.masterVolume).toBe(0.5);
     expect(score.masterPan).toBe(0);
   });
 

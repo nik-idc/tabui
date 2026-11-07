@@ -133,7 +133,7 @@ export interface TabUIConfig {
       initiallyCollapsed?: boolean;
     };
   };
-  /** CSS color, font-family, and border-radius values overriding the built-in theme. */
+  /** CSS color, font-family, font-size, and border-radius values overriding the built-in theme. */
   theme?: {
     /** Host interface theme, including controls and panels. */
     ui?: {
@@ -154,10 +154,16 @@ export interface TabUIConfig {
         /** Active or applied control background. */
         applied?: string;
       };
-      /** CSS font-family values for interface text. */
+      /** Interface and score title fonts. Body defaults to Segoe UI and 1rem. */
       fonts?: {
-        /** Body and control font family. */
-        body?: string;
+        default?: {
+          family?: string;
+          size?: string;
+        };
+        scoreName?: {
+          family?: string;
+          size?: string;
+        };
       };
       /** CSS border-radius value for controls and panels. */
       radius?: string;
@@ -278,7 +284,11 @@ const DEFAULT_THEME_CSS_VARS = {
   "--tu-applied-color": "#21212114",
   "--tu-border-radius": "8px",
   "--tu-font-body": '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+  "--tu-font-body-size": "1rem",
   "--tu-font-notation": '"Roboto", sans-serif',
+  "--tu-score-name-font-family":
+    '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+  "--tu-score-name-font-size": "1.5rem",
   "--tu-notation-ink": "#000000",
   "--tu-notation-text": "#000000",
   "--tu-notation-bar-number":
@@ -317,6 +327,18 @@ function isValidInstrumentTone(value: string): value is InstrumentTone {
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function resolveCssValue(
+  value: string | undefined,
+  defaultValue: string,
+  name: string
+): string {
+  const resolved = value === undefined ? defaultValue : value;
+  if (typeof resolved !== "string" || resolved.trim() === "") {
+    throw new Error(`TabUIEditor theme ${name} must be a non-empty string`);
+  }
+  return resolved;
 }
 
 /** Resolves a layout number and rejects values outside its public contract. */
@@ -377,6 +399,27 @@ function resolvePlaybackConfig(
 }
 
 function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
+  const bodyFamily = resolveCssValue(
+    config.theme?.ui?.fonts?.default?.family,
+    DEFAULT_THEME_CSS_VARS["--tu-font-body"],
+    "fonts.default.family"
+  );
+  const bodySize = resolveCssValue(
+    config.theme?.ui?.fonts?.default?.size,
+    DEFAULT_THEME_CSS_VARS["--tu-font-body-size"],
+    "fonts.default.size"
+  );
+  const scoreNameFamily = resolveCssValue(
+    config.theme?.ui?.fonts?.scoreName?.family,
+    bodyFamily,
+    "fonts.scoreName.family"
+  );
+  const scoreNameSize = resolveCssValue(
+    config.theme?.ui?.fonts?.scoreName?.size,
+    config.theme?.ui?.fonts?.default?.size ??
+      DEFAULT_THEME_CSS_VARS["--tu-score-name-font-size"],
+    "fonts.scoreName.size"
+  );
   return {
     ...DEFAULT_THEME_CSS_VARS,
     ...(config.theme?.ui?.colors?.background !== undefined
@@ -406,9 +449,10 @@ function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
     ...(config.theme?.ui?.colors?.applied !== undefined
       ? { "--tu-applied-color": config.theme.ui.colors.applied }
       : {}),
-    ...(config.theme?.ui?.fonts?.body !== undefined
-      ? { "--tu-font-body": config.theme.ui.fonts.body }
-      : {}),
+    "--tu-font-body": bodyFamily,
+    "--tu-font-body-size": bodySize,
+    "--tu-score-name-font-family": scoreNameFamily,
+    "--tu-score-name-font-size": scoreNameSize,
     ...(config.theme?.notation?.fonts?.notation !== undefined
       ? { "--tu-font-notation": config.theme.notation.fonts.notation }
       : {}),

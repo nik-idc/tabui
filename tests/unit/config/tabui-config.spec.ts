@@ -30,6 +30,7 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-background-color"]).toBe("#f0f0f0");
     expect(config.theme.cssVars["--tu-font-body"]).toContain("Segoe UI");
     expect(config.theme.cssVars["--tu-font-notation"]).toContain("Roboto");
+    expect(config.theme.cssVars["--tu-score-name-font-size"]).toBe("1.5rem");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#000000");
     expect(config.theme.cssVars["--tu-notation-bar-number"]).toBe(
       "color-mix(in srgb, var(--tu-notation-text) 55%, transparent)"
@@ -60,7 +61,14 @@ describe("tabui-config", () => {
             text: "#eeeeee",
           },
           fonts: {
-            body: "Inter, sans-serif",
+            default: {
+              family: "Inter, sans-serif",
+              size: "1.1rem",
+            },
+            scoreName: {
+              family: "Georgia, serif",
+              size: "2rem",
+            },
           },
           radius: "12px",
         },
@@ -84,6 +92,17 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-bend-label"]).toBe("#eeeeee");
     expect(config.theme.cssVars["--tu-primary-color"]).toBe("#ffffff");
     expect(config.theme.cssVars["--tu-font-body"]).toBe("Inter, sans-serif");
+    expect(config.theme.cssVars["--tu-font-body-size"]).toBe("1.1rem");
+    expect(config.theme.cssVars["--tu-score-name-font-family"]).toBe(
+      "Georgia, serif"
+    );
+    expect(config.theme.cssVars["--tu-score-name-font-size"]).toBe("2rem");
+    const defaultSizeConfig = resolveTabUIConfig({
+      theme: { ui: { fonts: { default: { size: "1.25rem" } } } },
+    });
+    expect(defaultSizeConfig.theme.cssVars["--tu-score-name-font-size"]).toBe(
+      "1.25rem"
+    );
     expect(config.theme.cssVars["--tu-font-notation"]).toBe("Bravura, serif");
     expect(config.theme.cssVars["--tu-border-radius"]).toBe("12px");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#f8fafc");

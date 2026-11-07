@@ -10,6 +10,7 @@ import { YesNoComponent } from "../../shared/yes-no";
 
 export class ScoreControlsComponent {
   readonly parentDiv: HTMLDivElement;
+  readonly overlayParent: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly score: Score;
 
@@ -26,17 +27,20 @@ export class ScoreControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
+    overlayParent: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
     announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
+    this.overlayParent = overlayParent;
     this.notationComponent = notationComponent;
     this.score = this.notationComponent.score;
 
     this.template = new ScoreControlsTemplate();
     this.templateRenderer = new ScoreControlsTemplateRenderer(
       this.parentDiv,
+      this.overlayParent,
       this.notationComponent,
       this.template
     );

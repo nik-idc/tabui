@@ -261,6 +261,181 @@ test("uses configured bottom-right panel placement", async ({ page }) => {
   await expectPanelPlacement(page, "bottom-right");
 });
 
+test("opens the track list in the available direction without moving notation", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  const notation = editor.locator(".tu-notation-viewport");
+  await editor.getByRole("button", { name: "Tracks" }).scrollIntoViewIfNeeded();
+  const before = await requiredBoundingBox(notation);
+  const pageScrollBefore = await page.evaluate(() => window.scrollY);
+
+  await editor.getByRole("button", { name: "Tracks" }).click();
+  const overlay = editor.locator(".tu-track-controls-overlay");
+  await expect(overlay).toBeVisible();
+  await expect(overlay.locator(".tu-track-controls")).toHaveCount(4);
+  const geometry = await editor.evaluate((root) => {
+    const getBox = (selector: string): DOMRect => {
+      const element = root.querySelector<HTMLElement>(selector);
+      if (element === null) throw new Error(`Missing ${selector}`);
+      return element.getBoundingClientRect();
+    };
+    const toolbar = getBox(".tu-top-controls");
+    const title = getBox(".tu-score-name-input");
+    const play = getBox(".tu-play-button");
+    const master = getBox(".tu-master-volume-input");
+    const track = getBox(".tu-track-volume-input");
+    const panel = getBox(".tu-track-controls-overlay");
+    return {
+      toolbarCenter: toolbar.left + toolbar.width / 2,
+      toolbarBottom: toolbar.bottom,
+      titleCenter: title.left + title.width / 2,
+      playCenter: play.left + play.width / 2,
+      masterX: master.left,
+      trackX: track.left,
+      masterWidth: master.width,
+      trackWidth: track.width,
+      panelTop: panel.top,
+      panelBottom: panel.bottom,
+      notationTop: getBox(".tu-notation-viewport").top,
+    };
+  });
+  expect(Math.abs(geometry.titleCenter - geometry.toolbarCenter)).toBeLessThan(
+    2
+  );
+  expect(Math.abs(geometry.playCenter - geometry.toolbarCenter)).toBeLessThan(
+    2
+  );
+  expect(Math.abs(geometry.masterX - geometry.trackX)).toBeLessThan(2);
+  expect(Math.abs(geometry.masterWidth - geometry.trackWidth)).toBeLessThan(2);
+  expect(
+    Math.abs(geometry.panelTop - geometry.toolbarBottom)
+  ).toBeLessThanOrEqual(0.5);
+  await expect
+    .poll(async () => {
+      const box = await requiredBoundingBox(notation);
+      return [box.x, box.y, box.width, box.height];
+    })
+    .toEqual([before.x, before.y, before.width, before.height]);
+  await expect
+    .poll(async () => page.evaluate(() => window.scrollY))
+    .toBe(pageScrollBefore);
+
+  await page.goto(
+    "/tabui/?fixture=feature_showcase&scorePanelPlacement=bottom"
+  );
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  const bottomNotation = editor.locator(".tu-notation-viewport");
+  await editor.getByRole("button", { name: "Tracks" }).scrollIntoViewIfNeeded();
+  const bottomBefore = await requiredBoundingBox(bottomNotation);
+  const bottomPageScrollBefore = await page.evaluate(() => window.scrollY);
+  await editor.getByRole("button", { name: "Tracks" }).click();
+  const bottomGeometry = await editor.evaluate((root) => {
+    const getBox = (selector: string): DOMRect => {
+      const element = root.querySelector<HTMLElement>(selector);
+      if (element === null) throw new Error(`Missing ${selector}`);
+      return element.getBoundingClientRect();
+    };
+    const panel = getBox(".tu-track-controls-overlay");
+    const toolbar = getBox(".tu-top-controls");
+    return { panelBottom: panel.bottom, toolbarTop: toolbar.top };
+  });
+  expect(
+    Math.abs(bottomGeometry.panelBottom - bottomGeometry.toolbarTop)
+  ).toBeLessThanOrEqual(0.5);
+  await expect
+    .poll(async () => {
+      const box = await requiredBoundingBox(bottomNotation);
+      return [box.x, box.y, box.width, box.height];
+    })
+    .toEqual([
+      bottomBefore.x,
+      bottomBefore.y,
+      bottomBefore.width,
+      bottomBefore.height,
+    ]);
+  await expect
+    .poll(async () => page.evaluate(() => window.scrollY))
+    .toBe(bottomPageScrollBefore);
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await expect(editor.locator(".tu-track-controls-overlay")).toBeHidden();
+});
+
+test("caps a long track list at five rows and keeps it scrollable", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+
+  for (const name of ["Extra one", "Extra two", "Extra three"]) {
+    await editor
+      .getByRole("button", { name: "New track", exact: true })
+      .click();
+    const dialog = editor.getByRole("dialog", { name: "New track" });
+    await dialog
+      .getByRole("textbox", { name: "Track name", exact: true })
+      .fill(name);
+    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+  }
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  const overlay = editor.locator(".tu-track-controls-overlay");
+  const metrics = await editor
+    .locator(".tu-track-controls-overlay")
+    .evaluate((panel) => {
+      const row = panel.querySelector<HTMLElement>(".tu-track-controls");
+      if (row === null) throw new Error("Expected track row");
+      const style = getComputedStyle(panel);
+      return {
+        clientHeight: panel.clientHeight,
+        scrollHeight: panel.scrollHeight,
+        rowHeight: row.getBoundingClientRect().height,
+        gap: parseFloat(style.gap),
+        padding: parseFloat(style.paddingTop) + parseFloat(style.paddingBottom),
+      };
+    });
+  expect(metrics.clientHeight).toBeGreaterThan(0);
+  expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+  expect(metrics.clientHeight).toBeLessThanOrEqual(
+    metrics.rowHeight * 5 + metrics.gap * 4 + metrics.padding + 2
+  );
+  await overlay.scrollIntoViewIfNeeded();
+  await overlay.hover();
+  const scrollTopBeforeWheel = await overlay.evaluate(
+    (panel) => panel.scrollTop
+  );
+  await page.mouse.wheel(0, 500);
+  await expect
+    .poll(async () =>
+      overlay.evaluate((panel) => {
+        return panel.scrollTop;
+      })
+    )
+    .toBeGreaterThan(scrollTopBeforeWheel);
+  const scrollState = await overlay.evaluate((panel) => {
+    const row = panel.querySelector<HTMLElement>(
+      ".tu-track-controls:last-child"
+    );
+    if (row === null) throw new Error("Expected last track row");
+    const panelBox = panel.getBoundingClientRect();
+    const rowBox = row.getBoundingClientRect();
+    return {
+      scrollTop: panel.scrollTop,
+      rowTop: rowBox.top,
+      rowBottom: rowBox.bottom,
+      panelTop: panelBox.top,
+      panelBottom: panelBox.bottom,
+    };
+  });
+  expect(scrollState.scrollTop).toBeGreaterThan(0);
+  expect(scrollState.rowTop).toBeGreaterThanOrEqual(scrollState.panelTop - 0.5);
+  expect(scrollState.rowBottom).toBeLessThanOrEqual(
+    scrollState.panelBottom + 0.5
+  );
+});
+
 test("configured view-only keeps only track selection, names, and playback", async ({
   page,
 }) => {

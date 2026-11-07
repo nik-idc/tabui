@@ -904,6 +904,20 @@ export class TrackControllerEditor {
     );
   }
 
+  /** Restores a cursor at the replacement destination. */
+  private completeReplacement(
+    destinationBar: Bar,
+    destinationVoiceNumber: VoiceNumber,
+    destinationIndex: number
+  ): void {
+    const voiceBar = destinationBar.getVoiceBar(destinationVoiceNumber);
+    const beat =
+      voiceBar?.beats[Math.min(destinationIndex, voiceBar.beats.length - 1)];
+    if (beat !== undefined) {
+      this._selectionManager.selectBeatCursor(beat, 0);
+    }
+  }
+
   private pasteBeats(
     clipboard: Beat<Guitar>[],
     selectionCursor: SelectionCursor | undefined,
@@ -926,9 +940,19 @@ export class TrackControllerEditor {
       );
     } else {
       // Replace currently selected
+      const firstDestination = selectionBeats[0];
+      const destinationBar = firstDestination.voiceBar.bar;
+      const destinationVoiceNumber = firstDestination.voiceBar.voiceNumber;
+      const destinationIndex =
+        firstDestination.voiceBar.beats.indexOf(firstDestination);
       this.executeCommand(
         new ReplaceBeatsCommand(selectionBeats, clipboard),
-        () => this.clearSelection()
+        () =>
+          this.completeReplacement(
+            destinationBar,
+            destinationVoiceNumber,
+            destinationIndex
+          )
       );
     }
     return true;
