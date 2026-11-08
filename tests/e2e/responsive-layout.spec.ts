@@ -288,10 +288,16 @@ test("opens the track list in the available direction without moving notation", 
     const master = getBox(".tu-master-volume-input");
     const track = getBox(".tu-track-volume-input");
     const panel = getBox(".tu-track-controls-overlay");
+    const viewport = root.querySelector<HTMLElement>(".tu-notation-viewport");
+    if (viewport === null) throw new Error("Missing notation viewport");
     return {
       toolbarCenter: toolbar.left + toolbar.width / 2,
       toolbarBottom: toolbar.bottom,
       titleCenter: title.left + title.width / 2,
+      notationCenter:
+        viewport.getBoundingClientRect().left +
+        viewport.clientLeft +
+        viewport.clientWidth / 2,
       playCenter: play.left + play.width / 2,
       masterX: master.left,
       trackX: track.left,
@@ -302,7 +308,7 @@ test("opens the track list in the available direction without moving notation", 
       notationTop: getBox(".tu-notation-viewport").top,
     };
   });
-  expect(Math.abs(geometry.titleCenter - geometry.toolbarCenter)).toBeLessThan(
+  expect(Math.abs(geometry.titleCenter - geometry.notationCenter)).toBeLessThan(
     2
   );
   expect(Math.abs(geometry.playCenter - geometry.toolbarCenter)).toBeLessThan(

@@ -110,36 +110,11 @@ replace release validation.
   - [x] Equalize the bottoms of the side control panel and the notation viewport.
         Currently notation's bottom seems a bit lower than that of side controls
   - [x] Remove the red color from the delete track button
-  - [ ] Use "volume.svg" & "pan.svg" icons for the volume & pan sliders
   - [x] Align the whole tempo marking with the first beat's fret text without
         changing its Y position.
         DESIGN:
-  - [ ] Reexamine the design of track selection. Which type of icon would be best?
-        Consider drag & drop instead of buttons for reordering.
-  - [ ] Reexamine the top controls layout. Possibly split into multiple sections
-        to avoide crowding. Proposal:
-
-```
-|*******************************************|
-|----------------SCORE TITLE----------------|
-|------------------PLAYBACK-----------------|
-|-----------MASTER & TRACK SETTINGS---------|
-|*******************************************|
-```
-
-Or also possibly this layout:
-
-```
-|***************************************************************|
-|----------------------------PLAYBACK---------------------------|
-|---------------------MASTER & TRACK SETTINGS-------------------|
-|===============================================================|
-|--SIDE CONTROLS--|-------------------NOTATION------------------|
-|--SIDE CONTROLS--|-------------------NOTATION------------------|
-|--SIDE CONTROLS--|-------------------NOTATION------------------|
-|--SIDE CONTROLS--|-------------------NOTATION------------------|
-|***************************************************************|
-```
+  - [x] Redesign track selection
+  - [x] Put score title inside notation viewport
 
 With the score name input being at the very top of notation, kinda like in GuitarPro
 

@@ -16,12 +16,14 @@ import {
   settleTransport,
 } from "../player/transport-audio";
 import { required } from "../required";
+import { mockSvgViewportBounds } from "../render/svg-viewport-bounds";
 
 describe("NotationComponent", () => {
   let audio: ReturnType<typeof installTransportAudio>;
   const cleanups: Array<() => void> = [];
 
   beforeEach(() => {
+    mockSvgViewportBounds();
     jest.useFakeTimers();
     audio = installTransportAudio();
   });
@@ -29,6 +31,7 @@ describe("NotationComponent", () => {
   afterEach(() => {
     cleanups.splice(0).forEach((c) => c());
     audio.restore();
+    jest.restoreAllMocks();
     jest.useRealTimers();
   });
 

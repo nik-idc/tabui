@@ -52,10 +52,11 @@ export class ScoreControlsTemplateRenderer {
     );
 
     this.template.container.append(this.template.masterContainer);
-    this.template.masterContainer.append(
-      this.template.scoreNameInput,
-      this.template.settingsContainer
-    );
+    this.template.masterContainer.append(this.template.settingsContainer);
+    const titleContainer = document.createElement("div");
+    titleContainer.classList.add("tu-score-title");
+    titleContainer.append(this.template.scoreNameInput);
+    this.notationComponent.rootDiv.prepend(titleContainer);
     this.template.settingsContainer.append(
       this.template.newTrackButton,
       this.template.showTracksButton,

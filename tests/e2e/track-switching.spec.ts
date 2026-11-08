@@ -83,7 +83,9 @@ test("keeps the open track list after outside click and Escape", async ({
 
   await tracksButton.click();
   await expect(editor.locator(".tu-track-controls-overlay")).toBeVisible();
-  await editor.locator(".tu-score-name-input").click();
+  await editor
+    .getByRole("slider", { name: "Master volume", exact: true })
+    .click();
   await expect(editor.locator(".tu-track-controls-overlay")).toBeVisible();
 
   const trackNameInput = editor

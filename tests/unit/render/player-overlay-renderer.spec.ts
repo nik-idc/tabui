@@ -16,6 +16,7 @@ import { createTestLayoutDimensions } from "../controller/helpers";
 import { createMultiVoiceTwoStaffScoreFixture } from "../../../fixtures/multi-voice-score";
 import { installTransportAudio } from "../player/transport-audio";
 import { required } from "../required";
+import { mockSvgViewportBounds } from "./svg-viewport-bounds";
 
 function populatedScore() {
   const graph = createBarWithBeats(
@@ -99,6 +100,7 @@ describe("PlayerOverlayRenderer", () => {
   }
 
   beforeEach(() => {
+    mockSvgViewportBounds();
     jest.useFakeTimers();
     audio = installTransportAudio();
     frames = new Map();

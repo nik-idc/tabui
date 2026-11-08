@@ -282,19 +282,11 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Tab");
   const tracks = editor.getByRole("button", { name: "Tracks" });
-  await expect(
-    editor.getByRole("textbox", { name: "Score name" })
-  ).toBeFocused();
-  await page.keyboard.press("Tab");
   await expect(editor.getByRole("button", { name: "New track" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(tracks).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(editor.getByRole("button", { name: "New track" })).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
-  await expect(
-    editor.getByRole("textbox", { name: "Score name" })
-  ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Shift+Tab");
@@ -331,9 +323,14 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   }
   await expect(afterEditor).toBeFocused();
   await page.keyboard.press("Shift+Tab");
+  const title = editor.getByRole("textbox", { name: "Score name" });
+  await expect(title).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(title).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(afterEditor).toBeFocused();
 });

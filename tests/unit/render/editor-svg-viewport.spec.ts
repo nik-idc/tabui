@@ -6,6 +6,10 @@ import { DEFAULT_MASTER_BAR } from "../../../src/notation/model";
 import { EditorSVGRenderer } from "../../../src/notation/render/svg/editor-svg-renderer";
 import { createTestLayoutDimensions } from "../controller/helpers";
 import { createScoreGraph } from "../model/helpers";
+import { mockSvgViewportBounds } from "./svg-viewport-bounds";
+
+beforeEach(() => mockSvgViewportBounds());
+afterEach(() => jest.restoreAllMocks());
 
 function createViewportRenderer(layoutMode: TabUILayoutMode) {
   const { score, track } = createScoreGraph();
@@ -21,7 +25,7 @@ function createViewportRenderer(layoutMode: TabUILayoutMode) {
     layoutMode
   );
   const viewport = document.createElement("div");
-  // jsdom has no layout engine. Supply only the browser viewport dimensions.
+  // jsdom has no layout engine. Supply the browser viewport dimensions.
   Object.defineProperties(viewport, {
     clientWidth: { value: 800 },
     clientHeight: { value: 400 },

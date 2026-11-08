@@ -166,8 +166,11 @@ export class EditorSVGRenderer implements EditorRenderer {
       return undefined;
     }
 
-    targetScrollTop = Math.max(0, targetScrollTop);
-    return targetScrollTop === this._viewportRect.y
+    targetScrollTop = Math.max(
+      0,
+      targetScrollTop + this.getNotationOffsetTop()
+    );
+    return targetScrollTop === this.notationViewportDiv.scrollTop
       ? undefined
       : targetScrollTop;
   }
@@ -267,9 +270,18 @@ export class EditorSVGRenderer implements EditorRenderer {
     const padding = this.trackController.layoutDimensions.horizontalPadding;
     this._viewportRect.set(
       this.notationViewportDiv.scrollLeft - padding,
-      this.notationViewportDiv.scrollTop,
+      this.notationViewportDiv.scrollTop - this.getNotationOffsetTop(),
       this.notationViewportDiv.clientWidth,
       this.notationViewportDiv.clientHeight
+    );
+  }
+
+  /** Converts scroll coordinates to SVG coordinates below the score title. */
+  private getNotationOffsetTop(): number {
+    return (
+      this.rootSVGElement.getBoundingClientRect().top -
+      this.notationViewportDiv.getBoundingClientRect().top +
+      this.notationViewportDiv.scrollTop
     );
   }
 
@@ -1117,7 +1129,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   public dispose(): void {
     this.detachViewportScrollEvent();
     this.unrender();
-    this.notationViewportDiv.replaceChildren();
+    this.rootSVGElement.remove();
     this.notationViewportDiv.classList.remove("tu-single-line-notation");
   }
 }

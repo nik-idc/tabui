@@ -8,10 +8,12 @@ import { DEFAULT_MASTER_BAR, GuitarNote } from "../../../src/notation/model";
 import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
 import { createScoreGraph } from "../model/helpers";
 import { required } from "../required";
+import { mockSvgViewportBounds } from "../render/svg-viewport-bounds";
 
 describe("TabUICallbacks", () => {
   const cleanups: (() => void)[] = [];
   beforeEach(() => {
+    mockSvgViewportBounds();
     jest.useFakeTimers();
     Object.defineProperty(globalThis, "SVGRectElement", {
       configurable: true,
@@ -25,6 +27,7 @@ describe("TabUICallbacks", () => {
       .reverse()
       .forEach((c) => c());
     Reflect.deleteProperty(globalThis, "SVGRectElement");
+    jest.restoreAllMocks();
     jest.useRealTimers();
     document.body.replaceChildren();
   });
