@@ -188,10 +188,10 @@ async function checkConsumer(page, variant) {
   const icons = await checkIcons(page);
 
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
-  const tracks = root.locator(".tu-track-select-button");
+  const tracks = root.locator('.tu-track-controls[role="group"]');
   await expect(tracks).toHaveCount(2);
-  await tracks.nth(1).click();
-  await expect(tracks.nth(1)).toHaveAttribute("aria-pressed", "true");
+  await tracks.nth(1).locator(".tu-track-name-label").click();
+  await expect(tracks.nth(1)).toHaveAttribute("aria-current", "true");
   await expect(page.locator("body")).toHaveAttribute(
     "data-active-track",
     "Second track"
@@ -218,8 +218,8 @@ async function checkConsumer(page, variant) {
   await page
     .getByRole("button", { name: "Stop observing", exact: true })
     .click();
-  await tracks.nth(0).click();
-  await expect(tracks.nth(0)).toHaveAttribute("aria-pressed", "true");
+  await tracks.nth(0).locator(".tu-track-name-label").click();
+  await expect(tracks.nth(0)).toHaveAttribute("aria-current", "true");
   await page
     .getByRole("button", { name: "Resize editor", exact: true })
     .click();
@@ -247,7 +247,7 @@ async function checkConsumer(page, variant) {
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
   await expect(root.locator(".tu-root-svg")).toBeVisible();
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
-  await tracks.nth(1).click();
+  await tracks.nth(1).locator(".tu-track-name-label").click();
   await expect(page.locator("body")).toHaveAttribute(
     "data-active-track",
     "Second track"
@@ -259,10 +259,8 @@ async function checkConsumer(page, variant) {
     .fill("Added by consumer");
   await page.getByRole("button", { name: "Confirm", exact: true }).click();
   await expect(tracks).toHaveCount(3);
-  await expect(tracks.nth(2)).toHaveAccessibleName(
-    "Select track: Added by consumer"
-  );
-  await expect(tracks.nth(2)).toHaveAttribute("aria-pressed", "true");
+  await expect(tracks.nth(2)).toHaveAccessibleName("Track: Added by consumer");
+  await expect(tracks.nth(2)).toHaveAttribute("aria-current", "true");
   await expect(page.locator("body")).toHaveAttribute(
     "data-active-track",
     "Added by consumer"

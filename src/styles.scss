@@ -19,14 +19,13 @@
   --tu-bend-label: #333333;
   --tu-transition-speed: 0.3s;
   --tu-root-grid-gap: 0.5rem;
-  --tu-track-columns: var(--tu-track-select-width) var(--tu-track-reorder-width)
-    var(--tu-track-name-width) var(--tu-track-mix-width)
-    var(--tu-track-mix-width) repeat(4, var(--tu-track-reorder-width));
-  --tu-track-select-width: 2.6rem;
+  --tu-track-columns: var(--tu-track-reorder-width) var(--tu-track-name-width)
+    var(--tu-track-mix-width) var(--tu-track-mix-width)
+    repeat(4, var(--tu-track-reorder-width));
   --tu-track-reorder-width: 2.4rem;
   --tu-track-name-width: 16rem;
   --tu-track-mix-width: 10rem;
-  --tu-track-row-height: calc(2 * 1.6rem + 0.35rem);
+  --tu-track-row-height: calc(2 * 1.6rem);
 }
 
 .tu-editor {
@@ -231,11 +230,24 @@
     .tu-show-tracks-button {
       @extend %tu-button-style;
 
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      font: inherit;
+
       &[aria-expanded="true"],
-      &[aria-expanded="true"]:hover,
-      &[aria-expanded="true"]:focus-visible {
+      &[aria-expanded="true"]:hover {
         background-color: var(--tu-applied-color);
-        box-shadow: 0 0 0 2px var(--tu-applied-color);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, var(--tu-border-color) 70%, transparent);
+      }
+
+      &:hover:not(:disabled) {
+        background: var(--tu-hover-color);
+      }
+
+      &:disabled:hover {
+        background: transparent;
       }
     }
 
@@ -262,6 +274,8 @@
           align-items: center;
           justify-content: center;
           box-sizing: border-box;
+          width: 2.4rem;
+          height: 2.4rem;
           min-width: 0;
           min-height: 0;
           padding: 0.2rem;
@@ -276,7 +290,7 @@
           }
         }
         .tu-show-tracks-button {
-          grid-column: 2 / 4;
+          grid-column: 2;
           grid-row: 1;
           justify-self: stretch;
           width: 100%;
@@ -286,11 +300,11 @@
           white-space: nowrap;
         }
         .tu-master-volume-controls {
-          grid-column: 4;
+          grid-column: 3;
           grid-row: 1;
         }
         .tu-master-panning-controls {
-          grid-column: 5;
+          grid-column: 4;
           grid-row: 1;
         }
 
@@ -315,14 +329,15 @@
             background-color 0.15s ease,
             box-shadow 0.15s ease;
 
-          &:focus {
-            background-color: var(--tu-applied-color);
-            cursor: text;
+          &:hover {
+            background-color: transparent;
+            box-shadow: 0 0 0 2px var(--tu-secondary-color);
           }
 
-          &:hover {
-            background-color: var(--tu-primary-color);
-            box-shadow: 0 0 0 2px var(--tu-secondary-color);
+          &:focus {
+            background-color: transparent;
+            box-shadow: 0 0 0 2px var(--tu-font-color);
+            cursor: text;
           }
         }
       }
@@ -356,10 +371,11 @@
 
         .tu-track-controls {
           display: grid;
+          cursor: pointer;
           grid-template-columns: var(--tu-track-columns);
           grid-template-rows: repeat(2, 1.6rem);
           align-items: center;
-          gap: 0.35rem;
+          column-gap: 0.35rem;
           width: 100%;
           box-sizing: border-box;
           padding: 0;
@@ -367,13 +383,9 @@
           outline: 1px solid
             color-mix(in srgb, var(--tu-border-color) 70%, transparent);
           border-radius: calc(var(--tu-border-radius) + 2px);
-          background: color-mix(
-            in srgb,
-            var(--tu-secondary-color) 35%,
-            transparent
-          );
+          background: transparent;
 
-          &:has(.tu-track-select-button.tu-track-control-active) {
+          &.tu-track-control-active {
             outline-color: color-mix(
               in srgb,
               var(--tu-font-color) 50%,
@@ -386,9 +398,7 @@
             );
           }
 
-          button {
-            @extend %tu-button-style;
-
+          .tu-track-move-button {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -396,63 +406,127 @@
             min-width: 0;
             height: 100%;
             padding: 0;
-          }
-
-          .tu-track-select-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            justify-self: center;
-            grid-row: 1 / 3;
-            width: 2.6rem;
-            height: 2.6rem;
-            border-radius: 50%;
+            border: 0;
+            color: inherit;
             background: transparent;
-            font-size: 1.1rem;
-            line-height: 1;
-            text-overflow: clip;
+            box-shadow: none;
+            cursor: pointer;
+            font: inherit;
+            transition:
+              background-color var(--tu-transition-speed),
+              transform var(--tu-transition-speed);
 
-            &.tu-track-control-active {
-              background: var(--tu-applied-color);
-              box-shadow:
-                inset 0 0 0 1px var(--tu-font-color),
-                0 0 0 2px var(--tu-applied-color);
+            &:hover:not(:disabled) {
+              background: var(--tu-hover-color);
+              transform: none;
             }
-          }
 
-          .tu-track-move-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            height: 1.6rem;
+            &:disabled:hover {
+              background: transparent;
+              transform: none;
+            }
+
+            width: 100%;
+            height: 100%;
+            justify-self: stretch;
+            align-self: stretch;
             font-size: 0.9rem;
             font-weight: 700;
             line-height: 1;
             text-overflow: clip;
             opacity: 0.85;
 
+            &:focus-visible {
+              outline: 2px solid var(--tu-font-color);
+              outline-offset: -2px;
+            }
+
+            &:active:not(:disabled) {
+              background: var(--tu-applied-color);
+              transform: none;
+            }
+
             &:disabled {
               cursor: default;
               opacity: 0.28;
             }
+
+            &.tu-track-control-active,
+            &.tu-track-control-active:hover:not(:disabled),
+            &.tu-track-control-active:focus-visible {
+              background: var(--tu-applied-color);
+              box-shadow: inset 0 0 0 1px
+                color-mix(in srgb, var(--tu-border-color) 70%, transparent);
+            }
+          }
+
+          button.tu-disabled-img {
+            pointer-events: auto;
           }
 
           .tu-track-move-up-button {
             grid-row: 1;
+            border-radius: calc(var(--tu-border-radius) + 2px) 0 0 0;
           }
 
           .tu-track-move-down-button {
             grid-row: 2;
+            border-radius: 0 0 0 calc(var(--tu-border-radius) + 2px);
           }
 
           .tu-track-name-input {
-            @extend %tu-input-number-style;
             grid-row: 1 / 3;
             width: 100%;
             min-width: 0;
             height: 2.4rem;
             box-sizing: border-box;
+            padding: 0.1em 0.4rem;
+            border: none;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--tu-font-color);
+            caret-color: var(--tu-font-color);
+            font: inherit;
+            line-height: 1.2;
+            transition:
+              background-color 0.15s ease,
+              box-shadow 0.15s ease;
+
+            &:hover {
+              background-color: transparent;
+              box-shadow: 0 0 0 2px var(--tu-secondary-color);
+            }
+
+            &:focus {
+              outline: none;
+              background-color: transparent;
+              box-shadow: 0 0 0 2px var(--tu-font-color);
+              cursor: text;
+            }
+          }
+
+          .tu-track-name-label {
+            grid-row: 1 / 3;
+            width: 100%;
+            min-width: 0;
+            height: 2.4rem;
+            box-sizing: border-box;
+            padding: 0 0.4rem;
+            border: none;
+            border-radius: 4px;
+            color: var(--tu-font-color);
+            overflow: hidden;
+            background: transparent;
+            font: inherit;
+            line-height: 2.4rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+          }
+
+          &:focus-visible {
+            outline: 2px solid var(--tu-font-color);
+            outline-offset: 2px;
           }
 
           .tu-track-volume-controls,
@@ -476,22 +550,7 @@
           .tu-track-solo-button,
           .tu-track-settings-button,
           .tu-track-remove-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
             grid-row: 1 / 3;
-            width: 2.4rem;
-            height: 2.4rem;
-            padding: 0.25rem;
-            border-radius: var(--tu-border-radius);
-            box-sizing: border-box;
-
-            > img {
-              display: block;
-              width: 100%;
-              height: 100%;
-              object-fit: contain;
-            }
           }
 
           .tu-track-remove-button {
@@ -582,7 +641,8 @@
 
       &.tu-track-control-active {
         background: var(--tu-applied-color);
-        box-shadow: 0 0 0 2px var(--tu-font-color);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, var(--tu-border-color) 70%, transparent);
       }
 
       &:hover {
@@ -816,21 +876,22 @@
     }
 
     .tu-tracks .tu-track-controls {
-      grid-template-columns: 2.6rem minmax(0, 1fr);
+      grid-template-columns: minmax(0, 1fr);
       grid-template-rows: 2.6rem;
       width: 100%;
 
-      > :not(.tu-track-select-button):not(.tu-track-name-input) {
+      > :not(.tu-track-name-input):not(.tu-track-name-label) {
         display: none;
       }
 
-      .tu-track-select-button,
+      .tu-track-name-label,
       .tu-track-name-input {
         grid-row: 1;
       }
 
+      .tu-track-name-label,
       .tu-track-name-input {
-        grid-column: 2;
+        grid-column: 1;
       }
     }
 
@@ -1652,6 +1713,15 @@
   }
 }
 
+// Keep controls that reuse the shared button behavior transparent when idle.
+.tu-editor {
+  .tu-top-controls .tu-show-tracks-button,
+  .tu-tracks .tu-track-controls button {
+    border: 0;
+    background-color: transparent;
+  }
+}
+
 %tu-input-number-style {
   padding: 5px;
   border: 2px solid var(--tu-border-color);
@@ -1677,11 +1747,15 @@
 .tu-applied-img {
   background-color: var(--tu-applied-color);
   border-radius: var(--tu-border-radius);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--tu-border-color) 70%, transparent);
 }
 
-.tu-applied-button {
+.tu-editor .tu-applied-button {
   background-color: var(--tu-applied-color);
-  box-shadow: 0 0 0 2px var(--tu-applied-color);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--tu-border-color) 70%, transparent);
 }
 
 .tu-voice-button {
@@ -1705,7 +1779,8 @@
 
 .tu-voice-button.tu-applied-img {
   background: var(--tu-applied-color);
-  box-shadow: 0 0 0 2px var(--tu-font-color);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--tu-border-color) 70%, transparent);
 }
 
 .tu-disabled-img {
@@ -1863,7 +1938,8 @@
   &.tu-applied-img,
   &.tu-track-control-active {
     background: var(--tu-applied-color);
-    box-shadow: inset 0 0 0 2px var(--tu-font-color);
+    box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--tu-border-color) 70%, transparent);
   }
 }
 
@@ -1877,7 +1953,19 @@
   }
 }
 
-.tu-editor .tu-side-controls .tu-icon-button {
+.tu-editor
+  button:is(
+    [aria-pressed="true"],
+    [aria-expanded="true"],
+    .tu-applied-button,
+    .tu-track-control-active
+  ):focus-visible {
+  outline: 2px solid var(--tu-font-color);
+  outline-offset: 2px;
+}
+
+.tu-editor .tu-side-controls .tu-icon-button,
+.tu-editor .tu-track-controls .tu-icon-button {
   flex-basis: 2.4rem;
   width: 2.4rem;
   height: 2.4rem;

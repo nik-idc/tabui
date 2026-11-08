@@ -113,7 +113,7 @@ describe("Track controls", () => {
     input(lead.template.trackNameInput, "Blocked");
     callbacks.onTrackRemoveClicked();
     callbacks.onTrackSettingsClicked();
-    lead.template.selectButton.click();
+    lead.template.container.click();
     expect(notation.trackController.track).toBe(lead.track);
     expect(notation.trackController.playbackState).toBe(PlaybackState.Playing);
     expect(notation.score.tracks).toEqual(tracks);
@@ -159,7 +159,7 @@ describe("Track controls", () => {
   test("bound controls select, reorder, rename and open track dialogs; unbind stops edits", () => {
     const lead = controls.trackComponents[1];
     const rhythm = notation.score.tracks[0];
-    lead.template.selectButton.click();
+    lead.template.container.click();
     expect(notation.trackController.track).toBe(lead.track);
     lead.template.moveUpButton.click();
     expect(notation.score.tracks).toEqual([lead.track, rhythm]);
@@ -180,5 +180,41 @@ describe("Track controls", () => {
     input(lead.template.trackNameInput, "Detached");
     expect(notation.score.tracks).toEqual([rhythm, lead.track]);
     expect(lead.track.name).toBe("Solo");
+  });
+
+  test("selects from the inactive name without focusing its editor and supports row keys", () => {
+    const lead = controls.trackComponents[1];
+    const rhythm = controls.trackComponents[0];
+
+    lead.template.trackNameLabel.click();
+    expect(notation.trackController.track).toBe(lead.track);
+    expect(document.activeElement).not.toBe(lead.template.trackNameInput);
+    expect(lead.template.trackNameInput.hidden).toBe(false);
+
+    notation.loadTrack(rhythm.track);
+    controls.render();
+    lead.template.container.focus();
+    lead.template.container.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    );
+    expect(notation.trackController.track).toBe(lead.track);
+
+    notation.loadTrack(rhythm.track);
+    controls.render();
+    for (const key of ["Enter", " "]) {
+      lead.template.muteButton.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true })
+      );
+      expect(notation.trackController.track).toBe(rhythm.track);
+    }
+    lead.template.muteButton.click();
+    expect(notation.trackController.track).toBe(rhythm.track);
+    expect(lead.track.muted).toBe(true);
+
+    lead.template.container.focus();
+    lead.template.container.dispatchEvent(
+      new KeyboardEvent("keydown", { key: " ", bubbles: true })
+    );
+    expect(notation.trackController.track).toBe(lead.track);
   });
 });

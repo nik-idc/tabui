@@ -106,7 +106,7 @@ describe("Score controls", () => {
     );
     expect(controls.template.tracksContainer.children).toHaveLength(2);
     const lead = controls.trackComponents[1];
-    lead.template.selectButton.click();
+    lead.template.container.click();
     expect(notation.trackController.track).toBe(lead.track);
     input(controls.template.scoreNameInput, "Renamed");
     expect(notation.score.name).toBe("Renamed");

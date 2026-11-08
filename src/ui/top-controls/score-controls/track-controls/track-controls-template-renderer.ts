@@ -41,10 +41,10 @@ export class TrackControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.container.append(
-      this.template.selectButton,
       this.template.moveUpButton,
       this.template.moveDownButton,
       this.template.trackNameInput,
+      this.template.trackNameLabel,
       this.template.volumeControls,
       this.template.panningControls,
       this.template.muteButton,
@@ -57,21 +57,20 @@ export class TrackControlsTemplateRenderer {
     this.parentDiv.appendChild(this.template.container);
   }
 
-  private renderSelectButton(): void {
-    const cssClass = "tu-track-select-button";
+  private renderTrackRow(): void {
     const isActive =
       this.notationComponent.trackController.track === this.track;
-    this.template.selectButton.classList.add(cssClass);
-    this.template.selectButton.textContent = isActive ? "●" : "○";
-    this.template.selectButton.setAttribute(
-      "aria-label",
-      `Select track: ${this.track.name}`
-    );
-    this.template.selectButton.classList.toggle(
+    this.template.container.classList.toggle(
       "tu-track-control-active",
       isActive
     );
-    this.template.selectButton.setAttribute("aria-pressed", `${isActive}`);
+    this.template.container.setAttribute("role", "group");
+    this.template.container.setAttribute(
+      "aria-label",
+      `Track: ${this.track.name}`
+    );
+    this.template.container.setAttribute("aria-current", `${isActive}`);
+    this.template.container.tabIndex = 0;
   }
 
   private renderMoveButtons(): void {
@@ -108,6 +107,8 @@ export class TrackControlsTemplateRenderer {
   }
 
   private renderTrackNameInput(): void {
+    const isActive =
+      this.notationComponent.trackController.track === this.track;
     const cssClass = "tu-track-name-input";
     this.template.trackNameInput.classList.add(cssClass);
     this.template.trackNameInput.setAttribute(
@@ -118,6 +119,10 @@ export class TrackControlsTemplateRenderer {
     const controller = this.notationComponent.trackController;
     this.template.trackNameInput.disabled =
       !controller.editingEnabled || controller.isPlaybackActive;
+    this.template.trackNameLabel.className = "tu-track-name-label";
+    this.template.trackNameLabel.textContent = this.track.name;
+    this.template.trackNameLabel.hidden = isActive;
+    this.template.trackNameInput.hidden = !isActive;
   }
 
   private renderRemoveButton(): void {
@@ -255,7 +260,7 @@ export class TrackControlsTemplateRenderer {
 
   public render(): void {
     this.renderRemoveButton();
-    this.renderSelectButton();
+    this.renderTrackRow();
     this.renderMoveButtons();
     this.renderTrackNameInput();
     this.renderVolumeInput();

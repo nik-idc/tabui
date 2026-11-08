@@ -13,12 +13,12 @@ async function getRenderedNotes(editor: Locator) {
 }
 
 async function selectTrack(editor: Locator, trackIndex: number): Promise<void> {
-  const trackButtons = editor.locator(".tu-track-select-button");
-  await trackButtons.nth(trackIndex).click();
-  await expect(trackButtons.nth(trackIndex)).toHaveAttribute(
-    "aria-pressed",
-    "true"
-  );
+  const trackRows = editor.locator(".tu-track-controls");
+  const row = trackRows.nth(trackIndex);
+  if ((await row.getAttribute("aria-current")) !== "true") {
+    await row.locator(".tu-track-name-label").click();
+  }
+  await expect(row).toHaveAttribute("aria-current", "true");
 }
 
 async function getBarBorderXsByRow(editor: Locator): Promise<number[][]> {
@@ -60,13 +60,13 @@ test("switches the active track through the track controls", async ({
   await expect(tracksButton).toHaveAccessibleName(
     "Tracks · Rhythm track · 4 tracks"
   );
-  const trackButtons = editor.locator(".tu-track-select-button");
-  await expect(trackButtons).toHaveCount(4);
-  await expect(trackButtons.nth(0)).toHaveAttribute("aria-pressed", "true");
+  const trackRows = editor.locator(".tu-track-controls");
+  await expect(trackRows).toHaveCount(4);
+  await expect(trackRows.nth(0)).toHaveAttribute("aria-current", "true");
 
   await selectTrack(editor, 1);
 
-  await expect(trackButtons.nth(0)).toHaveAttribute("aria-pressed", "false");
+  await expect(trackRows.nth(0)).toHaveAttribute("aria-current", "false");
   await expect(editor.locator(".tu-track-controls-overlay")).toBeVisible();
   await expect(editor.locator(".tu-root-svg")).toHaveCount(1);
 });

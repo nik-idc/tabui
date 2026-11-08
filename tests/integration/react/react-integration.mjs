@@ -105,9 +105,13 @@ async function checkHostForm(page, root, initialSetups) {
   );
   await notation.dispose();
 
-  await root
-    .getByRole("button", { name: "Select track: Track 1", exact: true })
-    .click();
+  const trackOne = root.getByRole("group", {
+    name: "Track: Track 1",
+    exact: true,
+  });
+  if ((await trackOne.getAttribute("aria-current")) !== "true") {
+    await trackOne.locator(".tu-track-name-label").click();
+  }
   await expect(preview).toHaveText("Warmup · Slow · Track 1");
   await expect(title).toHaveValue("Warmup");
   await expect(notes).toHaveValue("Practice a slow riff.");
@@ -146,6 +150,15 @@ async function checkTheme(page, dark) {
 async function checkReact(page, development) {
   const output = (name) => page.getByRole("status", { name, exact: true });
   const root = page.locator("#tabui-editor");
+  const selectTrack = async (name) => {
+    const row = root.getByRole("group", {
+      name: `Track: ${name}`,
+      exact: true,
+    });
+    if ((await row.getAttribute("aria-current")) !== "true") {
+      await row.locator(".tu-track-name-label").click();
+    }
+  };
   const initialSetups = development ? 2 : 1;
   await expect(output("Effect setups")).toHaveText(String(initialSetups));
   await expect(output("Effect cleanups")).toHaveText(String(initialSetups - 1));
@@ -164,9 +177,7 @@ async function checkReact(page, development) {
   await checkTheme(page, false);
 
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
-  await root
-    .getByRole("button", { name: "Select track: Second track", exact: true })
-    .click();
+  await selectTrack("Second track");
   await expect(output("Active track")).toHaveText("Second track");
   await expect(output("Change events")).toHaveText("1");
   await checkHostForm(page, root, initialSetups);
@@ -202,9 +213,7 @@ async function checkReact(page, development) {
   await expect(output("Effect cleanups")).toHaveText(String(remountSetups - 1));
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
-  await root
-    .getByRole("button", { name: "Select track: Second track", exact: true })
-    .click();
+  await selectTrack("Second track");
   await expect(output("Active track")).toHaveText("Second track");
   await expect(output("Change events")).toHaveText("4");
 

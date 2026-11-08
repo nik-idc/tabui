@@ -22,6 +22,7 @@ for (const theme of ["paper", "midnight"]) {
           background: style.backgroundColor,
           shadow: style.boxShadow,
           outline: style.outline,
+          outlineWidth: style.outlineWidth,
           outlineOffset: style.outlineOffset,
         };
       });
@@ -55,15 +56,20 @@ for (const theme of ["paper", "midnight"]) {
     await loop.hover();
     await expect(loop).toHaveCSS("background-color", hover.background);
     await page.mouse.move(0, 0);
-    await page.keyboard.press("Tab");
+    await loop.click();
+    await expect(loop).toHaveAttribute("aria-pressed", "true");
     await loop.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
     await expect(loop).toBeFocused();
     const focused = await styles(loop);
     await voice.focus();
     await expect(voice).toHaveCSS("border-radius", focused.radius);
     await expect(voice).toHaveCSS("outline", focused.outline);
+    await expect(voice).toHaveCSS("outline-width", focused.outlineWidth);
     await expect(voice).toHaveCSS("outline-offset", focused.outlineOffset);
     expect(focused.outline).not.toContain("none");
+    expect(focused.outlineWidth).toBe("2px");
     await expect(loop.locator("img")).toHaveCSS(
       "border-radius",
       focused.radius
@@ -374,10 +380,7 @@ test("basic controls expose accessible names and native behavior", async ({
     "Solo track",
   ]) {
     await expect(
-      editor.getByRole("button", { name: `Select track: ${name}` })
-    ).toBeVisible();
-    await expect(
-      editor.getByRole("textbox", { name: `${name} name` })
+      editor.getByRole("group", { name: `Track: ${name}`, exact: true })
     ).toBeVisible();
     await expect(
       editor.getByRole("slider", { name: `${name} volume` })
@@ -387,10 +390,14 @@ test("basic controls expose accessible names and native behavior", async ({
     ).toBeVisible();
   }
 
-  const rhythmTrack = editor.getByRole("button", {
-    name: "Select track: Rhythm track",
+  const rhythmTrack = editor.getByRole("group", {
+    name: "Track: Rhythm track",
+    exact: true,
   });
-  await expect(rhythmTrack).toHaveAttribute("aria-pressed", "true");
+  await expect(rhythmTrack).toHaveAttribute("aria-current", "true");
+  await expect(
+    editor.getByRole("textbox", { name: "Rhythm track name", exact: true })
+  ).toBeVisible();
   await expect(
     editor.getByRole("button", { name: "Move Rhythm track up" })
   ).toBeDisabled();
@@ -555,5 +562,7 @@ test("names a delete confirmation with the track being deleted", async ({
   await page.keyboard.press("Enter");
   await expect(dialog).toHaveCount(0);
   await expect(removeRhythm).toBeVisible();
-  await expect(editor.locator(".tu-track-select-button")).toHaveCount(4);
+  await expect(editor.locator('.tu-track-controls[role="group"]')).toHaveCount(
+    4
+  );
 });

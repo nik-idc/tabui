@@ -56,6 +56,36 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   onTrackSelected(): void {
     this._notationComponent.loadTrack(this._trackComponent.track);
     this._renderFunc();
+    this._trackComponent.template.container.focus();
+  }
+
+  private onTrackRowClicked(event: Event): void {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    const interactive = target.closest(
+      `button, input, select, textarea, a, [contenteditable='true']` +
+        `, .tu-track-volume-controls, .tu-track-panning-controls`
+    );
+    if (
+      interactive &&
+      interactive !== this._trackComponent.template.container
+    ) {
+      return;
+    }
+    this.onTrackSelected();
+  }
+
+  private onTrackRowKeyDown(event: KeyboardEvent): void {
+    if (event.target !== this._trackComponent.template.container) {
+      return;
+    }
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    this.onTrackSelected();
   }
 
   onTrackMoveUpClicked(): void {
@@ -149,9 +179,15 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
         handler: () => this.onTrackRemoveClicked(),
       },
       {
-        element: this._trackComponent.template.selectButton,
+        element: this._trackComponent.template.container,
         event: "click",
-        handler: () => this.onTrackSelected(),
+        handler: (event: Event) => this.onTrackRowClicked(event),
+      },
+      {
+        element: this._trackComponent.template.container,
+        event: "keydown",
+        handler: (event: Event) =>
+          this.onTrackRowKeyDown(event as KeyboardEvent),
       },
       {
         element: this._trackComponent.template.moveUpButton,

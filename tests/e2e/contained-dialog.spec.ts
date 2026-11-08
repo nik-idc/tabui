@@ -22,14 +22,12 @@ test("Enter confirms from a text field but not from another button", async ({
   await input.press("Enter");
   await expect(dialog).toHaveCount(0);
   await expect(
-    editor.getByRole("button", {
-      name: "Select track: Native track",
+    editor.getByRole("group", {
+      name: "Track: Native track",
       exact: true,
     })
   ).toHaveCount(1);
-  await expect(
-    editor.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(2);
+  await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(2);
   await expect(page).toHaveURL(/\/tabui\/\?fixture=empty$/);
 });
 
@@ -225,9 +223,7 @@ test("traps focus and closes with Escape", async ({ page }) => {
 
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
-  await expect(
-    editor.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(1);
+  await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(1);
   await opener.focus();
   await page.keyboard.press("Enter");
   await expect(first).toBeFocused();
@@ -235,9 +231,7 @@ test("traps focus and closes with Escape", async ({ page }) => {
   await dialog.click({ position: { x: 2, y: 2 } });
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
-  await expect(
-    editor.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(1);
+  await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(1);
 });
 
 test("implements the instance dialog method contract", async ({ page }) => {
@@ -563,11 +557,9 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     await name.press("Enter");
     await expect(dialog).toHaveCount(0);
     await expect(
-      editor.getByRole("button", { name: `Select track: Before ${index}` })
+      editor.getByRole("group", { name: `Track: Before ${index}` })
     ).toBeVisible();
-    await expect(
-      editor.getByRole("button", { name: /^Select track:/ })
-    ).toHaveCount(2);
+    await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(2);
   }
 
   await opener.focus();
@@ -607,15 +599,11 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     await expect(dialog).toHaveCount(0);
     await editor.getByRole("button", { name: /^Tracks ·/ }).click();
     await expect(
-      editor.getByRole("button", { name: `Select track: After ${index}` })
+      editor.getByRole("group", { name: `Track: After ${index}` })
     ).toBeVisible();
   }
-  await expect(
-    primary.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(3);
-  await expect(
-    other.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(4);
+  await expect(primary.getByRole("group", { name: /^Track:/ })).toHaveCount(3);
+  await expect(other.getByRole("group", { name: /^Track:/ })).toHaveCount(4);
 
   await primary.getByRole("button", { name: /^Tracks ·/ }).click();
   await opener.focus();
@@ -636,13 +624,11 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
   await expect(opener).toBeFocused();
   await primary.getByRole("button", { name: /^Tracks ·/ }).click();
   await expect(
-    primary.getByRole("button", {
-      name: "Select track: Survives other editor disposal",
+    primary.getByRole("group", {
+      name: "Track: Survives other editor disposal",
       exact: true,
     })
   ).toBeVisible();
-  await expect(
-    primary.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(4);
+  await expect(primary.getByRole("group", { name: /^Track:/ })).toHaveCount(4);
   await otherEditor.dispose();
 });

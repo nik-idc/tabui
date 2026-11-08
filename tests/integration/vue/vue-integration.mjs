@@ -153,9 +153,13 @@ async function checkHostForm(page, root) {
   await notation.dispose();
 
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
-  await root
-    .getByRole("button", { name: "Select track: Track 1", exact: true })
-    .click();
+  const trackOne = root.getByRole("group", {
+    name: "Track: Track 1",
+    exact: true,
+  });
+  if ((await trackOne.getAttribute("aria-current")) !== "true") {
+    await trackOne.locator(".tu-track-name-label").click();
+  }
   await expect(preview).toHaveText("Warmup · Slow · Track 1");
   await expect(title).toHaveValue("Warmup");
   await includeNotes.check();
@@ -166,6 +170,15 @@ async function checkHostForm(page, root) {
 async function checkVue(page) {
   const output = (name) => page.getByRole("status", { name, exact: true });
   const root = page.locator("#tabui-editor");
+  const selectTrack = async (name) => {
+    const row = root.getByRole("group", {
+      name: `Track: ${name}`,
+      exact: true,
+    });
+    if ((await row.getAttribute("aria-current")) !== "true") {
+      await row.locator(".tu-track-name-label").click();
+    }
+  };
   await expect(output("Lifecycle setups")).toHaveText("1");
   await expect(output("Lifecycle cleanups")).toHaveText("0");
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
@@ -175,9 +188,7 @@ async function checkVue(page) {
   const lightIcon = await checkIcons(page);
 
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
-  await root
-    .getByRole("button", { name: "Select track: Second track", exact: true })
-    .click();
+  await selectTrack("Second track");
   await expect(output("Active track")).toHaveText("Second track");
   await expect(output("Change events")).toHaveText("1");
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
@@ -212,9 +223,7 @@ async function checkVue(page) {
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
   const beforeTrack = Number(await output("Change events").textContent());
   await root.getByRole("button", { name: /^Tracks ·/ }).click();
-  await root
-    .getByRole("button", { name: "Select track: Second track", exact: true })
-    .click();
+  await selectTrack("Second track");
   await expect(output("Active track")).toHaveText("Second track");
   await expect(output("Change events")).toHaveText(String(beforeTrack + 1));
   await expect(root.locator('[id^="note-text-"]')).toHaveText("7");
@@ -239,9 +248,7 @@ async function checkVue(page) {
     if (dark) assert.notEqual(icon, lightIcon);
     else assert.equal(icon, lightIcon);
     await root.getByRole("button", { name: /^Tracks ·/ }).click();
-    await root
-      .getByRole("button", { name: "Select track: Second track", exact: true })
-      .click();
+    await selectTrack("Second track");
     await expect(root.locator('[id^="note-text-"]')).toHaveText("7");
   }
   await expect(

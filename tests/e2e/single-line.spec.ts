@@ -20,9 +20,12 @@ async function barBorderXs(page: Page): Promise<number[]> {
 
 async function selectTrack(editor: Locator, index: number): Promise<void> {
   await editor.getByRole("button", { name: "Tracks" }).click();
-  const buttons = editor.locator(".tu-track-select-button");
-  await buttons.nth(index).click();
-  await expect(buttons.nth(index)).toHaveAttribute("aria-pressed", "true");
+  const rows = editor.locator('.tu-track-controls[role="group"]');
+  const row = rows.nth(index);
+  if ((await row.getAttribute("aria-current")) !== "true") {
+    await row.locator(".tu-track-name-label").click();
+  }
+  await expect(row).toHaveAttribute("aria-current", "true");
 }
 
 type BarExtent = { left: number; right: number };

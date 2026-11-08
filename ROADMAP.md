@@ -127,6 +127,22 @@ replace release validation.
 |*******************************************|
 ```
 
+Or also possibly this layout:
+
+```
+|***************************************************************|
+|----------------------------PLAYBACK---------------------------|
+|---------------------MASTER & TRACK SETTINGS-------------------|
+|===============================================================|
+|--SIDE CONTROLS--|-------------------NOTATION------------------|
+|--SIDE CONTROLS--|-------------------NOTATION------------------|
+|--SIDE CONTROLS--|-------------------NOTATION------------------|
+|--SIDE CONTROLS--|-------------------NOTATION------------------|
+|***************************************************************|
+```
+
+With the score name input being at the very top of notation, kinda like in GuitarPro
+
 ## Follow-up inbox
 
 These notes came from the older roadmaps. Some overlap completed work. Confirm

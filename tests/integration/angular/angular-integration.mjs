@@ -183,10 +183,15 @@ async function checkAngular(page) {
   const output = (name) => page.getByRole("status", { name, exact: true });
   const root = page.locator("#tabui-editor");
   const button = (name) => page.getByRole("button", { name, exact: true });
-  const selectTrack = async (name) =>
-    root
-      .getByRole("button", { name: `Select track: ${name}`, exact: true })
-      .click();
+  const selectTrack = async (name) => {
+    const row = root.getByRole("group", {
+      name: `Track: ${name}`,
+      exact: true,
+    });
+    if ((await row.getAttribute("aria-current")) !== "true") {
+      await row.locator(".tu-track-name-label").click();
+    }
+  };
   await expect(output("Effect setups")).toHaveText("1");
   await expect(output("Effect cleanups")).toHaveText("0");
   await expect(root.locator(".tu-root-svg")).toBeVisible();
@@ -309,8 +314,8 @@ async function checkAngular(page) {
     await checkTheme(root, variant === "dark");
     await root.getByRole("button", { name: /^Tracks ·/ }).click();
     await expect(
-      root.getByRole("button", {
-        name: "Select track: Practice guitar",
+      root.getByRole("group", {
+        name: "Track: Practice guitar",
         exact: true,
       })
     ).toBeVisible();

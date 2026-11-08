@@ -451,7 +451,9 @@ test("configured view-only keeps only track selection, names, and playback", asy
   // Track selection and score/track names remain available for viewing.
   await expect(editor.getByRole("button", { name: "Tracks" })).toBeVisible();
   await expect(editor.locator(".tu-score-name-input")).toBeDisabled();
-  await expect(editor.locator(".tu-track-select-button")).toHaveCount(4);
+  await expect(editor.locator('.tu-track-controls[role="group"]')).toHaveCount(
+    4
+  );
   for (const name of [
     "Rhythm track",
     "Lead track",
@@ -459,41 +461,41 @@ test("configured view-only keeps only track selection, names, and playback", asy
     "Solo track",
   ]) {
     await expect(
-      editor.getByRole("button", { name: `Select track: ${name}`, exact: true })
+      editor.getByRole("group", { name: `Track: ${name}`, exact: true })
     ).toBeVisible();
-    await expect(
-      editor.getByRole("textbox", { name: `${name} name`, exact: true })
-    ).toBeDisabled();
   }
-  const lead = editor.getByRole("button", {
-    name: "Select track: Lead track",
+  await expect(
+    editor.getByRole("textbox", { name: "Rhythm track name", exact: true })
+  ).toBeDisabled();
+  const lead = editor.getByRole("group", {
+    name: "Track: Lead track",
     exact: true,
   });
-  const rhythm = editor.getByRole("button", {
-    name: "Select track: Rhythm track",
+  const rhythm = editor.getByRole("group", {
+    name: "Track: Rhythm track",
     exact: true,
   });
-  await expect(rhythm).toHaveAttribute("aria-pressed", "true");
+  await expect(rhythm).toHaveAttribute("aria-current", "true");
   // Keyboard navigation restores native Space activation after opening Tracks by mouse.
   await rhythm.focus();
   await page.keyboard.press("Tab");
   await expect(lead).toBeFocused();
   await page.keyboard.press("Space");
-  await expect(lead).toHaveAttribute("aria-pressed", "true");
-  await expect(rhythm).toHaveAttribute("aria-pressed", "false");
+  await expect(lead).toHaveAttribute("aria-current", "true");
+  await expect(rhythm).toHaveAttribute("aria-current", "false");
   const notation = editor.locator(".tu-notation-viewport");
   await notation.focus();
   await expect(notation).toBeFocused();
   await page.keyboard.press("ArrowRight");
-  await expect(lead).toHaveAttribute("aria-pressed", "true");
-  await expect(rhythm).toHaveAttribute("aria-pressed", "false");
+  await expect(lead).toHaveAttribute("aria-current", "true");
+  await expect(rhythm).toHaveAttribute("aria-current", "false");
   await expect(editor.getByRole("status")).toHaveText(
     "Beat 2, quarter, String 1, fret 15."
   );
   await page.keyboard.press("ArrowLeft");
   await expect(editor.getByRole("status")).toContainText("Beat 1");
   await expect(editor.getByRole("status")).toContainText("fret 12.");
-  await expect(lead).toHaveAttribute("aria-pressed", "true");
+  await expect(lead).toHaveAttribute("aria-current", "true");
   await expect(
     editor.getByRole("button", { name: "Play", exact: true })
   ).toBeEnabled();
