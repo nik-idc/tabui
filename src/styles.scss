@@ -41,6 +41,12 @@
   height: 100vh;
   background-color: var(--tu-background-color);
   color: var(--tu-font-color);
+  scrollbar-color: color-mix(
+      in srgb,
+      var(--tu-font-color) 50%,
+      var(--tu-primary-color)
+    )
+    transparent;
   border-radius: var(--tu-border-radius);
   font-family: var(--tu-font-body);
   font-size: var(--tu-font-body-size);
@@ -70,9 +76,17 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
+    overflow-x: hidden;
+    overflow-y: auto;
     border-radius: var(--tu-border-radius);
     background: var(--tu-primary-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .tu-side-controls-host,
+  .tu-notation-viewport,
+  .tu-track-controls-overlay {
+    scrollbar-width: thin;
   }
 
   &.tu-score-panel-bottom {

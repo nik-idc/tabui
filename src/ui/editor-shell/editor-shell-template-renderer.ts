@@ -76,6 +76,7 @@ export class EditorShellTemplateRenderer {
     scorePanelHost.hidden = !this.config.panels.score.visible;
 
     sidePanelHost.classList.add("tu-side-controls-host");
+    sidePanelHost.tabIndex = -1;
     sidePanelHost.hidden = !this.config.panels.side.visible;
 
     notationViewport.classList.add("tu-notation-viewport");
