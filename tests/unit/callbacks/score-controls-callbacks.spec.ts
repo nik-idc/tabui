@@ -96,14 +96,12 @@ describe("Score controls", () => {
     controls.template.showTracksButton.click();
     expect(controls.tracksAreDisplayed).toBe(true);
     expect(controls.template.showTracksButton.textContent).toBe(
-      "Tracks · Track 1 · 2 tracks"
+      "Track 1 · 2 tracks"
     );
     expect(controls.template.showTracksButton.getAttribute("aria-label")).toBe(
       "Tracks · Track 1 · 2 tracks"
     );
-    expect(controls.template.showTracksButton.title).toBe(
-      "Tracks · Track 1 · 2 tracks"
-    );
+    expect(controls.template.showTracksButton.title).toBe("Track 1 · 2 tracks");
     expect(controls.template.tracksContainer.children).toHaveLength(2);
     const lead = controls.trackComponents[1];
     lead.template.container.click();

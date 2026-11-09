@@ -281,17 +281,27 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   await page.keyboard.press("Tab");
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Tab");
-  const tracks = editor.getByRole("button", { name: "Tracks" });
-  await expect(editor.getByRole("button", { name: "New track" })).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(tracks).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
-  await expect(editor.getByRole("button", { name: "New track" })).toBeFocused();
+  await expect(
+    editor.getByRole("button", { name: "Loop", exact: true })
+  ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(beforeEditor).toBeFocused();
+
+  const tracks = editor.getByRole("button", { name: "Tracks" });
+  const newTrack = editor.getByRole("button", { name: "New track" });
+  await newTrack.focus();
   await page.keyboard.press("Tab");
+  await expect(tracks).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(newTrack).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(
+    editor.getByRole("button", { name: "Decrease playback pitch", exact: true })
+  ).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(newTrack).toBeFocused();
 
   const afterEditor = page.getByRole("button", { name: "After editor" });
   const tabStops = editor.locator(

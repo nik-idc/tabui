@@ -77,10 +77,13 @@ export class ScoreControlsTemplateRenderer {
     const trackCount = score.tracks.length;
     const trackCountLabel =
       trackCount === 1 ? "1 track" : `${trackCount} tracks`;
-    const label = `Tracks · ${this.notationComponent.trackController.track.name} · ${trackCountLabel}`;
+    const label = `${this.notationComponent.trackController.track.name} · ${trackCountLabel}`;
     this.template.showTracksButton.classList.add(cssClass);
     this.template.showTracksButton.textContent = label;
-    this.template.showTracksButton.setAttribute("aria-label", label);
+    this.template.showTracksButton.setAttribute(
+      "aria-label",
+      `Tracks · ${label}`
+    );
     this.template.showTracksButton.title = label;
     this.template.showTracksButton.setAttribute(
       "aria-expanded",

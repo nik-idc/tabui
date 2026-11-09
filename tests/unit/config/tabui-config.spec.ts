@@ -30,7 +30,7 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-background-color"]).toBe("#f0f0f0");
     expect(config.theme.cssVars["--tu-font-body"]).toContain("Segoe UI");
     expect(config.theme.cssVars["--tu-font-notation"]).toContain("Roboto");
-    expect(config.theme.cssVars["--tu-score-name-font-size"]).toBe("1.5rem");
+    expect(config.theme.cssVars["--tu-score-name-font-size"]).toBe("2.25rem");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#000000");
     expect(config.theme.cssVars["--tu-notation-bar-number"]).toBe(
       "color-mix(in srgb, var(--tu-notation-text) 55%, transparent)"

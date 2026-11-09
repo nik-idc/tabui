@@ -376,7 +376,7 @@ background, selection, and cursor colours, and pair dark backgrounds with
 
 UI fonts use `theme.ui.fonts.default.family` and `.size` for the body and
 controls. `theme.ui.fonts.scoreName.family` falls back to the default family;
-its `.size` falls back to the default size, or `1.5rem` when no default size is
+its `.size` falls back to the default size, or `2.25rem` when no default size is
 set. The body defaults to Segoe UI at `1rem`.
 
 The [demo](#demo) includes light, dark, and **High Contrast** themes to try.

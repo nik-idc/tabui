@@ -268,6 +268,22 @@ test("opens the track list in the available direction without moving notation", 
   const editor = page.locator("#tabui-editor");
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
   const notation = editor.locator(".tu-notation-viewport");
+  const title = editor.getByRole("textbox", {
+    name: "Score name",
+    exact: true,
+  });
+  const scoreName = await title.inputValue();
+  const initialTitle = await requiredBoundingBox(title);
+  await title.fill("Short");
+  expect((await requiredBoundingBox(title)).width).toBeLessThan(
+    initialTitle.width
+  );
+  await title.fill(scoreName);
+  expect(
+    await title.evaluate(
+      (input: HTMLInputElement) => input.scrollWidth <= input.clientWidth
+    )
+  ).toBe(true);
   await editor.getByRole("button", { name: "Tracks" }).scrollIntoViewIfNeeded();
   const before = await requiredBoundingBox(notation);
   const pageScrollBefore = await page.evaluate(() => window.scrollY);
@@ -287,11 +303,13 @@ test("opens the track list in the available direction without moving notation", 
     const play = getBox(".tu-play-button");
     const master = getBox(".tu-master-volume-input");
     const track = getBox(".tu-track-volume-input");
+    const row = getBox(".tu-track-controls");
     const panel = getBox(".tu-track-controls-overlay");
     const viewport = root.querySelector<HTMLElement>(".tu-notation-viewport");
     if (viewport === null) throw new Error("Missing notation viewport");
     return {
       toolbarCenter: toolbar.left + toolbar.width / 2,
+      mixerCenter: row.left + row.width / 2,
       toolbarBottom: toolbar.bottom,
       titleCenter: title.left + title.width / 2,
       notationCenter:
@@ -312,6 +330,9 @@ test("opens the track list in the available direction without moving notation", 
     2
   );
   expect(Math.abs(geometry.playCenter - geometry.toolbarCenter)).toBeLessThan(
+    2
+  );
+  expect(Math.abs(geometry.mixerCenter - geometry.toolbarCenter)).toBeLessThan(
     2
   );
   expect(Math.abs(geometry.masterX - geometry.trackX)).toBeLessThan(2);

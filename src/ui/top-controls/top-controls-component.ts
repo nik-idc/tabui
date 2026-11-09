@@ -47,7 +47,7 @@ export class TopControlsComponent {
 
   public render(): void {
     this.templateRenderer.render();
-    this.scoreComponent.render();
     this.playComponent.render();
+    this.scoreComponent.render();
   }
 }

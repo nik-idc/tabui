@@ -288,7 +288,7 @@ const DEFAULT_THEME_CSS_VARS = {
   "--tu-font-notation": '"Roboto", sans-serif',
   "--tu-score-name-font-family":
     '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
-  "--tu-score-name-font-size": "1.5rem",
+  "--tu-score-name-font-size": "2.25rem",
   "--tu-notation-ink": "#000000",
   "--tu-notation-text": "#000000",
   "--tu-notation-bar-number":
