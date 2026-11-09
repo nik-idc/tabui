@@ -58,7 +58,7 @@ export class TempoControlsTemplateRenderer {
     this.template.valueControl.append(
       this.template.decreaseTenButton,
       this.template.decreaseButton,
-      this.template.value,
+      this.template.valueInput,
       this.template.increaseButton,
       this.template.increaseTenButton
     );
@@ -91,8 +91,16 @@ export class TempoControlsTemplateRenderer {
     this.template.decreaseTenButton.ariaLabel = "Decrease tempo by 10 BPM";
     this.template.decreaseButton.textContent = "-";
     this.template.decreaseButton.ariaLabel = "Decrease tempo by 1 BPM";
-    this.template.value.classList.add("tu-number-stepper-value");
-    this.template.value.textContent = tempoInitValue;
+    this.template.valueInput.classList.add("tu-number-stepper-value");
+    this.template.valueInput.classList.add("tu-tempo-input");
+    this.template.valueInput.classList.add("tu-tempo-value");
+    this.template.valueInput.type = "number";
+    this.template.valueInput.name = "tempo";
+    this.template.valueInput.ariaLabel = "Tempo in beats per minute";
+    this.template.valueInput.min = `${MIN_MASTER_BAR_TEMPO}`;
+    this.template.valueInput.max = `${MAX_MASTER_BAR_TEMPO}`;
+    this.template.valueInput.step = "1";
+    this.template.valueInput.value = tempoInitValue;
     this.template.increaseButton.textContent = "+";
     this.template.increaseButton.ariaLabel = "Increase tempo by 1 BPM";
     this.template.increaseTenButton.textContent = "+10";
@@ -104,6 +112,8 @@ export class TempoControlsTemplateRenderer {
     this.template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
     const beatsErrorCSSClass = "tu-tempo-error";
     this.template.errorText.classList.add(beatsErrorCSSClass);
+    this.template.errorText.textContent = " ";
+    this.template.confirmButton.disabled = false;
   }
 
   private renderButtons(): void {

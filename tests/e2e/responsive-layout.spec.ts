@@ -247,6 +247,166 @@ test("collapses the side panel and gives notation its space", async ({
     .toBeCloseTo(svgWidthBefore, 0);
 });
 
+test("contains new-track tuning controls at desktop editing widths", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await editor.getByRole("button", { name: "New track", exact: true }).click();
+  const dialog = editor.getByRole("dialog", { name: "New track" });
+  const content = dialog.locator(".tu-nt-content");
+  const counter = dialog.locator(".tu-nt-string-count-value");
+  await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(6);
+  await expect(dialog.locator(".tu-nt-tuning-step")).toHaveCount(12);
+  const initialContent = await requiredBoundingBox(content);
+  const initialCounter = await requiredBoundingBox(counter);
+  expect(initialCounter.x + initialCounter.width / 2).toBeCloseTo(
+    initialContent.x + initialContent.width / 2,
+    0
+  );
+
+  await dialog
+    .getByRole("button", { name: "Increase string count by 1" })
+    .click({ clickCount: 6 });
+  await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(12);
+  await expect(dialog.locator(".tu-nt-tuning-step")).toHaveCount(24);
+  const grownContent = await requiredBoundingBox(content);
+  const grownCounter = await requiredBoundingBox(counter);
+  expect(grownContent.width).toBeGreaterThan(initialContent.width);
+  expect(grownCounter.x + grownCounter.width / 2).toBeCloseTo(
+    grownContent.x + grownContent.width / 2,
+    0
+  );
+
+  const controls = await dialog
+    .locator(".tu-nt-tuning-step")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return { left: bounds.left, right: bounds.right, top: bounds.top };
+      })
+    );
+  expect(controls).toHaveLength(24);
+  for (const [index, bounds] of controls.entries()) {
+    expect(bounds.left).toBeGreaterThanOrEqual(grownContent.x);
+    expect(bounds.right).toBeLessThanOrEqual(
+      grownContent.x + grownContent.width
+    );
+    if (index > 0 && bounds.top === controls[index - 1].top) {
+      expect(bounds.left).toBeGreaterThanOrEqual(controls[index - 1].right);
+    }
+  }
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.reload();
+  const compactEditor = page.locator("#tabui-editor");
+  await expect(compactEditor).not.toHaveClass(
+    /tu-responsive-(view-only|blocked)/
+  );
+  await compactEditor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await compactEditor
+    .getByRole("button", { name: "New track", exact: true })
+    .click();
+  const compactDialog = compactEditor.getByRole("dialog", {
+    name: "New track",
+  });
+  const compactContent = compactDialog.locator(".tu-nt-content");
+  await expect(compactDialog.locator(".tu-nt-tuning-string")).toHaveCount(6);
+  await compactDialog
+    .getByRole("button", { name: "Increase string count by 1" })
+    .click({ clickCount: 6 });
+  await expect(compactDialog.locator(".tu-nt-tuning-string")).toHaveCount(12);
+  await expect(compactDialog.locator(".tu-nt-tuning-step")).toHaveCount(24);
+  const compactContentBox = await requiredBoundingBox(compactContent);
+  const compactControls = await compactDialog
+    .locator(".tu-nt-tuning-step")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return { left: bounds.left, right: bounds.right };
+      })
+    );
+  for (const bounds of compactControls) {
+    expect(bounds.left).toBeGreaterThanOrEqual(compactContentBox.x);
+    expect(bounds.right).toBeLessThanOrEqual(
+      compactContentBox.x + compactContentBox.width
+    );
+  }
+  await compactDialog.getByRole("button", { name: "Cancel" }).click();
+});
+
+test("contains a long time-signature dialog at compact editing width", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.locator(".tu-time-signature").first().click();
+  await page.keyboard.press("Shift+M");
+  const initialDialog = editor.getByRole("dialog", { name: "Time signature" });
+  await initialDialog
+    .getByRole("button", { name: "Increase beats per measure by 1" })
+    .click();
+  await initialDialog.getByRole("button", { name: "Confirm" }).click();
+  await editor.locator('[id^="note-rect-"]').first().click();
+  for (let i = 0; i < 30; i++) {
+    await page.keyboard.press("Shift+ArrowRight");
+  }
+  await page.keyboard.press("Shift+M");
+
+  const dialog = editor.getByRole("dialog", { name: "Time signature" });
+  const content = dialog.locator(".tu-time-sig-dialog-content");
+  await expect(dialog.locator(".tu-time-sig-text")).toContainText(
+    "Applies to bars"
+  );
+
+  const checkGeometry = async (): Promise<void> => {
+    const contentBox = await requiredBoundingBox(content);
+    const textBox = await requiredBoundingBox(
+      dialog.locator(".tu-time-sig-text")
+    );
+    expect(textBox.x).toBeGreaterThanOrEqual(contentBox.x);
+    expect(textBox.x + textBox.width).toBeLessThanOrEqual(
+      contentBox.x + contentBox.width
+    );
+    const controls = dialog.locator(
+      ".tu-time-sig-label, .tu-time-sig-beats-input, .tu-time-sig-duration-input"
+    );
+    const controlBoxes = await controls.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return {
+          left: bounds.left,
+          right: bounds.right,
+          center: bounds.left + bounds.width / 2,
+        };
+      })
+    );
+    expect(controlBoxes).toHaveLength(3);
+    for (const box of controlBoxes) {
+      expect(box.left).toBeGreaterThanOrEqual(contentBox.x);
+      expect(box.right).toBeLessThanOrEqual(contentBox.x + contentBox.width);
+      expect(box.center).toBeCloseTo(contentBox.x + contentBox.width / 2, 0);
+    }
+  };
+  await checkGeometry();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.reload();
+  const compactEditor = page.locator("#tabui-editor");
+  await expect(compactEditor).not.toHaveClass(
+    /tu-responsive-(view-only|blocked)/
+  );
+  await compactEditor
+    .getByRole("button", { name: "Time Signature", exact: true })
+    .click();
+  await checkGeometry();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+});
+
 test("uses the default top-left panel placement", async ({ page }) => {
   // The default configuration places score controls above notation and side controls left.
   await page.goto("/tabui/?fixture=empty");

@@ -115,6 +115,7 @@ replace release validation.
         DESIGN:
   - [x] Redesign track selection
   - [x] Put score title inside notation viewport
+- [x] Refine dialogs design
 
 With the score name input being at the very top of notation, kinda like in GuitarPro
 

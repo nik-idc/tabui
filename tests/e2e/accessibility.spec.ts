@@ -532,6 +532,31 @@ test("announces tuning changes without moving keyboard focus", async ({
       name: "Raise string 1 by 1 semitone",
       exact: true,
     });
+    if (opener === "Rhythm track settings") {
+      const keepFrets = dialog.getByRole("button", {
+        name: "Keep frets",
+        exact: true,
+      });
+      const transpose = dialog.getByRole("button", {
+        name: "Transpose",
+        exact: true,
+      });
+      await expect(keepFrets).toBeVisible();
+      await expect(transpose).toBeVisible();
+      await expect(keepFrets).toBeDisabled();
+      await expect(transpose).toBeDisabled();
+      await raise.click();
+      await expect(keepFrets).toBeEnabled();
+      await expect(transpose).toBeEnabled();
+      await dialog
+        .getByRole("button", {
+          name: "Lower string 1 by 1 semitone",
+          exact: true,
+        })
+        .click();
+      await expect(keepFrets).toBeDisabled();
+      await expect(transpose).toBeDisabled();
+    }
     await raise.focus();
     await expect(region).toHaveText("String 1: E");
     await page.keyboard.press("Space");

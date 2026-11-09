@@ -5,6 +5,21 @@ These rules apply to all TabUI contributors.
 ESLint enforces additional rules in [`eslint.config.mjs`](../eslint.config.mjs).
 Run `npx eslint .` to check them.
 
+## Naming
+
+- Use `is**`/`*verb*ed`/similar structure for boolean variables.
+  The goal is to make it explicit that the variable is a boolean
+  or should be treated as such. Eg:
+
+```ts
+// Bad. Could technically mean a collection that is a result of a mix
+// or something of that sort
+const mixed = bars.some((v) => !v.isEqualTimeSig(bars[0]));
+
+// Good
+const isMixed = bars.some((v) => !v.isEqualTimeSig(bars[0]));
+```
+
 ## TypeScript and Imports
 
 - Keep strict type checking enabled in `tsconfig.json`.

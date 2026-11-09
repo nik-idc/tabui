@@ -73,13 +73,13 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await expect(image).toHaveCSS("fill", highlight);
   await hitArea.click({ position: { x: 5, y: 5 } });
   const dialog = editor.getByRole("dialog", { name: "Tempo" });
-  await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("120");
+  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("120");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(text).toHaveText("121");
 
   await hitArea.click();
-  await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("121");
+  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("121");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(text).toHaveText("122");
@@ -89,7 +89,7 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
     editor
       .getByRole("dialog", { name: "Tempo" })
       .locator(".tu-number-stepper-value")
-  ).toHaveText("144");
+  ).toHaveValue("144");
   await editor
     .getByRole("dialog", { name: "Tempo" })
     .getByRole("button", {
@@ -103,6 +103,36 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await page.keyboard.press("Control+z");
   await page.keyboard.press("Control+z");
   await expect(text).toHaveText("120");
+});
+
+test("tempo input supports text, keyboard, escape, and wheel changes", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const hitArea = editor.locator(".tu-tempo-hit-area").first();
+  const text = editor
+    .locator(".tu-tempo")
+    .first()
+    .locator('[id^="tempo-text-"]');
+  await hitArea.click();
+  const dialog = editor.getByRole("dialog", { name: "Tempo" });
+  const tempoInput = dialog.locator('input[name="tempo"]');
+
+  await tempoInput.fill("120.5");
+  await tempoInput.press("ArrowUp");
+  await tempoInput.press("Enter");
+  await expect(text).toHaveText("121");
+
+  await hitArea.click();
+  await tempoInput.fill("999");
+  await tempoInput.press("Escape");
+  await expect(text).toHaveText("121");
+
+  await hitArea.click();
+  await tempoInput.hover();
+  await page.mouse.wheel(0, -100);
+  await expect(tempoInput).toHaveValue("122");
 });
 
 async function addTuplet(page: Page, complete: boolean) {

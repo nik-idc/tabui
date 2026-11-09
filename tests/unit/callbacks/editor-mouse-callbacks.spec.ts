@@ -416,9 +416,11 @@ describe("EditorMouseDefCallbacks", () => {
         const values = component.template.dialogContainer.querySelectorAll(
           ".tu-number-stepper-value"
         );
-        expect(Array.from(values, (v) => v.textContent)).toEqual(
-          dialog === "tempo" ? ["90"] : ["7"]
-        );
+        expect(
+          Array.from(values, (v) =>
+            "value" in v ? (v as HTMLInputElement).value : v.textContent
+          )
+        ).toEqual(dialog === "tempo" ? ["90"] : ["7"]);
         if (dialog === "timeSignature") {
           expect(
             measure.timeSigControlsComponent.template.durationSelect.value

@@ -1018,6 +1018,7 @@
       .tu-tuplet-actions {
         display: flex;
         justify-content: space-between;
+        gap: 0.5rem;
         margin-top: 10px;
 
         .tu-tuplet-confirm-button {
@@ -1153,6 +1154,36 @@
     grid-template-columns: auto minmax(4rem, 1fr) auto;
   }
 
+  .tu-time-sig-dialog .tu-number-stepper-value {
+    width: min(200px, 100%);
+    box-sizing: border-box;
+    justify-self: center;
+  }
+
+  .tu-time-sig-dialog {
+    .tu-time-sig-dialog-content {
+      width: max-content;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .tu-number-stepper {
+      grid-template-columns: auto minmax(0, 200px) auto;
+      justify-content: center;
+    }
+
+    .tu-time-sig-text {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .tu-time-sig-dialog .tu-time-sig-duration-input {
+    width: min(200px, 100%);
+    align-self: center;
+    box-sizing: border-box;
+  }
+
   .tu-repeat-count-dialog {
     @extend %tu-modal-dialog;
 
@@ -1226,6 +1257,14 @@
           padding: 3px;
           text-align: center;
           font-size: 20px;
+
+          .tu-time-sig-scope {
+            white-space: nowrap;
+          }
+        }
+
+        .tu-time-sig-label {
+          text-align: center;
         }
 
         .tu-time-sig-beats-input {
@@ -1283,10 +1322,23 @@
 
         .tu-tempo-input {
           @extend %tu-input-number-style;
+
+          &::-webkit-inner-spin-button,
+          &::-webkit-outer-spin-button {
+            appearance: none;
+            margin: 0;
+          }
         }
 
         .tu-tempo-error {
           @extend %tu-input-error-text;
+        }
+
+        .tu-tempo-value {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          text-align: center;
         }
       }
 
@@ -1313,7 +1365,8 @@
 
     .tu-nt-content {
       @extend %tu-modal-dialog-content;
-      width: 600px;
+      width: max-content;
+      min-width: min(400px, 100%);
       max-width: 100%;
       box-sizing: border-box;
 
@@ -1353,7 +1406,7 @@
             margin-left: 3px;
           }
 
-          margin-bottom: 5px;
+          margin-bottom: 1rem;
         }
 
         .tu-nt-track-info-container {
@@ -1372,7 +1425,14 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            justify-content: center;
             margin-top: 6px;
+
+            button {
+              width: auto;
+              min-width: 2rem;
+              padding: 0.25rem 0.5rem;
+            }
           }
 
           .tu-nt-string-count-value {
@@ -1408,6 +1468,8 @@
           }
 
           .tu-nt-tuning-step {
+            width: 2rem;
+            max-width: 100%;
             padding: 2px 0;
             line-height: 1;
           }
@@ -1568,6 +1630,8 @@
           }
 
           .tu-ts-tuning-step {
+            width: 2rem;
+            max-width: 100%;
             padding: 2px 0;
             line-height: 1;
           }
@@ -1584,6 +1648,7 @@
       .tu-ts-actions-container {
         display: flex;
         justify-content: space-between;
+        gap: 0.5rem;
         margin-top: 10px;
 
         .tu-ts-confirm-button {

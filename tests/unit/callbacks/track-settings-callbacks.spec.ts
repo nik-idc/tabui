@@ -135,4 +135,20 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     expect(track.context.instrument.getTuningStrSimple()).toBe("E A D G B E");
     expect(controls.dialog.open).toBe(true);
   });
+
+  test("tuning mode buttons stay visible and enable only for changed tuning", () => {
+    const { callbacks, controls } = fixture;
+    callbacks.bind();
+
+    expect(controls.template.keepFretsButton.disabled).toBe(true);
+    expect(controls.template.transposeButton.disabled).toBe(true);
+
+    controls.template.tuningDownButtons[0].click();
+    expect(controls.template.keepFretsButton.disabled).toBe(false);
+    expect(controls.template.transposeButton.disabled).toBe(false);
+
+    controls.template.tuningUpButtons[0].click();
+    expect(controls.template.keepFretsButton.disabled).toBe(true);
+    expect(controls.template.transposeButton.disabled).toBe(true);
+  });
 });

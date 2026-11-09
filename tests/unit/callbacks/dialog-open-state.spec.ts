@@ -17,24 +17,46 @@ describe("dialog open state", () => {
         const values = component.template.dialogContainer.querySelectorAll(
           ".tu-number-stepper-value"
         );
-        expect(Array.from(values, (v) => v.textContent)).toEqual(
-          name === "tempo" ? ["120"] : ["4"]
-        );
+        expect(
+          Array.from(values, (v) =>
+            "value" in v ? (v as HTMLInputElement).value : v.textContent
+          )
+        ).toEqual(name === "tempo" ? ["120"] : ["4"]);
         if (name === "time signature") {
           expect(
             measure.timeSigControlsComponent.template.durationSelect.value
           ).toBe("4");
         }
-        values[0].textContent = "99";
-        component.dialog.requestClose();
+        if (name === "tempo") {
+          const tempoTemplate = measure.tempoControlsComponent.template;
+          const input = tempoTemplate.valueInput;
+          input.value = "";
+          input.dispatchEvent(new Event("input", { bubbles: true }));
+          expect(input.value).toBe("");
+          component.dialog.requestClose();
+        } else {
+          component.dialog.requestClose();
+        }
+        if ("value" in values[0]) {
+          (values[0] as HTMLInputElement).value = "99";
+        } else {
+          values[0].textContent = "99";
+        }
         expect(component.dialog.open).toBe(false);
         if (name === "tempo") controller.setSelectedBarTempo(90);
         else controller.setSelectedBarTimeSignature(7, 1 / 8);
         open();
         expect(component.dialog.open).toBe(true);
-        expect(Array.from(values, (v) => v.textContent)).toEqual(
-          name === "tempo" ? ["90"] : ["7"]
-        );
+        expect(
+          Array.from(values, (v) =>
+            "value" in v ? (v as HTMLInputElement).value : v.textContent
+          )
+        ).toEqual(name === "tempo" ? ["90"] : ["7"]);
+        if (name === "tempo") {
+          const tempoTemplate = measure.tempoControlsComponent.template;
+          expect(tempoTemplate.confirmButton.disabled).toBe(false);
+          expect(tempoTemplate.errorText.textContent?.trim()).toBe("");
+        }
         if (name === "time signature") {
           expect(
             measure.timeSigControlsComponent.template.durationSelect.value

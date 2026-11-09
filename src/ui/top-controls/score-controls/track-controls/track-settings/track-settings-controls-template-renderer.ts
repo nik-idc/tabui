@@ -157,8 +157,10 @@ export class TrackSettingsControlsTemplateRenderer {
     this.template.tuningModeContainer.classList.add(
       "tu-ts-tuning-mode-container"
     );
-    this.template.tuningModeContainer.style.visibility =
-      this._currentTuning === this._originalTuning ? "hidden" : "visible";
+    const isTuningUnchanged = this._currentTuning === this._originalTuning;
+    this.template.tuningModeContainer.style.visibility = "visible";
+    this.template.keepFretsButton.disabled = isTuningUnchanged;
+    this.template.transposeButton.disabled = isTuningUnchanged;
     this.template.keepFretsButton.textContent = "Keep frets";
     this.template.transposeButton.textContent = "Transpose";
     this.template.keepFretsButton.ariaPressed = `${
