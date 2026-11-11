@@ -3,7 +3,14 @@
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { SelectedMoveDirection } from "../../../src/notation/controller";
-import { Beat, GuitarNote, NoteDuration } from "../../../src/notation/model";
+import {
+  AccentOptions,
+  AccentType,
+  Beat,
+  GuitarNote,
+  GuitarTechniqueType,
+  NoteDuration,
+} from "../../../src/notation/model";
 import { TechniqueControlsTemplate } from "../../../src/ui/side-controls/technique-controls/technique-controls-template";
 import { TechniqueControlsTemplateRenderer } from "../../../src/ui/side-controls/technique-controls/technique-controls-template-renderer";
 import { createTestLayoutDimensions } from "../controller/helpers";
@@ -65,6 +72,9 @@ describe("TechniqueControlsTemplateRenderer", () => {
     "phButton",
     "legatoButton",
     "slideButton",
+    "tapButton",
+    "accentButton",
+    "heavyAccentButton",
   ] as const)("enables %s during range selection", (buttonName) => {
     (required(testBeats[1].notes)[0] as GuitarNote).setFret(7);
     notation.trackController.extendSelectionByBeat(SelectedMoveDirection.Right);
@@ -76,6 +86,21 @@ describe("TechniqueControlsTemplateRenderer", () => {
     const button = template[buttonName];
     expect(button.disabled).toBe(false);
     expect(button.classList.contains("tu-disabled-img")).toBe(false);
+  });
+
+  test("presses only the accent button of the note's kind", () => {
+    (required(testBeats[0].notes)[0] as GuitarNote).setTechnique(
+      GuitarTechniqueType.Accent,
+      new AccentOptions({ kind: AccentType.Normal })
+    );
+
+    renderer.render();
+
+    expect(template.accentButton.getAttribute("aria-pressed")).toBe("true");
+    expect(template.heavyAccentButton.getAttribute("aria-pressed")).toBe(
+      "false"
+    );
+    expect(template.heavyAccentButton.disabled).toBe(false);
   });
 
   test("disables bend during range selection", () => {

@@ -19,6 +19,7 @@ import {
   Staff,
   deserializeScore,
   serializeScore,
+  SerializedAccentKind,
   SerializedBendType,
   SerializedClefType,
   SerializedInstrumentFamily,
@@ -55,6 +56,7 @@ const TECHNIQUES: readonly (readonly [GuitarTechniqueType, string])[] = [
   [GuitarTechniqueType.PinchHarmonic, "pinch-harmonic"],
   [GuitarTechniqueType.Slide, "slide"],
   [GuitarTechniqueType.Vibrato, "vibrato"],
+  [GuitarTechniqueType.Tap, "tap"],
 ];
 const BENDS: readonly (readonly [BendOptionsData, object])[] = [
   [
@@ -222,8 +224,11 @@ const SERIALIZED_ENUMS = [
       PinchHarmonic: "pinch-harmonic",
       Slide: "slide",
       Vibrato: "vibrato",
+      Tap: "tap",
+      Accent: "accent",
     },
   ],
+  ["accent kinds", SerializedAccentKind, { Normal: "normal", Heavy: "heavy" }],
   [
     "bends",
     SerializedBendType,

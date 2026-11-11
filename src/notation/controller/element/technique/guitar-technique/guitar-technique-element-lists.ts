@@ -14,16 +14,20 @@ export const TECHNIQUE_ALLOWS_STACKING: Record<GuitarTechniqueType, boolean> = {
   [GuitarTechniqueType.NaturalHarmonic]: false,
   [GuitarTechniqueType.PalmMute]: false,
   [GuitarTechniqueType.LetRing]: false,
+  [GuitarTechniqueType.Tap]: false,
+  [GuitarTechniqueType.Accent]: false,
 };
 
 /**
- * Numbers for technique lines:
+ * Numbers for technique lines, from top to bottom:
  * 1: Vibrato
  * 2: Palm Mute
  * 3: Let Ring
- * 4: Bends (since bends stack)
+ * 4: Tap
+ * 5: Accent
+ * 6: Bends (since bends stack)
  */
-export const TECH_LINE_NUMBERS = [1, 2, 3, 4] as const;
+export const TECH_LINE_NUMBERS = [1, 2, 3, 4, 5, 6] as const;
 
 export type TechLineNumber = (typeof TECH_LINE_NUMBERS)[number];
 
@@ -43,7 +47,9 @@ export const TECHNIQUE_TO_LINE_NUMBER: Record<
   [GuitarTechniqueType.Vibrato]: 1,
   [GuitarTechniqueType.PalmMute]: 2,
   [GuitarTechniqueType.LetRing]: 3,
-  [GuitarTechniqueType.Bend]: 4,
+  [GuitarTechniqueType.Tap]: 4,
+  [GuitarTechniqueType.Accent]: 5,
+  [GuitarTechniqueType.Bend]: 6,
 };
 
 /**
@@ -59,4 +65,6 @@ export const TECHNIQUE_IS_INLINE: Record<GuitarTechniqueType, boolean> = {
   [GuitarTechniqueType.NaturalHarmonic]: true,
   [GuitarTechniqueType.PalmMute]: false,
   [GuitarTechniqueType.LetRing]: false,
+  [GuitarTechniqueType.Tap]: false,
+  [GuitarTechniqueType.Accent]: false,
 };

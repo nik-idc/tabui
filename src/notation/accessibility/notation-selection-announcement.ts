@@ -1,4 +1,5 @@
 import {
+  AccentType,
   Beat,
   type BeatGuitarTechniqueOptionsByType,
   BeatGuitarTechniqueType,
@@ -29,6 +30,8 @@ const TECHNIQUE_NAMES: Record<GuitarTechniqueType, string> = {
   [GuitarTechniqueType.PinchHarmonic]: "pinch harmonic",
   [GuitarTechniqueType.Slide]: "slide",
   [GuitarTechniqueType.Vibrato]: "vibrato",
+  [GuitarTechniqueType.Tap]: "tap",
+  [GuitarTechniqueType.Accent]: "accent",
 };
 
 const BEND_TYPE_NAMES: Record<BendType, string> = {
@@ -137,6 +140,9 @@ function formatTechniques(note: GuitarNote): string {
   if (note.techniques.length === 0) return "";
   const names = note.techniques.map((technique) => {
     const name = TECHNIQUE_NAMES[technique.type];
+    if (technique.accentOptions?.kind === AccentType.Heavy) {
+      return `heavy ${name}`;
+    }
     if (
       !(technique instanceof GuitarTechnique) ||
       technique.bendOptions === null

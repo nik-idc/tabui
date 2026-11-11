@@ -1,6 +1,7 @@
 import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
 import {
+  AccentType,
   BeatGuitarTechniqueType,
   GuitarTechniqueType,
 } from "../../../notation/model";
@@ -30,32 +31,50 @@ export class TechniqueControlsTemplateRenderer {
   }
 
   private assembleContainer(): void {
-    const cssClass = "tu-technique-controls";
-    this.template.container.classList.add(cssClass);
-    this.template.container.append(
-      this.template.vibratoButton,
-      this.template.palmMuteButton,
-      this.template.letRingButton,
-      this.template.tieButton,
-      this.template.legatoButton,
-      this.template.slideButton,
-      this.template.bendButton,
-      this.template.nhButton,
-      this.template.phButton,
-      this.template.strokeButton
+    const t = this.template;
+    t.container.classList.add("tu-technique-controls");
+
+    // DOM order is also the Tab key order.
+    t.styleGroup.append(
+      t.vibratoButton,
+      t.palmMuteButton,
+      t.letRingButton,
+      t.strokeButton
     );
-    this.parentDiv.appendChild(this.template.container);
+    t.articulationGroup.append(
+      t.tieButton,
+      t.legatoButton,
+      t.slideButton,
+      t.bendButton,
+      t.tapButton,
+      t.nhButton,
+      t.phButton
+    );
+    t.accentGroup.append(t.accentButton, t.heavyAccentButton);
+
+    const groups = [t.styleGroup, t.articulationGroup, t.accentGroup];
+    for (const group of groups) {
+      group.classList.add("tu-technique-group");
+    }
+    t.container.append(...groups);
+    this.parentDiv.appendChild(t.container);
   }
 
+  /**
+   * Shows a toggle button's state.
+   * @param isApplied Pressed state; defaults to whether a selected note has the technique.
+   */
   private renderTechniqueButtonState(
     type: GuitarTechniqueType,
-    button: HTMLButtonElement
+    button: HTMLButtonElement,
+    isApplied: boolean = this.notationComponent.trackController.hasSelectedTechnique(
+      type
+    )
   ): void {
     const tc = this.notationComponent.trackController;
 
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
-    const isApplied = tc.hasSelectedTechnique(type);
     const isDisabled = !tc.canSetTechnique(type);
 
     button.disabled = isDisabled;
@@ -88,6 +107,7 @@ export class TechniqueControlsTemplateRenderer {
   }
 
   private renderTechniqueButtons(): void {
+    const tc = this.notationComponent.trackController;
     setImageAsset(
       this.template.tieButton,
       this.assetsPath,
@@ -193,6 +213,49 @@ export class TechniqueControlsTemplateRenderer {
     this.renderTechniqueButtonState(
       GuitarTechniqueType.Bend,
       this.template.bendButton
+    );
+
+    setImageAsset(
+      this.template.tapButton,
+      this.assetsPath,
+      "img/techniques/tap.svg",
+      "Tap"
+    );
+    setShortcutTooltip(this.template.tapButton, "Tap", "k");
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Tap,
+      this.template.tapButton
+    );
+
+    setImageAsset(
+      this.template.accentButton,
+      this.assetsPath,
+      "img/techniques/accent.svg",
+      "Accent"
+    );
+    setShortcutTooltip(this.template.accentButton, "Accent", "c");
+    // Pressed like a stroke direction: when a click would remove this kind.
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Accent,
+      this.template.accentButton,
+      tc.isSelectedAccentOfKind(AccentType.Normal)
+    );
+
+    setImageAsset(
+      this.template.heavyAccentButton,
+      this.assetsPath,
+      "img/techniques/heavy-accent.svg",
+      "Heavy Accent"
+    );
+    setShortcutTooltip(
+      this.template.heavyAccentButton,
+      "Heavy Accent",
+      "Shift+C"
+    );
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Accent,
+      this.template.heavyAccentButton,
+      tc.isSelectedAccentOfKind(AccentType.Heavy)
     );
   }
 

@@ -226,6 +226,31 @@ export class GuitarTechniqueDescriptors {
   }
 
   /**
+   * Builds an accent mark centered on (x, y): ">" for an accent, or "^" for
+   * a heavy accent.
+   */
+  public static createAccentPath(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    isHeavy: boolean
+  ): SVGPathDescriptor {
+    const left = x - width / 2;
+    const right = x + width / 2;
+    const top = y - height / 2;
+    const bottom = y + height / 2;
+    const d = isHeavy
+      ? `M ${left} ${bottom} L ${x} ${top} L ${right} ${bottom}`
+      : `M ${left} ${top} L ${right} ${y} L ${left} ${bottom}`;
+
+    return {
+      d,
+      attrs: { ...this._DEFAULT_STROKE_ATTRS, "stroke-width": "1.5" },
+    };
+  }
+
+  /**
    * Builds either a passage's starting text or one beat's dashed continuation.
    * @param phaseX Path start in track-line coordinates, including bounds.x.
    */

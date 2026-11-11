@@ -1,3 +1,4 @@
+import { AccentType } from "../notation/model/accent-options";
 import { BendTechniqueOptions } from "../notation/model/bend-options";
 import { BendType } from "../notation/model/bend-type";
 import { GuitarNote } from "../notation/model/guitar-note";
@@ -68,6 +69,10 @@ const defaultBendDurationRatio = 0.5;
 const downbeatGainMultiplier = 1.08;
 // Repeated notes are softened slightly to reduce machine-gun playback.
 const repeatedNoteGainMultiplier = 0.92;
+/** Makes accented attacks clearly louder than unaccented notes. */
+const accentGainMultiplier = 1.3;
+/** Makes heavily accented attacks louder than accented notes. */
+const heavyAccentGainMultiplier = 1.6;
 /** Allows floating-point timing drift when comparing a tie with the playback boundary. */
 const continuationTimingToleranceSeconds = 1e-9;
 /** Dead-note noise is a short string strike rather than a pitched note. */
@@ -295,7 +300,8 @@ export class PlaybackNoteScheduler {
       notePeakGain *
       deadNoteGainMultiplier *
       toneProfile.deadNoteGainMultiplier *
-      this.getContextGainMultiplier(note);
+      this.getContextGainMultiplier(note) *
+      this.getAccentGainMultiplier(note);
     const attackEndTime = Math.min(
       startTime + deadNoteAttackSeconds * toneProfile.attackMultiplier,
       effectiveStopTime
@@ -356,6 +362,22 @@ export class PlaybackNoteScheduler {
     }
 
     return multiplier;
+  }
+
+  /** Returns the gain boost of an accented or heavily accented note. */
+  private getAccentGainMultiplier(note: Note): number {
+    if (!(note instanceof GuitarNote)) {
+      return 1;
+    }
+    const accent = note.techniques.find(
+      (t) => t.type === GuitarTechniqueType.Accent
+    )?.accentOptions;
+    if (accent === null || accent === undefined) {
+      return 1;
+    }
+    return accent.kind === AccentType.Heavy
+      ? heavyAccentGainMultiplier
+      : accentGainMultiplier;
   }
 
   /** Returns the source parameter that controls pitch. */
@@ -618,12 +640,15 @@ export class PlaybackNoteScheduler {
     startTime: number
   ): TechniqueEnvelopeSettings {
     const profile = this.getToneProfile(note);
+    // Legato and harmonics replace the peak gain, so they apply it again.
+    const accentGain = this.getAccentGainMultiplier(note);
     const settings: TechniqueEnvelopeSettings = {
       attackSeconds: attackSeconds * profile.attackMultiplier,
       peakGain:
         notePeakGain *
         profile.gainMultiplier *
-        this.getContextGainMultiplier(note),
+        this.getContextGainMultiplier(note) *
+        accentGain,
       releaseSeconds: releaseSeconds * profile.releaseMultiplier,
       stopTime,
     };
@@ -641,14 +666,14 @@ export class PlaybackNoteScheduler {
 
     if (note.hasTechnique(GuitarTechniqueType.Legato)) {
       settings.attackSeconds = hammerOnPullOffAttackSeconds;
-      settings.peakGain = hammerOnPullOffGain;
+      settings.peakGain = hammerOnPullOffGain * accentGain;
     }
 
     const hasHarmonic =
       note.hasTechnique(GuitarTechniqueType.NaturalHarmonic) ||
       note.hasTechnique(GuitarTechniqueType.PinchHarmonic);
     if (hasHarmonic) {
-      settings.peakGain = harmonicGain;
+      settings.peakGain = harmonicGain * accentGain;
     }
 
     if (note.hasTechnique(GuitarTechniqueType.Slide)) {

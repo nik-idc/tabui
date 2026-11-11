@@ -64,6 +64,8 @@ export class TechGapContainer implements NotationContainer {
       2: null,
       3: null,
       4: null,
+      5: null,
+      6: null,
     };
     this._techGapLinesByIdentity = new Map();
 

@@ -1,4 +1,5 @@
 import {
+  AccentType,
   Beat,
   BeatGuitarTechnique,
   BeatGuitarTechniqueType,
@@ -841,11 +842,7 @@ export class TrackControllerEditor {
       );
       return;
     }
-    const selectionNotes =
-      selectionCursor && selectionCursor.note !== null
-        ? [selectionCursor.note]
-        : this._selectionManager.selectionAsBeats.flatMap((b) => b.notes ?? []);
-
+    const selectionNotes = this.techniqueTargetNotes;
     if (selectionNotes.length === 0) {
       return;
     }
@@ -857,6 +854,28 @@ export class TrackControllerEditor {
         options
       )
     );
+  }
+
+  /** Note technique targets: the cursor note, or the notes of the selected beats. */
+  private get techniqueTargetNotes(): Note[] {
+    const cursorNote = this._selectionManager.selectionCursor?.note;
+    return cursorNote === null || cursorNote === undefined
+      ? this._selectionManager.selectionAsBeats.flatMap((b) => b.notes ?? [])
+      : [cursorNote];
+  }
+
+  /** Reports whether every target note that can have an accent has one of the kind. */
+  public isSelectedAccentOfKind(kind: AccentType): boolean {
+    return ScoreEditor.isAccentOfKind(this.techniqueTargetNotes, kind);
+  }
+
+  /** Toggles an accent of one kind on the target notes; see ScoreEditor.getAccentToggleOptions. */
+  public toggleAccent(kind: AccentType): void {
+    const options = ScoreEditor.getAccentToggleOptions(
+      this.techniqueTargetNotes,
+      kind
+    );
+    this.setTechnique(GuitarTechniqueType.Accent, options);
   }
 
   /** Beat technique targets: the cursor beat, or the selected beats when no cursor is set. */

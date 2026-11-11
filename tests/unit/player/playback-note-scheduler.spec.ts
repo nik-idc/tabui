@@ -1,4 +1,6 @@
 import {
+  AccentOptions,
+  AccentType,
   BendTechniqueOptions,
   BendType,
   BassGuitarTone,
@@ -521,6 +523,37 @@ describe("PlaybackNoteScheduler", () => {
     );
     expect(audio.oscillators[0].start).toHaveBeenCalledWith(1);
     expect(audio.oscillators[0].stop).toHaveBeenCalledWith(2);
+  });
+
+  test.each([
+    { name: "a fretted note", fret: 5, other: null },
+    { name: "a dead note", fret: -1, other: null },
+    {
+      name: "a pinch harmonic",
+      fret: 5,
+      other: GuitarTechniqueType.PinchHarmonic,
+    },
+    { name: "a legato note", fret: 5, other: GuitarTechniqueType.Legato },
+  ])("accents make $name louder, and heavy accents louder still", (c) => {
+    const peaks = [null, AccentType.Normal, AccentType.Heavy].map((kind) => {
+      const notes = notesAtFrets(c.fret, 7);
+      if (c.other !== null) {
+        notes[0].setTechnique(c.other);
+      }
+      if (kind !== null) {
+        notes[0].setTechnique(
+          GuitarTechniqueType.Accent,
+          new AccentOptions({ kind })
+        );
+      }
+      const audio = createAudioContext();
+      scheduler(audio.context).scheduleNote(notes[0], 1, 2, trackBus());
+      return audio.gains[0].gain.linearRampToValueAtTime.mock
+        .calls[0][0] as number;
+    });
+
+    expect(peaks[1]).toBeGreaterThan(peaks[0]);
+    expect(peaks[2]).toBeGreaterThan(peaks[1]);
   });
 
   test("Palm Mute is local to marked attacks and does not mute later notes or other strings", () => {

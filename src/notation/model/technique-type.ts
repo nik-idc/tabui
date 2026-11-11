@@ -12,6 +12,10 @@ export enum GuitarTechniqueType {
   Vibrato,
   /** Continues the preceding beat's same-string note without a new attack. */
   Tie,
+  /** Picking-hand tap, shown as a "T" above the beat. */
+  Tap,
+  /** Louder attack; its options choose a normal (">") or heavy ("^") accent. */
+  Accent,
 }
 
 /**

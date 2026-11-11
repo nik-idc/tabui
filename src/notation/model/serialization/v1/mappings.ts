@@ -1,3 +1,4 @@
+import { AccentType } from "../../accent-options";
 import { BeatDots } from "../../beat";
 import { BeatGuitarTechniqueType } from "../../beat-technique-type";
 import { StrokeDirection } from "../../stroke-options";
@@ -27,6 +28,7 @@ import {
   SerializedStringInstrumentType,
   SerializedStrokeDirection,
   SerializedTechniqueType,
+  SerializedAccentKind,
 } from "./schema";
 
 /** Stable v1 mapping from model note durations to wire values. */
@@ -69,6 +71,8 @@ export const SERIALIZED_TECHNIQUE_TYPES: Record<
   [GuitarTechniqueType.PinchHarmonic]: SerializedTechniqueType.PinchHarmonic,
   [GuitarTechniqueType.Slide]: SerializedTechniqueType.Slide,
   [GuitarTechniqueType.Vibrato]: SerializedTechniqueType.Vibrato,
+  [GuitarTechniqueType.Tap]: SerializedTechniqueType.Tap,
+  [GuitarTechniqueType.Accent]: SerializedTechniqueType.Accent,
 };
 
 /** Supported v1 wire values for validated guitar-technique reads. */
@@ -83,6 +87,8 @@ const TECHNIQUE_BY_VALUE: Record<string, GuitarTechniqueType> = {
   [SerializedTechniqueType.PinchHarmonic]: GuitarTechniqueType.PinchHarmonic,
   [SerializedTechniqueType.Slide]: GuitarTechniqueType.Slide,
   [SerializedTechniqueType.Vibrato]: GuitarTechniqueType.Vibrato,
+  [SerializedTechniqueType.Tap]: GuitarTechniqueType.Tap,
+  [SerializedTechniqueType.Accent]: GuitarTechniqueType.Accent,
 };
 
 /** Supported v1 wire values for validated beat-technique reads. */
@@ -109,6 +115,19 @@ const STROKE_DIRECTION_BY_VALUE: Record<
 > = {
   [SerializedStrokeDirection.Down]: StrokeDirection.Down,
   [SerializedStrokeDirection.Up]: StrokeDirection.Up,
+};
+
+/** Stable v1 mapping from model accent kinds to wire values. */
+export const SERIALIZED_ACCENT_KINDS: Record<AccentType, SerializedAccentKind> =
+  {
+    [AccentType.Normal]: SerializedAccentKind.Normal,
+    [AccentType.Heavy]: SerializedAccentKind.Heavy,
+  };
+
+/** Supported v1 wire values for validated accent-kind reads. */
+const ACCENT_KIND_BY_VALUE: Record<SerializedAccentKind, AccentType> = {
+  [SerializedAccentKind.Normal]: AccentType.Normal,
+  [SerializedAccentKind.Heavy]: AccentType.Heavy,
 };
 
 /** Supported v1 wire values for validated bend-type reads. */
@@ -278,6 +297,11 @@ export function readStrokeDirection(
   reader: SerializedValueReader
 ): StrokeDirection {
   return reader.readEnumValue(STROKE_DIRECTION_BY_VALUE);
+}
+
+/** Reads and validates a v1 accent kind at the reader's current path. */
+export function readAccentKind(reader: SerializedValueReader): AccentType {
+  return reader.readEnumValue(ACCENT_KIND_BY_VALUE);
 }
 
 /** Reads and validates a v1 bend type at the reader's current path. */

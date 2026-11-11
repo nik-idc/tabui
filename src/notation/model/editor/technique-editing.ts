@@ -1,4 +1,4 @@
-import type { BendTechniqueOptions } from "../bend-options";
+import type { GuitarTechniqueOptions } from "../guitar-technique";
 import { Beat } from "../beat";
 import { GuitarNote } from "../guitar-note";
 import { MusicInstrument } from "../instrument/instrument";
@@ -34,7 +34,11 @@ export class TechniqueEditing {
     }
 
     return this.applyTechniquePlan(
-      this.buildOrdinaryTechniquePlan(notes, type, options.bendOptions ?? null)
+      this.buildOrdinaryTechniquePlan(
+        notes,
+        type,
+        this.getTechniqueOptions(type, options)
+      )
     );
   }
 
@@ -71,7 +75,7 @@ export class TechniqueEditing {
     return this.buildOrdinaryTechniquePlan(
       this.getTechniqueNotes(targets),
       type,
-      options.bendOptions ?? null
+      this.getTechniqueOptions(type, options)
     );
   }
 
@@ -81,14 +85,14 @@ export class TechniqueEditing {
       return TieEditing.applyTiePlan(plan.operation).length > 0;
     }
 
-    const { notes, type, bendOptions, removeTechnique } = plan.operation;
+    const { notes, type, options, removeTechnique } = plan.operation;
     let changesMade = false;
     for (const note of notes) {
       if (removeTechnique && !note.hasTechnique(type)) {
         continue;
       }
 
-      if (!removeTechnique && bendOptions === null && note.hasTechnique(type)) {
+      if (!removeTechnique && options === null && note.hasTechnique(type)) {
         continue;
       }
 
@@ -96,7 +100,7 @@ export class TechniqueEditing {
         continue;
       }
 
-      if (note.setTechnique(type, bendOptions)) {
+      if (note.setTechnique(type, options)) {
         changesMade = true;
       }
     }
@@ -131,7 +135,7 @@ export class TechniqueEditing {
   private static buildOrdinaryTechniquePlan(
     notes: Note[],
     type: TechniqueType,
-    bendOptions: BendTechniqueOptions | null
+    options: GuitarTechniqueOptions | null
   ): TechniqueEditPlan {
     const staves = [...new Set(notes.map((n) => n.beat.voiceBar.bar.staff))];
     const guitarNotes = notes
@@ -157,7 +161,7 @@ export class TechniqueEditing {
     const hasAllWithTechnique =
       applicableNotes.length > 0 &&
       applicableNotes.every((n) => n.hasTechnique(type));
-    const removeTechnique = hasAllWithTechnique && bendOptions === null;
+    const removeTechnique = hasAllWithTechnique && options === null;
     const affectedNotes = guitarNotes;
     const selectedBeats: Beat[] = [
       ...new Set(affectedNotes.map((n) => n.beat)),
@@ -181,10 +185,24 @@ export class TechniqueEditing {
         kind: TechniqueEditKind.Ordinary,
         notes: guitarNotes,
         type,
-        bendOptions,
+        options,
         removeTechnique,
       },
     };
+  }
+
+  /** Picks the supplied options that belong to the technique type. */
+  private static getTechniqueOptions(
+    type: TechniqueType,
+    options: SetTechniqueOptions
+  ): GuitarTechniqueOptions | null {
+    if (type === GuitarTechniqueType.Bend) {
+      return options.bendOptions ?? null;
+    }
+    if (type === GuitarTechniqueType.Accent) {
+      return options.accentOptions ?? null;
+    }
+    return null;
   }
 
   /** Combines local technique restrictions with editor-owned empty-slot support checks. */

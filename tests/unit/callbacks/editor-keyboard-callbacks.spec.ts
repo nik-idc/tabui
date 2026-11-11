@@ -1,6 +1,7 @@
 import { JSDOM } from "jsdom";
 import { EditorKeyboardDefCallbacks } from "../../../src/notation/input/editor-keyboard-callbacks";
 import {
+  AccentType,
   BeatGuitarTechniqueType,
   DEFAULT_MASTER_BAR,
   GuitarNote,
@@ -265,6 +266,9 @@ describe("EditorKeyboardDefCallbacks", () => {
     ["s", false, GuitarTechniqueType.Slide],
     ["h", false, GuitarTechniqueType.NaturalHarmonic],
     ["h", true, GuitarTechniqueType.PinchHarmonic],
+    ["k", false, GuitarTechniqueType.Tap],
+    ["c", false, GuitarTechniqueType.Accent],
+    ["c", true, GuitarTechniqueType.Accent],
   ] as const)(
     "%s shift=%s applies and removes eligible range techniques",
     (key, shiftKey, type) => {
@@ -483,6 +487,40 @@ describe("EditorKeyboardDefCallbacks", () => {
       }
     }
   );
+
+  test("C and Shift+C switch the accent kind, then remove it", () => {
+    const { callbacks, notationComponent, rootElement } = createHarness();
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const note = beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    note.setFret(5);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    rootElement.focus();
+    // Undo restores copied notes, so read the live slot each time.
+    const kind = () =>
+      (beats[0].notes?.[0] as GuitarNote).techniques.find(
+        (t) => t.type === GuitarTechniqueType.Accent
+      )?.accentOptions?.kind;
+
+    for (const [shiftKey, expected] of [
+      [false, AccentType.Normal],
+      [true, AccentType.Heavy],
+      [false, AccentType.Normal],
+      [false, undefined],
+    ] as const) {
+      const event = createKeyboardEvent("c", { shiftKey });
+      callbacks.onKeyDown(event);
+      expect(event.preventDefault).toHaveBeenCalledTimes(1);
+      expect(kind()).toBe(expected);
+    }
+    controller.undo();
+    expect(kind()).toBe(AccentType.Normal);
+  });
 
   test.each(["rest", "empty note"] as const)(
     "%s cursor rejects techniques",

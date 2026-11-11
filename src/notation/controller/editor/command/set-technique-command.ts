@@ -4,6 +4,7 @@ import {
   TechniqueType,
   GuitarTechniqueType,
   BeatSnapshot,
+  TECHNIQUE_TYPE_TO_LABEL,
 } from "../../../model";
 import type { SetTechniqueOptions } from "../../../model/editor/set-technique-options";
 import { BeatPosition, NotePosition } from "../../../model/editor/score-editor";
@@ -177,12 +178,7 @@ export class SetTechniqueCommand implements Command {
   }
 
   private isTechniqueLabelType(type: TechniqueType): boolean {
-    return (
-      type === GuitarTechniqueType.PalmMute ||
-      type === GuitarTechniqueType.LetRing ||
-      type === GuitarTechniqueType.Vibrato ||
-      type === GuitarTechniqueType.Bend
-    );
+    return TECHNIQUE_TYPE_TO_LABEL[type];
   }
 
   private isInlineTechniqueType(type: TechniqueType): boolean {

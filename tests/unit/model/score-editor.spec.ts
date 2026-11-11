@@ -1,4 +1,6 @@
 import {
+  AccentOptions,
+  AccentType,
   BeatGuitarTechniqueType,
   BendTechniqueOptions,
   BendType,
@@ -599,6 +601,44 @@ describe("ScoreEditor", () => {
       ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend)
     ).toThrow("Bend passed without options");
     expect(note.techniques).toEqual([]);
+  });
+});
+
+describe("ScoreEditor accent toggles", () => {
+  test("sets a kind on mixed notes, switches kinds, and removes a uniform kind", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const notes = beats.map((b) => b.notes?.[0] as GuitarNote);
+    for (const note of notes) {
+      note.setFret(5);
+    }
+    notes[0].setTechnique(
+      GuitarTechniqueType.Accent,
+      new AccentOptions({ kind: AccentType.Normal })
+    );
+    const toggle = (kind: AccentType) =>
+      ScoreEditor.setTechniqueForNotes(
+        notes,
+        GuitarTechniqueType.Accent,
+        ScoreEditor.getAccentToggleOptions(notes, kind)
+      );
+    const kinds = () =>
+      notes.map(
+        (n) =>
+          n.techniques.find((t) => t.type === GuitarTechniqueType.Accent)
+            ?.accentOptions?.kind
+      );
+
+    expect(ScoreEditor.isAccentOfKind(notes, AccentType.Normal)).toBe(false);
+    toggle(AccentType.Normal);
+    expect(kinds()).toEqual([AccentType.Normal, AccentType.Normal]);
+    toggle(AccentType.Heavy);
+    expect(kinds()).toEqual([AccentType.Heavy, AccentType.Heavy]);
+    expect(ScoreEditor.isAccentOfKind(notes, AccentType.Heavy)).toBe(true);
+    toggle(AccentType.Heavy);
+    expect(kinds()).toEqual([undefined, undefined]);
   });
 });
 

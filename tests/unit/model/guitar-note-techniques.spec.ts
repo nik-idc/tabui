@@ -1,12 +1,19 @@
 import {
+  AccentOptions,
+  AccentType,
   BendTechniqueOptions,
   BendType,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
   NoteDuration,
+  ScoreEditor,
 } from "../../../src/notation/model";
 import { createBarWithBeats, createScoreGraph } from "./helpers";
+import { required } from "../required";
+
+const NORMAL = new AccentOptions({ kind: AccentType.Normal });
+const HEAVY = new AccentOptions({ kind: AccentType.Heavy });
 
 function createNote(): GuitarNote {
   const { bar } = createScoreGraph();
@@ -94,6 +101,70 @@ describe("GuitarNote technique updates", () => {
     note.setFret(null);
     expect(note.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
     expect(note.setTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+  });
+
+  test("Accent accepts a dead strike but never an empty slot", () => {
+    const note = createNote();
+    note.setFret(-1);
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(true);
+    note.setFret(null);
+    expect(note.hasTechnique(GuitarTechniqueType.Accent)).toBe(false);
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(false);
+  });
+
+  test("Accent options switch the kind in place and are required", () => {
+    const note = createNote();
+    expect(() => note.setTechnique(GuitarTechniqueType.Accent)).toThrow();
+    expect(note.setTechnique(GuitarTechniqueType.Accent, NORMAL)).toBe(true);
+    const accent = note.techniques[0];
+
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(true);
+    expect(note.techniques).toEqual([accent]);
+    expect(accent.accentOptions?.kind).toBe(AccentType.Heavy);
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(false);
+    expect(note.setTechnique(GuitarTechniqueType.Accent)).toBe(true);
+    expect(note.techniques).toEqual([]);
+  });
+
+  test("AccentOptions rejects unknown kinds and extra keys", () => {
+    expect(() => new AccentOptions({ kind: 7 as AccentType })).toThrow(
+      "unknown kind"
+    );
+    const extra = { kind: AccentType.Normal, size: 1 };
+    expect(() => new AccentOptions(extra)).toThrow("unexpected key");
+  });
+
+  test("Tap needs a playable fret", () => {
+    const note = createNote();
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.Tap)).toBe(true);
+    note.setFret(-1);
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.Tap)).toBe(false);
+    note.setFret(null);
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.Tap)).toBe(false);
+  });
+
+  test.each([
+    [GuitarTechniqueType.Tap, null],
+    [GuitarTechniqueType.Accent, NORMAL],
+  ] as const)("rejects %s on a tie continuation", (type, options) => {
+    const note = createContinuationNote();
+    expect(note.setTechnique(GuitarTechniqueType.Tie)).toBe(true);
+
+    expect(note.isTechniqueApplicable(type)).toBe(false);
+    expect(note.setTechnique(type, options)).toBe(false);
+  });
+
+  test("adding a tie clears Tap and Accent from the continuation", () => {
+    const note = createContinuationNote();
+    note.setTechnique(GuitarTechniqueType.Tap);
+    note.setTechnique(GuitarTechniqueType.Accent, NORMAL);
+
+    ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Tie);
+
+    const continuation = required(note.beat.notes)[0];
+    expect(continuation.techniques.map((t) => t.type)).toEqual([
+      GuitarTechniqueType.Tie,
+    ]);
   });
 
   test("rejects techniques on empty notes and clears them when emptied", () => {

@@ -5,8 +5,12 @@ import {
 } from "../../../src/notation/accessibility/notation-selection-announcement";
 import { SelectionManager } from "../../../src/notation/controller/selection/selection-manager";
 import {
+  AccentType,
+  AccentOptions,
   BeatGuitarTechniqueType,
   DEFAULT_MASTER_BAR,
+  GuitarNote,
+  GuitarTechniqueType,
   NoteDuration,
   ScoreEditor,
   STROKE_ALIGNMENT_FALLS_ON_TIME,
@@ -133,6 +137,22 @@ describe("notation selection announcements", () => {
       );
     }
   );
+
+  test("announces a heavy accent on its string", () => {
+    const { selection, beats } = createSelection();
+    const note = required(beats[0].notes)[1] as GuitarNote;
+    note.setFret(5);
+    note.setTechnique(
+      GuitarTechniqueType.Accent,
+      new AccentOptions({ kind: AccentType.Heavy })
+    );
+    selection.selectBeatCursor(beats[0], 0);
+    const previous = captureSelectionCursor(selection.selectionCursor);
+    selection.selectBeatCursor(beats[0], 1);
+    expect(formatNotationSelection(selection, previous)).toBe(
+      "String 2, fret 5, heavy accent."
+    );
+  });
 
   test("does not invent an active endpoint for an absent or incomplete range", () => {
     const { selection, beats } = createSelection();

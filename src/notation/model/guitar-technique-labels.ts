@@ -13,4 +13,6 @@ export const TECHNIQUE_TYPE_TO_LABEL: Record<GuitarTechniqueType, boolean> = {
   [GuitarTechniqueType.PalmMute]: true,
   [GuitarTechniqueType.LetRing]: true,
   [GuitarTechniqueType.Tie]: false,
+  [GuitarTechniqueType.Tap]: true,
+  [GuitarTechniqueType.Accent]: true,
 };

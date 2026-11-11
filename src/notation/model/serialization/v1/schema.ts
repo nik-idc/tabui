@@ -31,6 +31,8 @@ export enum SerializedTechniqueType {
   PinchHarmonic = "pinch-harmonic",
   Slide = "slide",
   Vibrato = "vibrato",
+  Tap = "tap",
+  Accent = "accent",
 }
 
 /**
@@ -45,6 +47,12 @@ export enum SerializedBendType {
   PrebendAndRelease = "prebend-and-release",
   PrebendBend = "prebend-bend",
   Release = "release",
+}
+
+/** Wire tokens for accent strength, independent from the model enum. */
+export enum SerializedAccentKind {
+  Normal = "normal",
+  Heavy = "heavy",
 }
 
 /** Wire tokens that discriminate beat-level techniques, independent from the model enum. */
@@ -256,16 +264,31 @@ export type SerializedBendTechnique = {
   options: SerializedBendOptions;
 };
 
-/** Non-bend technique shape, which cannot carry an `options` field. */
-export type SerializedNonBendTechnique = {
-  type: Exclude<SerializedTechniqueType, SerializedTechniqueType.Bend>;
+/** Accent strength. */
+export type SerializedAccentOptions = {
+  kind: SerializedAccentKind;
+};
+
+/** Accent technique shape carrying its strength. */
+export type SerializedAccentTechnique = {
+  type: SerializedTechniqueType.Accent;
+  options: SerializedAccentOptions;
+};
+
+/** Technique shape without options, which cannot carry an `options` field. */
+export type SerializedOptionlessTechnique = {
+  type: Exclude<
+    SerializedTechniqueType,
+    SerializedTechniqueType.Bend | SerializedTechniqueType.Accent
+  >;
   options?: never;
 };
 
 /** Guitar-technique union discriminated by the technique `type` token. */
 export type SerializedGuitarTechnique =
   | SerializedBendTechnique
-  | SerializedNonBendTechnique;
+  | SerializedAccentTechnique
+  | SerializedOptionlessTechnique;
 
 /** A playable/dead note, or an empty Let Ring slot with a null fret. Techniques must be unique and compatible. */
 export type SerializedGuitarNote = {

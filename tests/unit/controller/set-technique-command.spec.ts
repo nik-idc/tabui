@@ -121,6 +121,11 @@ describe("SetTechniqueCommand", () => {
     expect(vibratoCommand.affectsTechniqueLabels).toBe(true);
     expect(bendCommand.affectsTechniqueLabels).toBe(true);
     expect(letRingCommand.affectsTechniqueLabels).toBe(true);
+    const tapCommand = new SetTechniqueCommand(
+      ScoreEditor.getTechniqueTargetsForNotes([note]),
+      GuitarTechniqueType.Tap
+    );
+    expect(tapCommand.affectsTechniqueLabels).toBe(true);
   });
 
   test("harmonic and slide commands report the affected note anchor", () => {

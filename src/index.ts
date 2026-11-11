@@ -12,6 +12,7 @@ export {
   TabUIScorePanelPlacement,
   TabUISidePanelPlacement,
 } from "./config/tabui-config";
+export * from "./notation/model/accent-options";
 export * from "./notation/model/bar";
 export * from "./notation/model/bar-repeat-status";
 export * from "./notation/model/beat";
