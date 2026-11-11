@@ -228,7 +228,8 @@ describe("PlayerOverlayRenderer", () => {
     const nextText = required(texts.find((t) => t.textContent === "4"));
     expect(startText.textContent).toBe("3");
     expect(nextText.textContent).toBe("4");
-    expect(startX).toBeCloseTo(115.5);
+    // 106.5px beat box start + 16.2px attack offset.
+    expect(startX).toBeCloseTo(122.7);
     const next = required(
       view.controller.trackElement.getBeatElement(graph.beats[1])
     );
@@ -255,15 +256,15 @@ describe("PlayerOverlayRenderer", () => {
     if (!(currentBeat instanceof TabBeatElement)) {
       throw Error("Expected current beat");
     }
-    expect(currentBeat.boundingBox.width).toBeGreaterThan(0);
-    expect(view.center()).toBeCloseTo(
-      startX + currentBeat.boundingBox.width / 2
-    );
+    // Crossing lines, the cursor moves from the attack to the beat box right.
+    const boxRightX = currentBeat.globalBoundingBox.right;
+    expect(boxRightX).toBeGreaterThan(startX);
+    expect(view.center()).toBeCloseTo((startX + boxRightX) / 2);
     expect(frames.size).toBeGreaterThan(0);
     // Reach the animation endpoint without delivering the next beat's event.
     jest.spyOn(audio.context, "currentTime", "get").mockReturnValue(0.55);
     frame();
-    expect(view.center()).toBeCloseTo(startX + currentBeat.boundingBox.width);
+    expect(view.center()).toBeCloseTo(boxRightX);
     expect(frames.size).toBe(0);
 
     view.emit(farBeat.uuid);
@@ -290,7 +291,7 @@ describe("PlayerOverlayRenderer", () => {
     jest.advanceTimersByTime(250);
     frame();
     expect(view.center()).toBeCloseTo(
-      startX + beatElement.boundingBox.width / 2
+      (startX + beatElement.globalBoundingBox.right) / 2
     );
     const x = view.center();
     view.emit(-1);

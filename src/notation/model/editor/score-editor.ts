@@ -1,6 +1,19 @@
 import { Bar, type VoiceBarContentSnapshot } from "../bar";
 import { Beat } from "../beat";
 import type { SetTechniqueOptions } from "./set-technique-options";
+import {
+  BeatGuitarTechnique,
+  type BeatGuitarTechniqueOptions,
+} from "../beat-guitar-technique";
+import type { SetBeatTechniqueOptions } from "./set-beat-technique-options";
+import { beatGuitarTechniquesIncompatible } from "../beat-guitar-technique-lists";
+import { BeatGuitarTechniqueType } from "../beat-technique-type";
+import {
+  DEFAULT_STROKE_DURATION,
+  STROKE_ALIGNMENT_STARTS_ON_TIME,
+  StrokeDirection,
+  StrokeOptions,
+} from "../stroke-options";
 import { GuitarNote } from "../guitar-note";
 import { MusicInstrument } from "../instrument/instrument";
 import { type MasterBarData } from "../master-bar";
@@ -63,10 +76,12 @@ export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
   beat: Beat<I>;
 };
 
-/** Fixed note content addressed by voice and position, so history can replace beat objects. */
+/** Fixed note and beat technique content addressed by voice and position, so history can replace beat objects. */
 export type BeatSnapshot = BeatPosition & {
   /** Saved slot content, or null for an explicit rest. */
   notes: Note[] | null;
+  /** Saved beat techniques; always empty for a rest. */
+  beatTechniques: BeatGuitarTechnique[];
 };
 
 /** Saved bar content and the original voice bars needed for undo and redo. */
@@ -190,16 +205,20 @@ export class ScoreEditor {
     return this.getNoteEditBeats(beats);
   }
 
-  /** Saves fixed note content at positions that survive later beat replacement during history. */
+  /** Saves fixed note content and beat techniques at positions that survive later beat replacement during history. */
   public static snapshotBeatNotes(beats: Beat[]): BeatSnapshot[] {
     return beats.map((b) => ({
       voiceBar: b.voiceBar,
       index: b.voiceBar.beats.indexOf(b),
       notes: b.notes?.map((n) => n.deepCopy(b)) ?? null,
+      beatTechniques: b.beatTechniques.map((t) => t.deepCopy(b)),
     }));
   }
 
-  /** Restores rests first, then fixed slot content, without repeating dependency discovery. */
+  /**
+   * Restores rests first, then fixed slot content, then beat techniques, without repeating dependency discovery.
+   * @throws If a saved beat technique cannot be added to its restored beat.
+   */
   public static restoreBeatSnapshots(snapshots: BeatSnapshot[]): void {
     const beats = this.resolveBeatPositions(snapshots);
     for (const [i, snapshot] of snapshots.entries()) {
@@ -216,6 +235,17 @@ export class ScoreEditor {
       beats[i].makeBeatWithNotes();
       for (const [j, note] of snapshot.notes.entries()) {
         beats[i].setNote(j, note);
+      }
+    }
+
+    // Notes come first because a rest cannot hold beat techniques.
+    for (const [i, snapshot] of snapshots.entries()) {
+      const beat = beats[i];
+      beat.clearBeatTechniques();
+      for (const technique of snapshot.beatTechniques) {
+        if (!beat.addBeatTechnique(technique.deepCopy(beat))) {
+          throw Error("Cannot restore a saved beat technique");
+        }
       }
     }
   }
@@ -534,6 +564,152 @@ export class ScoreEditor {
     searchToEarliest = false
   ): TieEditPlan {
     return TieEditing.buildTiePlanForNotes(notes, searchToEarliest);
+  }
+
+  /** Resolves positions to unique live note beats that can hold beat techniques; rests are skipped. */
+  public static getBeatTechniqueBeats(positions: BeatPosition[]): Beat[] {
+    const beats = this.resolveBeatPositions(positions);
+    return [...new Set(beats)].filter((b) => !b.isRest());
+  }
+
+  /** Checks whether any selected note beat already has the technique or can take it. */
+  public static canSetBeatTechnique(
+    beats: Beat[],
+    type: BeatGuitarTechniqueType
+  ): boolean {
+    // A beat that already has the type stays eligible so the edit can remove or replace it.
+    return beats.some(
+      (b) =>
+        !b.isRest() &&
+        (b.hasBeatTechnique(type) ||
+          !b.beatTechniques.some((t) =>
+            beatGuitarTechniquesIncompatible(t.type, type)
+          ))
+    );
+  }
+
+  /** Returns the beats that have the beat technique; removing it from only these beats never adds it to others. */
+  public static getBeatsWithBeatTechnique(
+    beats: Beat[],
+    type: BeatGuitarTechniqueType
+  ): Beat[] {
+    return beats.filter((b) => b.hasBeatTechnique(type));
+  }
+
+  /**
+   * Reports whether every note beat has a stroke in the direction. Then a
+   * stroke toggle in this direction removes the strokes.
+   */
+  public static isStrokeInDirection(
+    beats: Beat[],
+    direction: StrokeDirection
+  ): boolean {
+    const noteBeats = beats.filter((b) => !b.isRest());
+    return (
+      noteBeats.length > 0 &&
+      noteBeats.every(
+        (b) =>
+          b.getBeatTechnique(BeatGuitarTechniqueType.Stroke)?.options
+            .direction === direction
+      )
+    );
+  }
+
+  /**
+   * Returns the settings that toggle a stroke in one direction on the beats.
+   * When every note beat already has a stroke in that direction, the result
+   * has no options, so applying it removes the strokes. Otherwise the stroke
+   * uses the direction with the duration and alignment of the first existing
+   * stroke, or the defaults; so a toggle can change the direction only.
+   */
+  public static getStrokeToggleOptions(
+    beats: Beat[],
+    direction: StrokeDirection
+  ): SetBeatTechniqueOptions {
+    if (this.isStrokeInDirection(beats, direction)) {
+      return {};
+    }
+
+    const strokes = beats
+      .filter((b) => !b.isRest())
+      .map((b) => b.getBeatTechnique(BeatGuitarTechniqueType.Stroke)?.options);
+    const existing = strokes.find((o) => o !== undefined);
+    return {
+      strokeOptions: new StrokeOptions({
+        direction,
+        duration: existing?.duration ?? DEFAULT_STROKE_DURATION,
+        alignment: existing?.alignment ?? STROKE_ALIGNMENT_STARTS_ON_TIME,
+      }),
+    };
+  }
+
+  /**
+   * Removes the technique if every eligible selected note beat has it and no options are supplied.
+   * Otherwise, adds it or replaces its options on each eligible note beat; rests and incompatible beats are skipped.
+   * @param options Validated settings for this type; omit them to remove the technique when every eligible beat has it.
+   * @returns True if any beat changed.
+   * @throws If the options do not match the type, or if the type requires options, none are supplied, and an eligible beat lacks it.
+   */
+  public static setBeatTechnique(
+    beats: Beat[],
+    type: BeatGuitarTechniqueType,
+    options: SetBeatTechniqueOptions = {}
+  ): boolean {
+    const targets = [...new Set(beats)].filter((b) => !b.isRest());
+    const eligible = targets.filter(
+      (b) =>
+        b.hasBeatTechnique(type) ||
+        !b.beatTechniques.some((t) =>
+          beatGuitarTechniquesIncompatible(t.type, type)
+        )
+    );
+    const techniqueOptions = this.getBeatTechniqueOptions(type, options);
+    const hasAllWithTechnique =
+      eligible.length > 0 && eligible.every((b) => b.hasBeatTechnique(type));
+
+    if (techniqueOptions === null) {
+      if (hasAllWithTechnique) {
+        let isRemoved = false;
+        for (const beat of eligible) {
+          isRemoved = beat.removeBeatTechnique(type) || isRemoved;
+        }
+        return isRemoved;
+      }
+      // Check before any change so a failed edit leaves every beat as it was.
+      if (eligible.length > 0) {
+        throw Error(
+          `Beat technique ${BeatGuitarTechniqueType[type]} requires options`
+        );
+      }
+      return false;
+    }
+
+    let isChanged = false;
+    for (const beat of eligible) {
+      const existing = beat.getBeatTechnique(type);
+      if (existing !== undefined) {
+        isChanged = existing.replaceOptions(techniqueOptions) || isChanged;
+        continue;
+      }
+      const technique = new BeatGuitarTechnique(beat, type, techniqueOptions);
+      isChanged = beat.addBeatTechnique(technique) || isChanged;
+    }
+    return isChanged;
+  }
+
+  /** Picks the options field that belongs to the beat technique type, or null when it is omitted. */
+  private static getBeatTechniqueOptions(
+    type: BeatGuitarTechniqueType,
+    options: SetBeatTechniqueOptions
+  ): BeatGuitarTechniqueOptions | null {
+    switch (type) {
+      case BeatGuitarTechniqueType.Stroke:
+        return options.strokeOptions ?? null;
+      default: {
+        const unknownType: never = type;
+        throw Error(`Unknown beat technique type: ${unknownType}`);
+      }
+    }
   }
 
   /** Applies a prepared plan without searching again; save affected beats before this model boundary. */

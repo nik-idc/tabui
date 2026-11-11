@@ -19,6 +19,7 @@ import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 import { TabBeatRhythmElement } from "../../controller/element/beat/tab-beat-rhythm-element";
 import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { GuitarTechniqueElement } from "../../controller/element/technique/guitar-technique/guitar-technique-element";
+import { BeatGuitarTechniqueElement } from "../../controller/element/technique/beat-technique/beat-guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "../../controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "../../controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "../../controller/element/bar/bar-tuplet-group-element";
@@ -70,6 +71,7 @@ const ELEMENT_VOICE_PART = new Map<NotationElementClass, VoicePart>([
   [TabBeatElement, VoicePart.Content],
   [TabNoteSlotElement, VoicePart.Content],
   [GuitarTechniqueElement, VoicePart.Content],
+  [BeatGuitarTechniqueElement, VoicePart.Content],
   [TabBeatRhythmElement, VoicePart.Rhythm],
   [BeamSegmentElement, VoicePart.Rhythm],
   [BarTupletGroupElement, VoicePart.Rhythm],

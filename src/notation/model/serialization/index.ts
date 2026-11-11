@@ -4,6 +4,7 @@ export { ScoreSerializationError } from "./serialization-error";
 export {
   SCORE_SERIALIZATION_FORMAT,
   SCORE_SERIALIZATION_VERSION,
+  SerializedBeatTechniqueType,
   SerializedBendType,
   SerializedClefType,
   SerializedInstrumentFamily,
@@ -11,6 +12,7 @@ export {
   SerializedPlayableNoteValue,
   SerializedStringInstrumentTone,
   SerializedStringInstrumentType,
+  SerializedStrokeDirection,
   SerializedTechniqueType,
 } from "./v1/schema";
 export type * from "./v1/schema";

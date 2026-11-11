@@ -1,5 +1,7 @@
 import {
   Beat,
+  type BeatGuitarTechniqueOptionsByType,
+  BeatGuitarTechniqueType,
   BendType,
   DURATION_TO_DESC,
   Guitar,
@@ -9,6 +11,7 @@ import {
   NoteValue,
 } from "../model";
 import { SelectionCursor } from "../controller";
+import { describeStroke } from "./stroke-description";
 
 interface NotationSelectionSource {
   readonly selectionCursor: SelectionCursor | undefined;
@@ -91,6 +94,30 @@ export function notationSelectionsEqual(
     first?.beatUuid === second?.beatUuid &&
     first?.stringNumber === second?.stringNumber
   );
+}
+
+/** Describes the options of each beat technique type for screen readers. */
+const BEAT_TECHNIQUE_DESCRIBERS: {
+  [T in BeatGuitarTechniqueType]: (
+    options: BeatGuitarTechniqueOptionsByType[T]
+  ) => string;
+} = {
+  [BeatGuitarTechniqueType.Stroke]: describeStroke,
+};
+
+/** Describes one beat technique with the describer of its type. */
+function describeBeatTechnique<T extends BeatGuitarTechniqueType>(
+  type: T,
+  options: BeatGuitarTechniqueOptionsByType[T]
+): string {
+  return BEAT_TECHNIQUE_DESCRIBERS[type](options);
+}
+
+/** Formats the beat's techniques, if any, as a suffix. */
+function formatBeatTechniques(beat: Beat): string {
+  return beat.beatTechniques
+    .map((t) => `, ${describeBeatTechnique(t.type, t.options)}`)
+    .join("");
 }
 
 /** Formats duration and optional rhythm details. */
@@ -202,7 +229,8 @@ export function formatNotationSelection(
   const masterBar = bar.masterBar;
   const beatText =
     `Beat ${voiceBar.beats.indexOf(beat) + 1},` +
-    ` ${formatRhythm(beat)}, ${formatNoteSlot(current)}`;
+    ` ${formatRhythm(beat)}${formatBeatTechniques(beat)},` +
+    ` ${formatNoteSlot(current)}`;
   const voiceText = `Voice ${voiceNumber}, ${beatText}`;
   const barPrefix =
     `Bar ${barIndex + 1}, ${masterBar.beatsCount}/${1 / masterBar.duration},` +

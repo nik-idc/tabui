@@ -16,12 +16,13 @@ Score
       bars: Bar[]
         voiceBars: Record<VoiceNumber, VoiceBar | null>
           beats: Beat[]
+            beatTechniques: BeatTechnique[]
             notes: Note[] | null
               techniques: Technique[]
 ```
 
 - `VoiceNumber` is `1 | 2 | 3 | 4`. Each voice slot can be `null`.
-- `Beat.notes === null` means the beat is a rest.
+- `Beat.notes === null` means the beat is a rest. A rest has no beat techniques.
 - `VoiceBar.isEmpty()` means `beats.length === 0`.
 
 ## Display and playback
@@ -81,10 +82,22 @@ non-empty voice.
 
 ### Technique ownership and editing
 
-Techniques belong to notes, not beats or passages. Tie is stored on the
-continuation note. Let Ring and Palm Mute carry only their type, without options;
-bends carry shape options. See [Guitar techniques](techniques.md) for musical
-meaning, applicability, and passage rules.
+A technique belongs to a note or to a beat, never to a passage. Most techniques
+belong to notes. Tie is stored on the continuation note. Let Ring and Palm Mute
+carry only their type, without options; bends carry shape options. See
+[Guitar techniques](techniques.md) for musical meaning, applicability, and
+passage rules.
+
+### Beat technique
+
+A technique that belongs to a whole beat, not to one note. Stroke is currently
+the only beat technique. It carries stroke options: direction, duration, and
+alignment. A beat has at most one technique of each type.
+
+Beat techniques are a separate family from note techniques. They have their own
+types (`BeatTechnique`, `BeatGuitarTechniqueType`), options, and edit rules. Do
+not merge the two families or their enums: both are numeric enums, so one value
+would mean two techniques.
 
 ### Note transition
 

@@ -36,6 +36,10 @@ export class EditorLayoutDimensions {
   private readonly _NOTE_RECT_WIDTH_MIN: number;
   /** Minimum gap between adjacent musical timing columns. */
   private readonly _MIN_RHYTHM_COLUMN_GAP: number;
+  /** Reserved slot at the left edge of each tab beat box for beat-level techniques. */
+  private readonly _BEAT_TECHNIQUE_WIDTH: number;
+  /** Widest expected fret text, which is a two-digit fret. */
+  private readonly _FRET_TEXT_MAX_WIDTH: number;
   /** Padding before the first and after the last attack column in a bar. */
   private readonly _RHYTHM_ATTACK_PADDING: number;
   /** Width mapping for durations */
@@ -104,8 +108,14 @@ export class EditorLayoutDimensions {
     };
     this._NOTE_RECT_WIDTH_MIN =
       0.75 * this._WIDTH_MAPPING[NoteDuration.SixtyFourth];
+    this._BEAT_TECHNIQUE_WIDTH = this._NOTE_TEXT_SIZE * 0.75;
+    this._FRET_TEXT_MAX_WIDTH = this.measureFretTextWidth("00");
+    // Must stay >= beat technique slot + max fret width + a visual margin, so
+    // a beat box always holds its slot and fret text without collisions.
     this._MIN_RHYTHM_COLUMN_GAP = this._NOTE_TEXT_SIZE * 3;
-    this._RHYTHM_ATTACK_PADDING = this._NOTE_TEXT_SIZE;
+    // Small because the beat technique slot already adds space before the
+    // first fret text.
+    this._RHYTHM_ATTACK_PADDING = this._NOTE_TEXT_SIZE * 0.25;
 
     this._TECHNIQUE_LABEL_HEIGHT = this._NOTE_TEXT_SIZE * 2;
 
@@ -218,6 +228,27 @@ export class EditorLayoutDimensions {
     return this._MIN_RHYTHM_COLUMN_GAP;
   }
 
+  /** Width of the reserved beat-technique slot at a tab beat box's left edge, in CSS pixels. */
+  get beatTechniqueWidth(): number {
+    return this._BEAT_TECHNIQUE_WIDTH;
+  }
+
+  /** Width of the widest expected (two-digit) fret text in CSS pixels. */
+  get fretTextMaxWidth(): number {
+    return this._FRET_TEXT_MAX_WIDTH;
+  }
+
+  /** Distance from a tab beat box's left edge to its attack (fret text center), in CSS pixels. */
+  get beatAttackOffset(): number {
+    return this._BEAT_TECHNIQUE_WIDTH + this._FRET_TEXT_MAX_WIDTH / 2;
+  }
+
+  /** Returns the estimated fret-text width in CSS pixels; short texts use at least one text size. */
+  public measureFretTextWidth(text: string): number {
+    const textSize = this._NOTE_TEXT_SIZE;
+    return Math.max(textSize, text.length * textSize * 0.6);
+  }
+
   /** Padding around the first and last attack columns in CSS pixels. */
   get rhythmAttackPadding(): number {
     return this._RHYTHM_ATTACK_PADDING;
@@ -246,15 +277,6 @@ export class EditorLayoutDimensions {
   /** Duration-symbol rectangle height in CSS pixels. */
   get durationsHeight(): number {
     return this._DURATIONS_HEIGHT;
-  }
-
-  /** New map of spacing multipliers keyed by augmentation-dot count (0, 1, or 2). */
-  get dotWidthFactors(): Record<number, number> {
-    return {
-      0: 1,
-      1: 1.05,
-      2: 1.1,
-    };
   }
 
   /** Augmentation-dot diameter in CSS pixels. */

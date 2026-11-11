@@ -129,9 +129,9 @@ export class TabNoteSlotElement implements NoteElement {
       this.trackElement.layoutDimensions.noteRectHeight
     );
 
-    const textSize = this.trackElement.layoutDimensions.noteTextSize;
-    const textWidth = Math.max(textSize, this.noteText.length * textSize * 0.6);
-    this._textRect.setDimensions(textWidth, textSize);
+    const layoutDimensions = this.trackElement.layoutDimensions;
+    const textWidth = layoutDimensions.measureFretTextWidth(this.noteText);
+    this._textRect.setDimensions(textWidth, layoutDimensions.noteTextSize);
   }
 
   /**

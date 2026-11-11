@@ -1,9 +1,39 @@
 import { InsertBeatsCommand } from "../../../src/notation/controller/editor/command/insert-beats-command";
-import { NoteDuration } from "../../../src/notation/model";
+import {
+  BeatGuitarTechniqueType,
+  NoteDuration,
+  ScoreEditor,
+  StrokeDirection,
+  StrokeOptions,
+  STROKE_DURATION_QUARTER,
+} from "../../../src/notation/model";
 import { createBarWithBeats, createBeat } from "../model/helpers";
 import { required } from "../required";
 
 describe("InsertBeatsCommand", () => {
+  test("pasted beats keep their strokes", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const voiceBar = required(bar.getVoiceBar(1));
+    const source = createBeat(voiceBar, NoteDuration.Eighth);
+    ScoreEditor.setBeatTechnique([source], BeatGuitarTechniqueType.Stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Up,
+        duration: STROKE_DURATION_QUARTER,
+      }),
+    });
+
+    new InsertBeatsCommand(bar, beats[0], [source]).execute();
+
+    const pasted = voiceBar.beats[1];
+    expect(pasted).not.toBe(source);
+    const stroke = pasted.getBeatTechnique(BeatGuitarTechniqueType.Stroke);
+    expect(stroke?.beat).toBe(pasted);
+    expect(stroke?.options.direction).toBe(StrokeDirection.Up);
+  });
+
   test("packs clipboard before the original tail and restores fixed contents", () => {
     const { score, bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

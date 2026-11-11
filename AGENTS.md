@@ -41,6 +41,10 @@ It describes score structure, voice/rest conventions, and shared vocabulary.
     - `beat/`
     - `note/`
     - `technique/`
+      - `guitar-technique/` draws note techniques. `TabNoteSlotElement` owns
+        them.
+      - `beat-technique/` draws beat techniques, such as the stroke arrow.
+        `TabBeatElement` owns them, not the note slots.
 - `src/notation/controller/layout/score-layout-plan.ts` contains
   `ScoreLayoutPlanner`, which calculates score-wide line breaks and finalized
   bar widths across all tracks.

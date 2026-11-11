@@ -10,6 +10,7 @@ export * from "./prepend-bar-command";
 export * from "./remove-bars-command";
 export * from "./remove-beats-command";
 export * from "./replace-beats-command";
+export * from "./set-beat-technique-command";
 export * from "./set-dots-command";
 export * from "./set-duration-command";
 export * from "./set-fret-command";

@@ -16,6 +16,9 @@ import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
 import type { BarElement } from "../../bar/bar-element";
 import type { TrackLineElement } from "../../track/track-line-element";
 
+/** Note-local left x and square size of a harmonic diamond. */
+type HarmonicDiamondBox = { x: number; size: number };
+
 /**
  * Class that handles geometry & visually relevant
  * info of a guitar note technique.
@@ -102,22 +105,31 @@ export class GuitarTechniqueElement implements TechniqueElement {
       nextBeat === null ? null : this.getNextNoteElement(nextBeat);
     const startX =
       beatElement.attackLocalX + this.noteElement.textRect.width / 2;
-    const gap = this.trackElement.layoutDimensions.noteTextSize / 4;
-    let endX = this.noteElement.boundingBox.width;
-    if (nextNote !== null) {
-      if (nextBeat?.voiceBar === this.note.beat.voiceBar) {
-        const container = beatElement.voiceBarContainer;
-        endX =
-          container.getBeatX(nextBeat) -
-          container.getBeatX(this.note.beat) +
-          nextNote.beatElement.attackLocalX -
-          nextNote.textRect.width / 2;
-      } else {
-        endX =
-          nextNote.globalCoords.x +
-          nextNote.textRect.left -
-          this.noteElement.globalCoords.x;
-      }
+    const layoutDimensions = this.trackElement.layoutDimensions;
+    const gap = layoutDimensions.noteTextSize / 4;
+    const isNextBeatInVoiceBar =
+      nextBeat !== null && nextBeat.voiceBar === this.note.beat.voiceBar;
+    // With no next beat in this bar and no next note, end at the voice
+    // content edge: the attack padding after the box, before the barline.
+    let endX =
+      this.noteElement.boundingBox.width + layoutDimensions.rhythmAttackPadding;
+    if (nextBeat !== null && isNextBeatInVoiceBar) {
+      // End where the next fret text starts. Tab beats share one attack
+      // offset. If the next slot is not built, assume a fret as wide as this
+      // one, so the bend length does not depend on materialization.
+      const container = beatElement.voiceBarContainer;
+      const nextTextWidth =
+        nextNote?.textRect.width ?? this.noteElement.textRect.width;
+      endX =
+        container.getBeatX(nextBeat) -
+        container.getBeatX(this.note.beat) +
+        layoutDimensions.beatAttackOffset -
+        nextTextWidth / 2;
+    } else if (nextNote !== null) {
+      endX =
+        nextNote.globalCoords.x +
+        nextNote.textRect.left -
+        this.noteElement.globalCoords.x;
     }
     let quarterCount;
     switch (type) {
@@ -399,13 +411,37 @@ export class GuitarTechniqueElement implements TechniqueElement {
       : null;
   }
 
+  /**
+   * Returns the note-local x where visuals that come from the left must end
+   * on the target slot: the given x, or earlier when a beat in the target
+   * column, in any voice, has a beat technique, such as a stroke arrow.
+   */
+  private static getEndXBeforeBeatTechnique(
+    targetElement: TabNoteSlotElement,
+    targetX: number
+  ): number {
+    const beatTechniqueX = targetElement.beatElement.beatTechniqueX;
+    if (beatTechniqueX === null) {
+      return targetX;
+    }
+
+    const gap = targetElement.trackElement.layoutDimensions.noteTextSize / 8;
+    return Math.min(targetX, beatTechniqueX - gap);
+  }
+
   /** Returns a transition endpoint in the source note's local coordinates. */
   private getTransitionEndX(
     nextNoteElement: TabNoteSlotElement | null
   ): number {
     if (nextNoteElement !== null) {
+      const targetX = GuitarTechniqueElement.getEndXBeforeBeatTechnique(
+        nextNoteElement,
+        nextNoteElement.selectionRect.left - nextNoteElement.globalCoords.x
+      );
       return (
-        nextNoteElement.selectionRect.left - this.noteElement.globalCoords.x
+        nextNoteElement.globalCoords.x +
+        targetX -
+        this.noteElement.globalCoords.x
       );
     }
 
@@ -543,7 +579,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const startX = previousElement
       ? previousElement.textRectGlobal.right - this.noteElement.globalCoords.x
       : -this.noteElement.lineLocalCoords.x;
-    const endX = this.noteElement.textCoords.x;
+    const endX = GuitarTechniqueElement.getEndXBeforeBeatTechnique(
+      this.noteElement,
+      this.noteElement.textCoords.x
+    );
     const y = this.noteElement.textRect.bottom;
     this._pathDescriptors = [
       GuitarTechniqueDescriptors.createHorizontalCurvePath(
@@ -556,25 +595,43 @@ export class GuitarTechniqueElement implements TechniqueElement {
   }
 
   /**
+   * Note-local left x and size of a harmonic diamond. It sits left of the
+   * note and of any beat technique in the column. Next to a beat technique
+   * it shrinks when needed, so it stays inside the bar content.
+   */
+  private getHarmonicDiamondBox(): HarmonicDiamondBox {
+    const fullSize = this.trackElement.layoutDimensions.noteTextSize * 0.8;
+    const fretTextX =
+      this.noteElement.selectionRect.left - this.noteElement.globalCoords.x;
+    if (this.noteElement.beatElement.beatTechniqueX === null) {
+      return { x: fretTextX - fullSize, size: fullSize };
+    }
+    const rightX = GuitarTechniqueElement.getEndXBeforeBeatTechnique(
+      this.noteElement,
+      fretTextX
+    );
+
+    // On the first beat of a bar, the space left of a stroke arrow can be
+    // smaller than the diamond.
+    const contentStartX =
+      this.noteElement.beatElement.voiceBarContainer.globalCoords.x -
+      this.noteElement.globalCoords.x;
+    const size = Math.max(0, Math.min(fullSize, rightX - contentStartX));
+    return { x: rightX - size, size };
+  }
+
+  /**
    * Calc natural harmonic path
    */
   private createNaturalHarmonicPath(): void {
-    const nhWidth = this.trackElement.layoutDimensions.noteTextSize * 0.8;
-    const nhStartX =
-      this.noteElement.selectionRect.left -
-      this.noteElement.globalCoords.x -
-      nhWidth;
-    const nhStartY = this._startPoint.y;
-    const nhHeight = this.trackElement.layoutDimensions.noteTextSize * 0.8;
+    const { x, size } = this.getHarmonicDiamondBox();
     const nhLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
-      nhStartX,
-      nhStartY,
-      nhWidth,
-      nhHeight,
+      x,
+      this._startPoint.y,
+      size,
+      size,
       false
     );
-
-    // this._rect = new Rect(nhStartX, nhStartY - nhHeight / 2, nhWidth, nhHeight);
 
     this._pathDescriptors = [nhLine];
   }
@@ -583,22 +640,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc pinch harmonic path
    */
   private createPinchHarmonicPath(): void {
-    const phWidth = this.trackElement.layoutDimensions.noteTextSize * 0.8;
-    const phStartX =
-      this.noteElement.selectionRect.left -
-      this.noteElement.globalCoords.x -
-      phWidth;
-    const phStartY = this._startPoint.y;
-    const phHeight = this.trackElement.layoutDimensions.noteTextSize * 0.8;
+    const { x, size } = this.getHarmonicDiamondBox();
     const phLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
-      phStartX,
-      phStartY,
-      phWidth,
-      phHeight,
+      x,
+      this._startPoint.y,
+      size,
+      size,
       true
     );
-
-    // this._rect = new Rect(phStartX, phStartY - phHeight / 2, phWidth, phHeight);
 
     this._pathDescriptors = [phLine];
   }

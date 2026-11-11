@@ -10,6 +10,7 @@ import { createButton, createDiv } from "../../../shared";
  * - Legato
  * - Slide
  * - Bend
+ * - Stroke
  */
 export class TechniqueControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
@@ -22,4 +23,6 @@ export class TechniqueControlsTemplate {
   readonly legatoButton: HTMLButtonElement = createButton();
   readonly slideButton: HTMLButtonElement = createButton();
   readonly bendButton: HTMLButtonElement = createButton();
+  /** Opens the stroke settings dialog. */
+  readonly strokeButton: HTMLButtonElement = createButton();
 }

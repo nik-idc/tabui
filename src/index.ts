@@ -15,6 +15,9 @@ export {
 export * from "./notation/model/bar";
 export * from "./notation/model/bar-repeat-status";
 export * from "./notation/model/beat";
+export * from "./notation/model/beat-guitar-technique";
+export * from "./notation/model/beat-technique";
+export * from "./notation/model/beat-technique-type";
 export * from "./notation/model/bend-options";
 export { BendType } from "./notation/model/bend-type";
 export * from "./notation/model/clef-type";
@@ -35,6 +38,7 @@ export { NoteDuration, DURATION_TO_NAME } from "./notation/model/note-duration";
 export * from "./notation/model/score";
 export * from "./notation/model/serialization";
 export * from "./notation/model/staff";
+export * from "./notation/model/stroke-options";
 export * from "./notation/model/technique";
 export * from "./notation/model/technique-type";
 export * from "./notation/model/track";

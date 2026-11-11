@@ -6,6 +6,10 @@ import {
   BendControlsDefaultCallbacks,
 } from "./bend-controls/bend-controls-callbacks";
 import { ListenerManager } from "../../../shared/misc";
+import {
+  StrokeControlsCallbacks,
+  StrokeControlsDefaultCallbacks,
+} from "./stroke-controls/stroke-controls-callbacks";
 
 export interface TechniqueControlsCallbacks {
   onVibratoClicked(): void;
@@ -17,6 +21,7 @@ export interface TechniqueControlsCallbacks {
   onLegatoClicked(): void;
   onSlideClicked(): void;
   onBendClicked(): void;
+  onStrokeClicked(): void;
   bind(): void;
   unbind(): void;
 }
@@ -29,6 +34,7 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
   private _listeners = new ListenerManager();
 
   private _bendCallbacks: BendControlsCallbacks;
+  private _strokeCallbacks: StrokeControlsCallbacks;
 
   constructor(
     techniquesComponent: TechniqueControlsComponent,
@@ -41,6 +47,11 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
 
     this._bendCallbacks = new BendControlsDefaultCallbacks(
       this._techniquesComponent.bendControlsComponent,
+      this._notationComponent,
+      this._renderFunc
+    );
+    this._strokeCallbacks = new StrokeControlsDefaultCallbacks(
+      this._techniquesComponent.strokeControlsComponent,
       this._notationComponent,
       this._renderFunc
     );
@@ -106,6 +117,11 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
     this._techniquesComponent.showBendControls();
   }
 
+  /** Opens stroke settings, like the Shift+D shortcut. */
+  public onStrokeClicked(): void {
+    this._techniquesComponent.showStrokeControls();
+  }
+
   public bind(): void {
     this._listeners.bindAll([
       {
@@ -153,13 +169,20 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
         event: "click",
         handler: () => this.onBendClicked(),
       },
+      {
+        element: this._techniquesComponent.template.strokeButton,
+        event: "click",
+        handler: () => this.onStrokeClicked(),
+      },
     ]);
 
     this._bendCallbacks.bind();
+    this._strokeCallbacks.bind();
   }
 
   public unbind(): void {
     this._listeners.unbindAll();
     this._bendCallbacks.unbind();
+    this._strokeCallbacks.unbind();
   }
 }

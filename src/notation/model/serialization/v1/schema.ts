@@ -47,6 +47,17 @@ export enum SerializedBendType {
   Release = "release",
 }
 
+/** Wire tokens that discriminate beat-level techniques, independent from the model enum. */
+export enum SerializedBeatTechniqueType {
+  Stroke = "stroke",
+}
+
+/** Wire tokens for stroke directions, independent from the model enum. */
+export enum SerializedStrokeDirection {
+  Down = "down",
+  Up = "up",
+}
+
 /** Wire tokens for staff clefs, frozen independently from the model enum. */
 export enum SerializedClefType {
   Treble = "Treble",
@@ -266,15 +277,38 @@ export type SerializedGuitarNote = {
 export type SerializedNoteSlot = SerializedGuitarNote | null;
 
 /**
+ * Stroke settings. `duration` is an integer tick count at 960 ticks per
+ * quarter note, from 60 (a 64th note) to 1920 (a half note). `alignment` is an
+ * integer from 0 (first string on the beat) to 100 (last string on the beat).
+ */
+export type SerializedStrokeOptions = {
+  direction: SerializedStrokeDirection;
+  duration: number;
+  alignment: number;
+};
+
+/** Stroke across all strings of a beat. */
+export type SerializedStrokeTechnique = {
+  type: SerializedBeatTechniqueType.Stroke;
+  options: SerializedStrokeOptions;
+};
+
+/** Beat-level technique union discriminated by the technique `type` token. */
+export type SerializedBeatTechnique = SerializedStrokeTechnique;
+
+/**
  * A rhythmic beat; `notes: null` encodes a rest, while note arrays retain
  * sparse string slots.
  * A note array must match the instrument string count; dots are 0, 1, or 2.
+ * `techniques` is written only when non-empty, may be missing in older data,
+ * must be unique and compatible, and is not allowed on a rest.
  */
 export type SerializedBeat = {
   notes: SerializedNoteSlot[] | null;
   duration: SerializedNoteDuration;
   dots: number;
   tuplet: SerializedTuplet | null;
+  techniques?: SerializedBeatTechnique[];
 };
 
 /** A ratio where normalCount notes occupy tupletCount written units (3:2 for triplets); both are integers in 1–256. */

@@ -315,9 +315,7 @@ describe("PlaybackNoteScheduler", () => {
       5,
       6,
       trackBus(),
-      undefined,
-      -Infinity,
-      7
+      { pitchShiftSemitones: 7 }
     );
 
     expect(source?.pitchShiftParam?.value).toBe(700);
@@ -651,7 +649,9 @@ describe("PlaybackNoteScheduler", () => {
       );
       const audio = createAudioContext();
 
-      scheduler(audio.context).scheduleNote(note, 1, 2, trackBus(), boundary);
+      scheduler(audio.context).scheduleNote(note, 1, 2, trackBus(), {
+        maxStopTime: boundary,
+      });
 
       expect(audio.oscillators[0].stop).toHaveBeenCalledWith(stop);
       expect(audio.gains[0].gain.linearRampToValueAtTime).toHaveBeenCalledWith(
@@ -821,6 +821,41 @@ describe("PlaybackNoteScheduler", () => {
     ).toHaveBeenLastCalledWith(0, 0.5);
   });
 
+  test("a delayed stroke attack moves the envelope and vibrato but not the stop", () => {
+    const [note] = notesAtFrets(5);
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
+    const audio = createAudioContext();
+
+    const scheduled = scheduler(audio.context).scheduleNote(
+      note,
+      0,
+      1,
+      trackBus(),
+      { attackTime: 0.25 }
+    );
+
+    expect(scheduled?.startTime).toBe(0.25);
+    expect(audio.oscillators[0].start).toHaveBeenCalledWith(0.25);
+    expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1);
+    expect(audio.gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0, 0.25);
+    const pitchRamps = audio.oscillators[0].frequency.linearRampToValueAtTime;
+    // Vibrato starts 0.12 s after the attack, not after the beat time.
+    expect(pitchRamps.mock.calls[0][1]).toBeCloseTo(0.37, 8);
+  });
+
+  test("a delayed stroke attack moves a dead-note strike", () => {
+    const [note] = notesAtFrets(5);
+    note.setNote(NoteValue.Dead, null);
+    const audio = createAudioContext();
+
+    scheduler(audio.context).scheduleNote(note, 0, 1, trackBus(), {
+      attackTime: 0.25,
+    });
+
+    expect(audio.bufferSources[0].start).toHaveBeenCalledWith(0.25);
+    expect(audio.bufferSources[0].stop).toHaveBeenCalledWith(0.3);
+  });
+
   test("ties add dotted and tuplet durations to one sound and stop at playback end", () => {
     const [first, second, third] = notesAtFrets(5, 5, 5);
     second.beat.dots = 1;
@@ -831,7 +866,7 @@ describe("PlaybackNoteScheduler", () => {
     third.setTechnique(GuitarTechniqueType.Tie);
     const audio = createAudioContext();
     const player = scheduler(audio.context);
-    player.scheduleNote(first, 0, 0.5, trackBus(), 1.2);
+    player.scheduleNote(first, 0, 0.5, trackBus(), { maxStopTime: 1.2 });
     expect(player.scheduleNote(second, 0.5, 1, trackBus())).toBeNull();
     expect(player.scheduleNote(third, 1, 1.5, trackBus())).toBeNull();
     expect(audio.oscillators).toHaveLength(1);
@@ -870,14 +905,9 @@ describe("PlaybackNoteScheduler", () => {
     next.setTechnique(GuitarTechniqueType.LetRing);
     const audio = createAudioContext();
 
-    scheduler(audio.context).scheduleNote(
-      middle,
-      0,
-      0.5,
-      trackBus(),
-      undefined,
-      0
-    );
+    scheduler(audio.context).scheduleNote(middle, 0, 0.5, trackBus(), {
+      playbackStartTime: 0,
+    });
 
     expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
   });
@@ -942,7 +972,9 @@ describe("PlaybackNoteScheduler", () => {
       player.scheduleNote(first, 0, writtenEnd, trackBus());
       expect(audio.oscillators[1].stop).toHaveBeenCalledWith(1.5);
 
-      player.scheduleNote(first, 0, writtenEnd, trackBus(), 1.2);
+      player.scheduleNote(first, 0, writtenEnd, trackBus(), {
+        maxStopTime: 1.2,
+      });
       expect(audio.oscillators[2].stop).toHaveBeenCalledWith(1.2);
     }
   );
@@ -1002,7 +1034,7 @@ describe("PlaybackNoteScheduler", () => {
     expect(audio.oscillators[0].stop).toHaveBeenCalledWith(1.5);
     expect(player.scheduleNote(next, 0.5, 1, trackBus())).toBeNull();
     expect(
-      player.scheduleNote(next, 0, 0.5, trackBus(), undefined, 0)
+      player.scheduleNote(next, 0, 0.5, trackBus(), { playbackStartTime: 0 })
     ).toBeNull();
     expect(audio.oscillators).toHaveLength(1);
   });

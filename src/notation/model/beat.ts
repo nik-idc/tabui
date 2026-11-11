@@ -10,6 +10,9 @@ import {
   tupletSettingsInRange,
 } from "./tuplet-settings";
 import { GuitarTechniqueType, TechniqueType } from "./technique-type";
+import { BeatGuitarTechnique } from "./beat-guitar-technique";
+import { beatGuitarTechniquesIncompatible } from "./beat-guitar-technique-lists";
+import { BeatGuitarTechniqueType } from "./beat-technique-type";
 import { NoteValue } from "./note";
 
 import {
@@ -88,6 +91,8 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
 
   /** Beat notes */
   private _notes: Note<I>[] | null = null;
+  /** Techniques that apply to the whole beat, such as a stroke; always empty for a rest. */
+  private _beatTechniques: BeatGuitarTechnique[] = [];
   /** Original bar identity recognizes generated fallback rests through history and destination copies. */
   private _fallbackRestOwner: Bar<I> | null = null;
   /** * Base beat duration */
@@ -177,9 +182,64 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     return this._notes?.some((n) => n.hasTechnique(type)) ?? false;
   }
 
-  /** Discards all note slots and turns this beat into a rest, keeping its rhythm. */
+  /** Returns the beat technique of the given type, or undefined if the beat does not have it. */
+  public getBeatTechnique<T extends BeatGuitarTechniqueType>(
+    type: T
+  ): BeatGuitarTechnique<T> | undefined {
+    return this._beatTechniques.find(
+      (t): t is BeatGuitarTechnique<T> => t.type === type
+    );
+  }
+
+  /** Returns true if the beat has a beat technique of the given type. */
+  public hasBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return this._beatTechniques.some((t) => t.type === type);
+  }
+
+  /**
+   * Adds a beat technique owned by this beat.
+   * @returns False for a rest, a technique owned by another beat, or a type incompatible with an existing one (including a duplicate).
+   */
+  public addBeatTechnique(technique: BeatGuitarTechnique): boolean {
+    if (this._notes === null || technique.beat !== this) {
+      return false;
+    }
+    const isIncompatible = this._beatTechniques.some((t) =>
+      beatGuitarTechniquesIncompatible(t.type, technique.type)
+    );
+    if (isIncompatible) {
+      return false;
+    }
+
+    this._beatTechniques.push(technique);
+    return true;
+  }
+
+  /** Removes the beat technique of the given type; returns false if the beat does not have it. */
+  public removeBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    const index = this._beatTechniques.findIndex((t) => t.type === type);
+    if (index === -1) {
+      return false;
+    }
+
+    this._beatTechniques.splice(index, 1);
+    return true;
+  }
+
+  /** Removes all beat techniques. */
+  public clearBeatTechniques(): void {
+    this._beatTechniques = [];
+  }
+
+  /** Live beat techniques; use the Beat methods to change them. */
+  public get beatTechniques(): readonly BeatGuitarTechnique[] {
+    return this._beatTechniques;
+  }
+
+  /** Discards all note slots and beat techniques and turns this beat into a rest, keeping its rhythm. */
   public makeRest(): void {
     this._notes = null;
+    this._beatTechniques = [];
     if (!this.voiceBar.beats.includes(this)) {
       return;
     }
@@ -289,7 +349,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Copies rhythm, note content, and beam markers with new UUIDs; derived ticks remain zero until rebuilt.
+   * Copies rhythm, note content, beat techniques, and beam markers with new UUIDs; derived ticks remain zero until rebuilt.
    * @param voiceBar Destination owner and instrument context; extra lanes are dropped and missing lanes stay empty.
    * @returns Beat's deep copy
    * @throws If copied rhythm or note data is invalid for the destination instrument.
@@ -319,6 +379,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
         beat._notes[i] = this._notes[i].deepCopy(beat);
       }
     }
+    beat._beatTechniques = this._beatTechniques.map((t) => t.deepCopy(beat));
 
     beat._fallbackRestOwner = this._fallbackRestOwner;
     return beat;
@@ -327,6 +388,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   /** Restores saved content from the same voice bar while keeping the beat object used by later commands. */
   public restoreContent(content: Beat<I>): void {
     this._notes = content._notes?.map((n) => n.deepCopy(this)) ?? null;
+    this._beatTechniques = content._beatTechniques.map((t) => t.deepCopy(this));
     this._baseDuration = content._baseDuration;
     this._dots = content._dots;
     this._tupletSettings =

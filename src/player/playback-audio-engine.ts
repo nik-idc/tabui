@@ -1,14 +1,15 @@
 import { ResolvedPlaybackSampleConfigs } from "../config/tabui-config";
 import {
   Beat,
+  BeatGuitarTechniqueType,
   GuitarNote,
-  GuitarTechniqueType,
+  Note,
   Score,
   Track,
-  getNoteFrequency,
 } from "../notation/model";
 import { PlaybackNoteScheduler } from "./playback-note-scheduler";
 import { PlaybackSampleManager } from "./playback-sample-manager";
+import { getStrokeAttackOffsets } from "./playback-stroke";
 import {
   CENTS_PER_SEMITONE,
   MAX_PITCH_SHIFT_SEMITONES,
@@ -200,45 +201,85 @@ export class PlaybackAudioEngine {
     );
   }
 
-  private noteIsSlideTarget(note: unknown): boolean {
-    if (!(note instanceof GuitarNote)) {
-      return false;
+  /**
+   * Returns attack offsets per string for a stroke beat, or undefined without one.
+   * @param attackingNotes Notes that attack in this pass; only they take part
+   */
+  private getStrokeAttackOffsets(
+    beat: Beat,
+    attackingNotes: readonly Note[],
+    startTime: number,
+    endTime: number,
+    playbackStartTime: number
+  ): Map<number, number> | undefined {
+    const stroke = beat.getBeatTechnique(BeatGuitarTechniqueType.Stroke);
+    if (stroke === undefined) {
+      return undefined;
     }
 
-    const prevBeat = note.beat.voiceBar.bar.staff.getPrevBeat(note.beat);
-    const prevNote = prevBeat?.notes?.[note.stringNum - 1];
-    return (
-      prevNote instanceof GuitarNote &&
-      prevNote.hasTechnique(GuitarTechniqueType.Slide) &&
-      getNoteFrequency(note) > 0
+    const attackingStringNums: number[] = [];
+    for (const note of attackingNotes) {
+      if (note instanceof GuitarNote) {
+        attackingStringNums.push(note.stringNum);
+      }
+    }
+    // Attacks before the pass start would overlap earlier material. Very slow
+    // tempos can also put early attacks before the clock, beyond the lookahead.
+    // This applies at every pass start, including each loop restart.
+    const earliestAttackTime = Math.max(
+      playbackStartTime,
+      this._audioContext?.currentTime ?? -Infinity
     );
+    // The spread is limited by this beat's length only. An early stroke can
+    // therefore start before a short previous beat; this is accepted.
+    return getStrokeAttackOffsets(stroke.options, attackingStringNums, {
+      tempo: beat.voiceBar.bar.masterBar.tempo,
+      beatSeconds: endTime - startTime,
+      earliestOffsetSeconds: earliestAttackTime - startTime,
+    });
   }
 
+  /**
+   * Schedules the notes of one beat. A stroke moves each note's attack only;
+   * `startTime` stays the rhythmic beat time used for tie and sustain timing.
+   */
   public scheduleBeat(
     beat: Beat,
     startTime: number,
     endTime: number,
     maxStopTime?: number,
-    playbackStartTime?: number
+    playbackStartTime = -Infinity
   ): void {
-    if (this._noteScheduler === undefined) {
+    const noteScheduler = this._noteScheduler;
+    if (noteScheduler === undefined) {
       throw Error("Playback note scheduler is not initialized");
     }
 
     const trackBus = this.getTrackAudioBus(beat.voiceBar.bar.staff.track);
-    for (const note of beat.notes ?? []) {
-      if (this.noteIsSlideTarget(note)) {
-        continue;
-      }
-
-      const scheduledAudioNode = this._noteScheduler.scheduleNote(
+    const attackingNotes = (beat.notes ?? []).filter((n) =>
+      noteScheduler.isAttackInPass(n, startTime, playbackStartTime)
+    );
+    const strokeOffsets = this.getStrokeAttackOffsets(
+      beat,
+      attackingNotes,
+      startTime,
+      endTime,
+      playbackStartTime
+    );
+    for (const note of attackingNotes) {
+      const strokeOffset =
+        note instanceof GuitarNote ? strokeOffsets?.get(note.stringNum) : 0;
+      const scheduledAudioNode = noteScheduler.scheduleNote(
         note,
         startTime,
         endTime,
         trackBus,
-        maxStopTime,
-        playbackStartTime,
-        this._pitchShiftSemitones
+        {
+          maxStopTime,
+          playbackStartTime,
+          pitchShiftSemitones: this._pitchShiftSemitones,
+          attackTime: startTime + (strokeOffset ?? 0),
+        }
       );
       if (scheduledAudioNode === null) {
         continue;

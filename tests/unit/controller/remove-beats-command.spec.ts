@@ -1,9 +1,45 @@
 import { RemoveBeatsCommand } from "../../../src/notation/controller/editor/command";
-import { GuitarNote, NoteDuration } from "../../../src/notation/model";
+import {
+  BeatGuitarTechniqueType,
+  GuitarNote,
+  NoteDuration,
+  ScoreEditor,
+  StrokeDirection,
+  StrokeOptions,
+  STROKE_DURATION_EIGHTH,
+} from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 import { required } from "../required";
 
 describe("RemoveBeatsCommand", () => {
+  test("removing a beat drops its stroke and undo restores it", () => {
+    const { bar, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const voiceBar = required(bar.getVoiceBar(1));
+    ScoreEditor.setBeatTechnique([beats[0]], BeatGuitarTechniqueType.Stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Up,
+        duration: STROKE_DURATION_EIGHTH,
+      }),
+    });
+    const command = new RemoveBeatsCommand([beats[0]]);
+
+    command.execute();
+    expect(
+      voiceBar.beats.some((b) =>
+        b.hasBeatTechnique(BeatGuitarTechniqueType.Stroke)
+      )
+    ).toBe(false);
+
+    command.undo();
+    expect(
+      voiceBar.beats[0].getBeatTechnique(BeatGuitarTechniqueType.Stroke)
+        ?.options.direction
+    ).toBe(StrokeDirection.Up);
+  });
+
   test("execute removes selected beats and undo restores them in place", () => {
     const { bar, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

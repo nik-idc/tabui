@@ -1,6 +1,7 @@
 import {
   BassGuitarTone,
   Beat,
+  BeatGuitarTechniqueType,
   BendTechniqueOptions,
   BendType,
   ClefType,
@@ -13,9 +14,12 @@ import {
   SCORE_SERIALIZATION_FORMAT,
   SCORE_SERIALIZATION_VERSION,
   Score,
+  ScoreEditor,
   ScoreSerializationError,
   SerializedBendType,
   SerializedTechniqueType,
+  StrokeDirection,
+  StrokeOptions,
   deserializeScore,
   serializeScore,
 } from "../../../src/notation/model";
@@ -88,7 +92,125 @@ function bendTechnique(serializedScore: ReturnType<typeof bendDocument>) {
   return technique;
 }
 
+/** Serializes a two-beat score whose first beat has an upward sixteenth stroke. */
+function strokeDocument() {
+  const { score, beats } = createBarWithBeats([
+    { baseDuration: NoteDuration.Quarter },
+    { baseDuration: NoteDuration.Quarter },
+  ]);
+  (required(beats[0].notes)[0] as GuitarNote).setFret(3);
+  ScoreEditor.setBeatTechnique([beats[0]], BeatGuitarTechniqueType.Stroke, {
+    strokeOptions: new StrokeOptions({
+      direction: StrokeDirection.Up,
+      // Values off the slider marks and the default catch dropped fields.
+      duration: 300,
+      alignment: 40,
+    }),
+  });
+  return serializeScore(score);
+}
+
+const STROKE_BEAT_PATH = "$.tracks[0].staves[0].bars[0].voices[0].beats[0]";
+
 describe("score serialization", () => {
+  test("round trips a stroke and omits the techniques key on beats without one", () => {
+    const document = strokeDocument();
+    const savedBeats = required(
+      document.tracks[0].staves[0].bars[0].voices[0]
+    ).beats;
+
+    expect(savedBeats[0].techniques).toEqual([
+      {
+        type: "stroke",
+        options: { direction: "up", duration: 300, alignment: 40 },
+      },
+    ]);
+    expect("techniques" in savedBeats[1]).toBe(false);
+
+    const restored = deserializeScore(document);
+    const beat = required(restored.tracks[0].staves[0].bars[0].getVoiceBar(1))
+      .beats[0];
+    const stroke = beat.getBeatTechnique(BeatGuitarTechniqueType.Stroke);
+    expect(stroke?.beat).toBe(beat);
+    expect(stroke?.options.direction).toBe(StrokeDirection.Up);
+    expect(stroke?.options.duration).toBe(300);
+    expect(stroke?.options.alignment).toBe(40);
+    expect(serializeScore(restored)).toEqual(document);
+  });
+
+  test.each([
+    [
+      "an unknown direction",
+      (b: Record<string, unknown>) => {
+        b.techniques = [
+          {
+            type: "stroke",
+            options: { direction: "left", duration: 480, alignment: 0 },
+          },
+        ];
+      },
+      `${STROKE_BEAT_PATH}.techniques[0].options.direction`,
+      "unsupported value 'left'",
+    ],
+    [
+      "a duplicate stroke",
+      (b: Record<string, unknown>) => {
+        const techniques = b.techniques as unknown[];
+        techniques.push(techniques[0]);
+      },
+      `${STROKE_BEAT_PATH}.techniques[1]`,
+      "duplicate beat technique",
+    ],
+    [
+      "a stroke on a rest",
+      (b: Record<string, unknown>) => {
+        b.notes = null;
+      },
+      `${STROKE_BEAT_PATH}.techniques`,
+      "beat techniques require a note beat",
+    ],
+    [
+      "an unknown beat technique",
+      (b: Record<string, unknown>) => {
+        b.techniques = [{ type: "rasgueado" }];
+      },
+      `${STROKE_BEAT_PATH}.techniques[0].type`,
+      "unsupported value 'rasgueado'",
+    ],
+  ])("rejects %s", (_, corrupt, path, message) => {
+    const document = strokeDocument();
+    const beat = required(document.tracks[0].staves[0].bars[0].voices[0])
+      .beats[0] as unknown as Record<string, unknown>;
+    corrupt(beat);
+
+    const error = deserializeError(document);
+    expect(error.path).toBe(path);
+    expect(error.message).toContain(message);
+  });
+
+  test.each([
+    ["duration", 240.5, "expected safe integer"],
+    ["duration", 59, "between 60 and 1920"],
+    ["duration", 1921, "between 60 and 1920"],
+    ["duration", "sixteenth", "expected finite number"],
+    ["alignment", 0.5, "expected safe integer"],
+    ["alignment", -1, "between 0 and 100"],
+    ["alignment", 101, "between 0 and 100"],
+  ])("rejects stroke %s %p", (key, value, message) => {
+    const document = strokeDocument();
+    const beat = required(document.tracks[0].staves[0].bars[0].voices[0])
+      .beats[0];
+    const options = required(beat.techniques)[0].options as Record<
+      string,
+      unknown
+    >;
+    options[key] = value;
+
+    const error = deserializeError(document);
+    expect(error.path).toBe(`${STROKE_BEAT_PATH}.techniques[0].options.${key}`);
+    expect(error.message).toContain(message);
+  });
+
   test("saves and loads Tie separately from Let Ring and rejects a mismatched tied fret", () => {
     const { beats, score } = createBarWithBeats(
       Array.from({ length: 3 }, () => ({ baseDuration: NoteDuration.Quarter }))

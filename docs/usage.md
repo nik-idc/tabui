@@ -21,6 +21,7 @@ For installation and a minimal example, see the [README](../README.md).
   - [Editing and view-only modes](#editing-and-view-only-modes)
   - [Mouse, touch, and pen input](#mouse-touch-and-pen-input)
 - [Ties and Let Ring](#ties-and-let-ring)
+- [Strokes](#strokes)
 - [Accessibility](#accessibility)
   - [Keyboard navigation](#keyboard-navigation)
   - [Screen-reader feedback](#screen-reader-feedback)
@@ -304,6 +305,31 @@ These techniques have no options. For other techniques and their interpretation,
 see [Guitar techniques](techniques.md). For storage and editing responsibilities,
 see [the domain model](domain.md#technique-ownership-and-editing).
 
+## Strokes
+
+A stroke belongs to a beat. It applies to the cursor's beat or to every
+selected beat; rests are skipped. See [Stroke](techniques.md#stroke) for its
+meaning and playback.
+
+- **D** toggles a down stroke, and **U** toggles an up stroke. A toggle removes
+  the strokes when all selected beats already have a stroke in that direction.
+  Otherwise it sets that direction and keeps the duration and alignment of the
+  first existing stroke. A new stroke takes a 16th note and starts on time.
+- **Stroke** or **Shift+D** opens a dialog. The button shows as pressed when
+  a selected beat has a stroke. The dialog has:
+  - **Direction**: Down or Up.
+  - **Duration**: a slider from a 64th note (left) to a half note (right).
+    Marks show the 64th, 16th, 8th, quarter, and half notes. Each step to the
+    right makes the stroke a little slower.
+  - **Timing**: a slider that reads like a timeline. The left end is **Falls
+    on time** (the whole stroke plays before the beat). The right end is
+    **Starts on time** (the stroke starts on the beat).
+  - **Confirm**, **Remove**, and **Cancel**. Remove deletes the stroke from the
+    selected beats.
+
+The sliders work with the arrow keys, Page Up, Page Down, Home, and End. Screen
+readers hear the value as a note value or a timing, such as “16th note”.
+
 ## Accessibility
 
 TabUI aims to make tablature navigation and editing usable by blind and
@@ -353,7 +379,7 @@ TabUI publishes text announcements through live status regions. Depending on the
 action, these describe:
 
 - The active track, staff, voice, bar, time signature, and tempo.
-- The selected beat, duration, string, fret or rest, and techniques.
+- The selected beat, duration, stroke, string, fret or rest, and techniques.
 - Changes to a selected beat range.
 - Changes made through controls such as tempo, repeat count, and string tuning.
 

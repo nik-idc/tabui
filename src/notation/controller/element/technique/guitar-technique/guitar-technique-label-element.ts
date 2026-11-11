@@ -112,6 +112,8 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     const y = this._boundingBox.y + this._boundingBox.height / 2 - fontSize / 2;
+    // Curve ends are beat-local; descriptors are local to this label box.
+    const beatToLabelX = -this._boundingBox.x;
     const bendType = this.technique.bendOptions?.type;
     this._pathDescriptors = [];
     this._textDescriptors = pitches.flatMap((pitch, index) => {
@@ -125,7 +127,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       }
       return [
         GuitarTechniqueDescriptors.createTextDescriptor(
-          curveEndXs[index],
+          curveEndXs[index] + beatToLabelX,
           y,
           fontSize,
           ratioNumsToChar(getPitchRatioNums(pitch))
@@ -255,9 +257,12 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       return this.boundingBox.width;
     }
 
+    // Tab beats share one attack offset, so the next attack is its box start
+    // plus this label's offset from its own beat box.
     const nextBeatLineX =
       nextBeatElement.barElement.lineLocalCoords.x +
-      nextBeatElement.barLocalCoords.x;
+      nextBeatElement.barLocalCoords.x +
+      this._boundingBox.x;
     const distance = nextBeatLineX - this.lineLocalCoords.x;
     return distance > 0 ? distance : this.boundingBox.width;
   }
@@ -266,7 +271,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Generates regular vibrato HTML
    */
   private createVibratoPath(): void {
-    const x = this._boundingBox.x;
+    const x = 0;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     const vibratoHeight = this.boundingBox.height / 6;
     const vibratoWidth = this.getTechniqueWidth();
@@ -305,7 +310,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
       this._pathDescriptors = [];
       this._textDescriptors = [
         GuitarTechniqueDescriptors.createTextDescriptor(
-          this._boundingBox.x,
+          0,
           this._boundingBox.y + this._boundingBox.height / 2,
           fontSize,
           text
@@ -327,7 +332,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     const descriptors = GuitarTechniqueDescriptors.createRepeatedLabel(
       text,
       new Rect(
-        this._boundingBox.x,
+        0,
         this._boundingBox.y,
         this.getTechniqueWidth(nextBeatElement),
         this._boundingBox.height
@@ -408,11 +413,12 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
-   * Calculates the dimensions of the outer rectangle
+   * Calculates the dimensions of the outer rectangle, from the beat attack to
+   * the beat box right edge
    */
   public measure(): void {
     this._boundingBox.setDimensions(
-      this.beatElement.boundingBox.width,
+      this.beatElement.boundingBox.width - this.beatElement.attackLocalX,
       this.trackElement.layoutDimensions.techLabelHeight
     );
   }
@@ -434,11 +440,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Calculates the coordinates of the outer rectangle & the path
    */
   public layout(): void {
-    // Setting to beat element's global coords since
-    // the label element is inside the tech gap line
-    // whose rect is always (0, 0, {track line width}, {gap line height})
-    // this._boundingBox.setCoords(this.beatElement.globalCoords.x, 0);
-    this._boundingBox.setCoords(0, 0);
+    // Start at the attack, so labels do not begin inside the empty beat
+    // technique slot. The x is relative to the beat box (see barLocalCoords).
+    this._boundingBox.setCoords(this.beatElement.attackLocalX, 0);
 
     this.createPath();
   }

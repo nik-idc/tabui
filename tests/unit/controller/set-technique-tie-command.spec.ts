@@ -1,11 +1,15 @@
 import {
   Beat,
+  BeatGuitarTechniqueType,
   DEFAULT_MASTER_BAR,
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
   serializeScore,
   ScoreEditor,
+  StrokeDirection,
+  StrokeOptions,
+  STROKE_DURATION_EIGHTH,
 } from "../../../src/notation/model";
 import { SetFretCommand } from "../../../src/notation/controller/editor/command/set-fret-command";
 import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command/set-technique-command";
@@ -493,6 +497,28 @@ describe("Tie editing", () => {
     expect(noteAt(beats[2]).fret).toBe(9);
     command.redo();
     expect(noteAt(beats[2], 2).isTieContinuation).toBe(true);
+  });
+
+  test("a whole-beat Tie replaces the beat and drops its stroke until undo", () => {
+    const { beats } = setup();
+    ScoreEditor.setBeatTechnique([beats[1]], BeatGuitarTechniqueType.Stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Down,
+        duration: STROKE_DURATION_EIGHTH,
+      }),
+    });
+    const command = tieCommand([beats[1]]);
+
+    command.execute();
+    expect(noteAt(beats[1]).isTieContinuation).toBe(true);
+    expect(beats[1].hasBeatTechnique(BeatGuitarTechniqueType.Stroke)).toBe(
+      false
+    );
+
+    command.undo();
+    expect(beats[1].hasBeatTechnique(BeatGuitarTechniqueType.Stroke)).toBe(
+      true
+    );
   });
 
   test("changing a fret preserves its connected Ties, with undo and redo", () => {

@@ -1,4 +1,5 @@
 import {
+  BeatGuitarTechniqueType,
   BendTechniqueOptions,
   BendType,
   Beat,
@@ -8,6 +9,10 @@ import {
   NoteDuration,
   ScoreEditor,
   Score,
+  SetBeatTechniqueOptions,
+  StrokeOptions,
+  StrokeDirection,
+  STROKE_DURATION_EIGHTH,
 } from "../../../src/notation/model";
 import { createBarWithBeats } from "./helpers";
 
@@ -594,5 +599,130 @@ describe("ScoreEditor", () => {
       ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Bend)
     ).toThrow("Bend passed without options");
     expect(note.techniques).toEqual([]);
+  });
+});
+
+describe("ScoreEditor beat techniques", () => {
+  const down: SetBeatTechniqueOptions = {
+    strokeOptions: new StrokeOptions({
+      direction: StrokeDirection.Down,
+      duration: STROKE_DURATION_EIGHTH,
+    }),
+  };
+  const up: SetBeatTechniqueOptions = {
+    strokeOptions: new StrokeOptions({
+      direction: StrokeDirection.Up,
+      duration: STROKE_DURATION_EIGHTH,
+    }),
+  };
+
+  function strokeDirections(beats: Beat[]): (StrokeDirection | undefined)[] {
+    return beats.map(
+      (b) =>
+        b.getBeatTechnique(BeatGuitarTechniqueType.Stroke)?.options.direction
+    );
+  }
+
+  test("a mixed selection adds the stroke to note beats and skips rests", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[1].makeRest();
+    const positions = beats.map((b) => ScoreEditor.getBeatPosition(b));
+
+    expect(
+      ScoreEditor.getBeatTechniqueBeats([...positions, positions[0]])
+    ).toEqual([beats[0]]);
+    expect(
+      ScoreEditor.setBeatTechnique(beats, BeatGuitarTechniqueType.Stroke, down)
+    ).toBe(true);
+
+    expect(strokeDirections(beats)).toEqual([StrokeDirection.Down, undefined]);
+  });
+
+  test("a selection of only rests cannot take a stroke and does not change", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[0].makeRest();
+
+    expect(
+      ScoreEditor.canSetBeatTechnique(beats, BeatGuitarTechniqueType.Stroke)
+    ).toBe(false);
+    expect(
+      ScoreEditor.setBeatTechnique(beats, BeatGuitarTechniqueType.Stroke, down)
+    ).toBe(false);
+  });
+
+  test("new options replace existing strokes; equal options change nothing", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    ScoreEditor.setBeatTechnique(
+      [beats[0]],
+      BeatGuitarTechniqueType.Stroke,
+      down
+    );
+
+    expect(
+      ScoreEditor.setBeatTechnique(
+        [beats[0]],
+        BeatGuitarTechniqueType.Stroke,
+        down
+      )
+    ).toBe(false);
+    expect(
+      ScoreEditor.setBeatTechnique(beats, BeatGuitarTechniqueType.Stroke, up)
+    ).toBe(true);
+
+    expect(strokeDirections(beats)).toEqual([
+      StrokeDirection.Up,
+      StrokeDirection.Up,
+    ]);
+  });
+
+  test("no options remove the stroke only when every selected note beat has it", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[2].makeRest();
+    ScoreEditor.setBeatTechnique(beats, BeatGuitarTechniqueType.Stroke, down);
+
+    expect(
+      ScoreEditor.setBeatTechnique(beats, BeatGuitarTechniqueType.Stroke)
+    ).toBe(true);
+    expect(strokeDirections(beats)).toEqual([undefined, undefined, undefined]);
+  });
+
+  test("no options throw for a stroke on a beat without one and change nothing", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    ScoreEditor.setBeatTechnique(
+      [beats[0]],
+      BeatGuitarTechniqueType.Stroke,
+      down
+    );
+
+    expect(() =>
+      ScoreEditor.setBeatTechnique(beats, BeatGuitarTechniqueType.Stroke)
+    ).toThrow("requires options");
+    expect(strokeDirections(beats)).toEqual([StrokeDirection.Down, undefined]);
+  });
+
+  test("no options on a selection of only rests change nothing", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[0].makeRest();
+
+    expect(
+      ScoreEditor.setBeatTechnique(beats, BeatGuitarTechniqueType.Stroke)
+    ).toBe(false);
   });
 });

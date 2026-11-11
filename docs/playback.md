@@ -96,6 +96,12 @@ Audio nodes are scheduled on the audio context timeline.
   - Connects it through a note envelope into the owning track bus.
   - Starts/stops the source at absolute audio-context times.
   - Applies tone-profile, context, and technique shaping for note playback.
+  - Keeps the rhythmic beat start for tie and Let Ring timing separate from the
+    note's attack time, which a stroke can move.
+
+- `playback-stroke`
+  - Calculates per-string attack offsets for a stroke beat. It is a pure
+    helper; `PlaybackAudioEngine` picks the attacking notes and applies offsets.
 
 ## Lookahead
 
@@ -196,6 +202,34 @@ scheduled note source rather than articulation-specific samples. See
   - pitch ramps from source pitch to target pitch.
   - the target note is skipped as a separate source only when it is a playable
     slide target.
+
+- Strokes spread the attacks of one beat over the stroke duration, converted at
+  the bar tempo:
+  - down strokes start on the highest string number and up strokes start on
+    string 1. This follows string order, not pitch, so re-entrant tunings
+    strum like the physical instrument.
+  - only notes that attack in this pass take part. Empty slots, slide targets,
+    and tie continuations whose earlier note sounds in this pass are skipped;
+    dead notes take part. A tie continuation at the pass start attacks, so it
+    takes part in the stroke.
+  - alignment moves that percent of the stroke before the beat time.
+  - the stroke spread is limited to half of the stroke beat, so every string
+    keeps at least half of the beat to sound. Only the stroke beat's length is
+    used. An early stroke (alignment above 0) after a short beat can therefore
+    start before that short beat starts. This is accepted.
+  - attacks never start before the playback pass start or the current audio
+    clock. The whole stroke moves later instead, so it keeps its shape. This
+    rule applies at every pass start: playback start and each loop restart.
+    For example, a "falls on time" stroke on the first beat of a loop is late
+    on every loop pass. When playback reaches the same beat through a notation
+    repeat, it is inside the pass, so the stroke is on time.
+  - only the attack, envelope, and technique automation move. Stop times, tie
+    resolution, and cursor events stay on the rhythmic beat time.
+  - early attacks of a bar's beats are scheduled with that bar, inside the
+    previous bar's time. `stopAudioFrom` compares the actual attack time, which
+    is never before the pass start, so loop truncation still stops them.
+  - Let Ring resonance still stops at the next same-string beat time, not at
+    that beat's stroke-delayed attack.
 
 Technique shaping is intentionally lightweight. It improves playback feedback
 without requiring multisampling, velocity layers, or technique-specific samples.

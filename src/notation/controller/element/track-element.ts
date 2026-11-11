@@ -18,6 +18,7 @@ import { BarTupletGroupElement } from "./bar/bar-tuplet-group-element";
 import { GuitarTuningElement } from "./track/guitar-tuning-element";
 import { TrackLineInfoElement } from "./track/track-line-info-element";
 import { GuitarTechniqueElement } from "./technique/guitar-technique/guitar-technique-element";
+import { BeatGuitarTechniqueElement } from "./technique/beat-technique/beat-guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "./technique/guitar-technique/guitar-technique-label-element";
 import { EditorLayoutDimensions } from "../editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "../layout/score-layout-plan";
@@ -50,6 +51,7 @@ export const ELEMENT_ORDER: Array<NotationElementClass> = [
   TabBeatElement,
   TabNoteSlotElement,
   GuitarTechniqueElement,
+  BeatGuitarTechniqueElement,
   TabBeatRhythmElement,
   GuitarTechniqueLabelElement,
   BeamSegmentElement,

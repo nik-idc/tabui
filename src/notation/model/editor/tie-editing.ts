@@ -315,6 +315,8 @@ export class TieEditing {
     replaceBeat: boolean
   ): void {
     if (replaceBeat) {
+      // Whole-beat replacement also drops beat techniques such as a stroke,
+      // because the tied chord is a continuation, not a new attack. Undo restores them.
       beat.makeRest();
     }
 

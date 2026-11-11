@@ -2,12 +2,17 @@ import { PlaybackAudioEngine } from "../../../src/player/playback-audio-engine";
 import { PlaybackScheduler } from "../../../src/player/playback-scheduler";
 import {
   Beat,
+  BeatGuitarTechnique,
+  BeatGuitarTechniqueType,
   Guitar,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
   NoteDuration,
   Score,
+  STROKE_DURATION_SIXTEENTH,
+  StrokeDirection,
+  StrokeOptions,
 } from "../../../src/notation/model";
 import {
   createBarWithBeats,
@@ -109,6 +114,36 @@ function soundNote(beat: Beat, fret = 0): GuitarNote {
   }
   note.setFret(fret);
   return note;
+}
+
+/** Sounds the given frets from string 1 and returns the notes in string order. */
+function soundStrings(beat: Beat, frets: number[]): GuitarNote[] {
+  beat.makeBeatWithNotes();
+  return frets.map((fret, i) => {
+    const note = beat.notes?.[i];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    note.setFret(fret);
+    return note;
+  });
+}
+
+/** Adds a 16th-note stroke, which lasts 0.125 s at the default 120 BPM. */
+function addStroke(beat: Beat, direction: StrokeDirection, alignment = 0) {
+  const options = new StrokeOptions({
+    direction,
+    duration: STROKE_DURATION_SIXTEENTH,
+    alignment,
+  });
+  const stroke = new BeatGuitarTechnique(
+    beat,
+    BeatGuitarTechniqueType.Stroke,
+    options
+  );
+  if (!beat.addBeatTechnique(stroke)) {
+    throw Error("Expected stroke to be added");
+  }
 }
 
 describe("PlaybackScheduler", () => {
@@ -537,5 +572,220 @@ describe("PlaybackScheduler", () => {
       { beat: firstBeat, startTime: 5.5, endTime: 6 },
     ]);
     expect(scheduler.nextLoopStartOffsetAfter(0)).toBe(1.5);
+  });
+
+  test("spreads stroke attacks but keeps beat events and note stops on time", () => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    soundStrings(beats[1], [0, 0, 0]);
+    addStroke(beats[1], StrokeDirection.Down);
+    const scheduler = createScheduler(score);
+    scheduler.setScheduleBase(10);
+
+    expect(scheduler.scheduleUntil(1).beatChanges).toContainEqual({
+      beat: beats[1],
+      startTime: 10.5,
+      endTime: 11,
+    });
+    // Sources are created in string order; a down stroke starts on string 3.
+    expect(audio.sources.map((s) => s.starts)).toEqual([
+      [10.625],
+      [10.5625],
+      [10.5],
+    ]);
+    expect(audio.sources.map((s) => s.stops)).toEqual([[11], [11], [11]]);
+  });
+
+  test.each([
+    {
+      result: "starts before its beat inside the pass",
+      startsAtStrokeBeat: false,
+      starts: [[10.5], [10.4375], [10.375]],
+    },
+    {
+      result: "moves later when its beat is the pass start",
+      startsAtStrokeBeat: true,
+      starts: [[10.125], [10.0625], [10]],
+    },
+  ])("a falls-on-time stroke $result", ({ startsAtStrokeBeat, starts }) => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    soundStrings(beats[1], [0, 0, 0]);
+    addStroke(beats[1], StrokeDirection.Down, 100);
+    const scheduler = createScheduler(score);
+    if (startsAtStrokeBeat) {
+      scheduler.setPlaybackRange(beats[1]);
+    }
+    scheduler.setScheduleBase(10);
+
+    scheduler.scheduleUntil(1);
+
+    expect(audio.sources.map((s) => s.starts)).toEqual(starts);
+  });
+
+  test("schedules early stroke attacks of a downbeat with its own bar", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar();
+    const downbeat = track.staves[0].bars[1].ensureVoiceBar(1).beats[0];
+    soundStrings(downbeat, [0, 0]);
+    addStroke(downbeat, StrokeDirection.Up, 100);
+    const scheduler = createScheduler(score);
+
+    scheduler.scheduleUntil(1);
+    expect(audio.sources).toHaveLength(0);
+    scheduler.scheduleUntil(3);
+
+    expect(audio.sources.map((s) => s.starts)).toEqual([[1.875], [2]]);
+    expect(audio.sources.map((s) => s.stops)).toEqual([[2.5], [2.5]]);
+  });
+
+  test("tied strings keep one sound and stay out of the next beat's stroke", () => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    soundStrings(beats[0], [5, 5]);
+    const continuations = soundStrings(beats[1], [5, 5, 0]);
+    continuations[0].setTechnique(GuitarTechniqueType.Tie);
+    continuations[1].setTechnique(GuitarTechniqueType.Tie);
+    addStroke(beats[0], StrokeDirection.Down);
+    addStroke(beats[1], StrokeDirection.Down);
+    const scheduler = createScheduler(score);
+    scheduler.setScheduleBase(10);
+
+    scheduler.scheduleUntil(1);
+
+    // Only string 3 attacks on the second beat, so it sounds on the beat.
+    expect(audio.sources.map((s) => s.starts)).toEqual([
+      [10.125],
+      [10],
+      [10.5],
+    ]);
+    expect(audio.sources.map((s) => s.stops)).toEqual([[11], [11], [11]]);
+  });
+
+  test("a tied note at the pass start takes part in the stroke", () => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    soundStrings(beats[0], [5]);
+    const [continuation] = soundStrings(beats[1], [5, 0, 0]);
+    continuation.setTechnique(GuitarTechniqueType.Tie);
+    addStroke(beats[1], StrokeDirection.Down);
+    const scheduler = createScheduler(score);
+    scheduler.setPlaybackRange(beats[1]);
+    scheduler.setScheduleBase(10);
+
+    scheduler.scheduleUntil(1);
+
+    // The tie source is before the pass, so the continuation attacks last.
+    expect(audio.sources.map((s) => s.starts)).toEqual([
+      [10.125],
+      [10.0625],
+      [10],
+    ]);
+  });
+
+  test("strokes skip empty slots and slide targets", () => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const [slideSource] = soundStrings(beats[0], [3]);
+    slideSource.setTechnique(GuitarTechniqueType.Slide);
+    soundStrings(beats[1], [5, 0, 0]);
+    addStroke(beats[1], StrokeDirection.Down);
+    const scheduler = createScheduler(score);
+    scheduler.setScheduleBase(10);
+
+    scheduler.scheduleUntil(1);
+
+    // String 1 continues the slide source, so only strings 3 and 2 attack.
+    expect(audio.sources.map((s) => s.starts)).toEqual([
+      [10],
+      [10.625],
+      [10.5],
+    ]);
+  });
+
+  test("a stroke never starts before the audio clock", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar();
+    const downbeat = track.staves[0].bars[1].ensureVoiceBar(1).beats[0];
+    soundStrings(downbeat, [0, 0]);
+    addStroke(downbeat, StrokeDirection.Up, 100);
+    const scheduler = createScheduler(score);
+    scheduler.scheduleUntil(1);
+
+    // The clock passed the early attack time before the second bar was scheduled.
+    audio.currentTime = 1.9375;
+    scheduler.scheduleUntil(3);
+
+    expect(audio.sources.map((s) => s.starts)).toEqual([[1.9375], [2.0625]]);
+  });
+
+  test("loop cut-off stops a stroke that moved later at the loop start", () => {
+    const { score, bar } = createScoreGraph();
+    const loopBeat = bar.ensureVoiceBar(1).beats[0];
+    soundStrings(loopBeat, [0, 0, 0]);
+    addStroke(loopBeat, StrokeDirection.Down, 100);
+    const engine = new PlaybackAudioEngine(score, {});
+    engine.initialize();
+    const scheduler = new PlaybackScheduler(score, engine);
+    scheduler.toggleLoop();
+    scheduler.scheduleUntil(3);
+
+    // Each loop pass moves the stroke so it starts on the pass start.
+    expect(audio.sources.map((s) => s.starts)).toEqual([
+      [0.125],
+      [0.0625],
+      [0],
+      [2.125],
+      [2.0625],
+      [2],
+    ]);
+    engine.stopAudioFrom(2);
+
+    expect(audio.sources.map((s) => s.stops)).toEqual([
+      [0.5],
+      [0.5],
+      [0.5],
+      [2.5, 0],
+      [2.5, 0],
+      [2.5, 0],
+    ]);
+  });
+
+  test("strokes in two voices on the same beat time keep their own direction", () => {
+    const { score, bar } = createScoreGraph();
+    const firstVoiceBeat = bar.ensureVoiceBar(1).beats[0];
+    const secondVoiceBeat = bar.ensureVoiceBar(2).beats[0];
+    soundStrings(firstVoiceBeat, [0, 0]);
+    secondVoiceBeat.makeBeatWithNotes();
+    for (const note of secondVoiceBeat.notes?.slice(2, 4) ?? []) {
+      if (!(note instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
+      note.setFret(2);
+    }
+    addStroke(firstVoiceBeat, StrokeDirection.Down);
+    addStroke(secondVoiceBeat, StrokeDirection.Up);
+    const scheduler = createScheduler(score);
+    scheduler.setScheduleBase(10);
+
+    scheduler.scheduleUntil(1);
+
+    // Voice 1 strums strings 2 to 1; voice 2 strums strings 3 to 4.
+    expect(audio.sources.map((s) => s.starts)).toEqual([
+      [10.125],
+      [10],
+      [10],
+      [10.125],
+    ]);
   });
 });

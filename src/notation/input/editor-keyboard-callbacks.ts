@@ -1,10 +1,12 @@
 import {
   BarRepeatStatus,
+  BeatGuitarTechniqueType,
   GuitarNote,
   GuitarTechniqueType,
   Note,
   NoteDuration,
   NoteValue,
+  StrokeDirection,
   VoiceNumber,
 } from "../model";
 import type { SetTechniqueOptions } from "../model/editor/set-technique-options";
@@ -46,6 +48,7 @@ export enum EditorKey {
   LetRing = "l",
   PinchHarmonic = "h",
   TieToEarliest = "j",
+  StrokeSettings = "d",
 
   // Space or Shift+Space.
   TogglePlayback = " ",
@@ -66,6 +69,8 @@ export enum EditorKey {
   Slide = "s",
   BendSettings = "b",
   NaturalHarmonic = "h",
+  DownStroke = "d",
+  UpStroke = "u",
   RepeatStart = "r",
   TempoSettings = "m",
   InsertBeatAfter = "a",
@@ -194,6 +199,29 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     this._uiComponent.sideComponent.techniqueControlsComponent.showBendControls();
+    return true;
+  }
+
+  /** Toggles a stroke in one direction when the target beats can take one. */
+  public strokeEvent(direction: StrokeDirection): boolean {
+    const controller = this._notationComponent.trackController;
+    if (!controller.canSetBeatTechnique(BeatGuitarTechniqueType.Stroke)) {
+      return false;
+    }
+
+    controller.toggleStroke(direction);
+    this._renderFunc();
+    return true;
+  }
+
+  /** Opens stroke settings when the target beats can take a stroke. */
+  public strokeSettingsEvent(): boolean {
+    const controller = this._notationComponent.trackController;
+    if (!controller.canSetBeatTechnique(BeatGuitarTechniqueType.Stroke)) {
+      return false;
+    }
+
+    this._uiComponent.sideComponent.techniqueControlsComponent.showStrokeControls();
     return true;
   }
 
@@ -694,6 +722,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         });
       } else if (key === EditorKey.PinchHarmonic) {
         return this.techniqueEvent(GuitarTechniqueType.PinchHarmonic);
+      } else if (key === EditorKey.StrokeSettings) {
+        return this.strokeSettingsEvent();
       } else {
         return false;
       }
@@ -730,6 +760,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         return this.bendEvent();
       } else if (key === EditorKey.NaturalHarmonic) {
         return this.techniqueEvent(GuitarTechniqueType.NaturalHarmonic);
+      } else if (key === EditorKey.DownStroke) {
+        return this.strokeEvent(StrokeDirection.Down);
+      } else if (key === EditorKey.UpStroke) {
+        return this.strokeEvent(StrokeDirection.Up);
       } else if (key === EditorKey.RepeatStart) {
         controller.setSelectedBarRepeatStatus({
           status: BarRepeatStatus.Start,

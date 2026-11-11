@@ -143,3 +143,39 @@ These marks indicate harmonic articulation rather than an ordinary fretted tone.
 TabUI's current playback approximates **both** with a softer tone one octave above
 the note's base pitch. It does not calculate a natural harmonic's pitch from a
 touch position or reproduce the full range of pinch-harmonic partials.
+
+## Stroke
+
+A Stroke means “strum the notes of this beat one after another, not together.”
+It belongs to the whole beat, not to one note, so a rest cannot have one. For
+the controls, see [strokes in the usage guide](usage.md#strokes).
+
+- **Direction**: a **down** stroke starts on the highest string number (usually
+  the lowest string) and moves toward string 1. An **up** stroke moves from
+  string 1 toward the highest string number. TabUI follows string order, not
+  pitch, so re-entrant tunings strum like the real instrument.
+- **Duration**: the time from the first to the last note of the stroke. It can
+  be any length from a 64th note to a half note, and it follows the bar tempo.
+- **Alignment**: when the stroke sounds compared to the beat time. **Starts on
+  time** (the default) plays the first string on the beat. **Falls on time**
+  plays the last string on the beat, so the stroke starts early. Values between
+  them move that percent of the stroke before the beat.
+
+In tab, a stroke shows as a vertical arrow at the left of the beat, across all
+strings. The arrow points toward the last string played. String 1 is the top
+line, so a down stroke points **up**, and an up stroke points **down**. The tab
+does not show the duration or alignment.
+
+Known limit: when two voices have a stroke at the same beat time, the arrows
+draw on top of each other.
+
+Playback limits:
+
+- Only notes that attack take part: empty slots, slide targets, and tie
+  continuations are skipped. Dead notes take part.
+- The stroke spread is at most half of the beat, so a long stroke on a short
+  beat is shortened.
+- A stroke never starts before playback starts. A “falls on time” stroke on the
+  first played beat, or on the first beat of a loop, sounds late.
+
+See [Playback Architecture](playback.md) for the scheduling details.

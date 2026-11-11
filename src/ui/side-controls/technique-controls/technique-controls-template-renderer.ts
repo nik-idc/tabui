@@ -1,6 +1,9 @@
 import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
-import { GuitarTechniqueType } from "../../../notation/model";
+import {
+  BeatGuitarTechniqueType,
+  GuitarTechniqueType,
+} from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 
@@ -38,7 +41,8 @@ export class TechniqueControlsTemplateRenderer {
       this.template.slideButton,
       this.template.bendButton,
       this.template.nhButton,
-      this.template.phButton
+      this.template.phButton,
+      this.template.strokeButton
     );
     this.parentDiv.appendChild(this.template.container);
   }
@@ -58,6 +62,29 @@ export class TechniqueControlsTemplateRenderer {
     button.classList.toggle(appliedCSSClass, isApplied);
     button.classList.toggle(disabledCSSClass, isDisabled);
     button.setAttribute("aria-pressed", `${isApplied}`);
+  }
+
+  /** Shows stroke state. The button opens the settings dialog, so it is pressed when any target beat has a stroke. */
+  private renderStrokeButton(): void {
+    const tc = this.notationComponent.trackController;
+    const button = this.template.strokeButton;
+    const isApplied = tc.hasSelectedBeatTechnique(
+      BeatGuitarTechniqueType.Stroke
+    );
+    const isDisabled = !tc.canSetBeatTechnique(BeatGuitarTechniqueType.Stroke);
+
+    setImageAsset(
+      button,
+      this.assetsPath,
+      "img/techniques/stroke.svg",
+      "Stroke"
+    );
+    setShortcutTooltip(button, "Stroke", "Shift+D");
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-pressed", `${isApplied}`);
+    button.classList.toggle("tu-applied-img", isApplied);
+    button.disabled = isDisabled;
+    button.classList.toggle("tu-disabled-img", isDisabled);
   }
 
   private renderTechniqueButtons(): void {
@@ -171,6 +198,7 @@ export class TechniqueControlsTemplateRenderer {
 
   public render(): void {
     this.renderTechniqueButtons();
+    this.renderStrokeButton();
 
     this._assembled = renderOnce(this._assembled, () =>
       this.assembleContainer()

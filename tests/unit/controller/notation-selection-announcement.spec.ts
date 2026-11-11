@@ -4,7 +4,17 @@ import {
   notationSelectionsEqual,
 } from "../../../src/notation/accessibility/notation-selection-announcement";
 import { SelectionManager } from "../../../src/notation/controller/selection/selection-manager";
-import { DEFAULT_MASTER_BAR, NoteDuration } from "../../../src/notation/model";
+import {
+  BeatGuitarTechniqueType,
+  DEFAULT_MASTER_BAR,
+  NoteDuration,
+  ScoreEditor,
+  STROKE_ALIGNMENT_FALLS_ON_TIME,
+  STROKE_DURATION_EIGHTH,
+  STROKE_DURATION_SIXTEENTH,
+  StrokeDirection,
+  StrokeOptions,
+} from "../../../src/notation/model";
 import { createBeat, createScoreGraph } from "../model/helpers";
 import { required } from "../required";
 
@@ -75,6 +85,54 @@ describe("notation selection announcements", () => {
     selection.selectBeatCursor(beats[1], 1);
     expect(formatNotationSelection(selection, next)).toBe("String 2, empty.");
   });
+
+  test.each([
+    {
+      name: "down stroke",
+      options: {
+        direction: StrokeDirection.Down,
+        duration: STROKE_DURATION_SIXTEENTH,
+      },
+      text: "down stroke, duration 16th note",
+    },
+    {
+      name: "up stroke between note values that falls on time",
+      options: {
+        direction: StrokeDirection.Up,
+        duration: STROKE_DURATION_EIGHTH + 100,
+        alignment: STROKE_ALIGNMENT_FALLS_ON_TIME,
+      },
+      text: "up stroke, duration between 8th note and quarter note, falls on time",
+    },
+    {
+      name: "early stroke",
+      options: {
+        direction: StrokeDirection.Down,
+        duration: STROKE_DURATION_EIGHTH,
+        alignment: 40,
+      },
+      text: "down stroke, duration 8th note, 40% before the beat",
+    },
+  ])(
+    "announces the stroke with the beat, not the string: $name",
+    ({ options, text }) => {
+      const { selection, beats } = createSelection();
+      ScoreEditor.setBeatTechnique([beats[1]], BeatGuitarTechniqueType.Stroke, {
+        strokeOptions: new StrokeOptions(options),
+      });
+      selection.selectBeatCursor(beats[0], 0);
+      const previous = captureSelectionCursor(selection.selectionCursor);
+      selection.selectBeatCursor(beats[1], 0);
+      const onBeat = captureSelectionCursor(selection.selectionCursor);
+      expect(formatNotationSelection(selection, previous)).toBe(
+        `Beat 2, half, ${text}, String 1, empty.`
+      );
+      selection.selectBeatCursor(beats[1], 1);
+      expect(formatNotationSelection(selection, onBeat)).toBe(
+        "String 2, empty."
+      );
+    }
+  );
 
   test("does not invent an active endpoint for an absent or incomplete range", () => {
     const { selection, beats } = createSelection();

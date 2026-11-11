@@ -3,9 +3,11 @@ import { ScorePlayer } from "../../../src/player";
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
   BarRepeatStatus,
+  BeatGuitarTechniqueType,
   BendTechniqueOptions,
   BendType,
   DEFAULT_MASTER_BAR,
+  DEFAULT_STROKE_DURATION,
   Beat,
   Guitar,
   GuitarNote,
@@ -14,6 +16,13 @@ import {
   NoteDuration,
   NoteValue,
   Score,
+  ScoreEditor,
+  StrokeDirection,
+  STROKE_DURATION_EIGHTH,
+  STROKE_DURATION_QUARTER,
+  STROKE_DURATION_SIXTEENTH,
+  SetBeatTechniqueOptions,
+  StrokeOptions,
   TrackInstrumentChangeMode,
   VoiceBar,
   serializeScore,
@@ -391,6 +400,129 @@ describe("TrackController", () => {
     mockScorePlayerInstances.length = 0;
   });
 
+  test("beat techniques target the cursor beat, then the selected range, with undo", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    const strokeOptions: SetBeatTechniqueOptions = {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Up,
+        duration: STROKE_DURATION_SIXTEENTH,
+      }),
+    };
+
+    expect(controller.canSetBeatTechnique(stroke)).toBe(true);
+    controller.setBeatTechnique(stroke, strokeOptions);
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([true, false]);
+    expect(controller.hasSelectedBeatTechnique(stroke)).toBe(true);
+
+    ScoreEditor.setBeatTechnique([beats[1]], stroke, strokeOptions);
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.setSelectionAnchor();
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    controller.setBeatTechnique(stroke);
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([
+      false,
+      false,
+    ]);
+
+    controller.undo();
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([true, true]);
+  });
+
+  test("stroke toggles set one direction, keep existing timing, and remove matching strokes", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    const strokes = () =>
+      beats.map((b) => {
+        const options = b.getBeatTechnique(stroke)?.options;
+        return (
+          options && [options.direction, options.duration, options.alignment]
+        );
+      });
+
+    controller.toggleStroke(StrokeDirection.Down);
+    expect(strokes()).toEqual([
+      [StrokeDirection.Down, DEFAULT_STROKE_DURATION, 0],
+      undefined,
+    ]);
+
+    ScoreEditor.setBeatTechnique([beats[0]], stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Down,
+        duration: STROKE_DURATION_EIGHTH,
+        alignment: 40,
+      }),
+    });
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.setSelectionAnchor();
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    expect(controller.getSelectedBeatTechnique(stroke)?.beat).toBe(beats[0]);
+
+    // Mixed beats take the direction with the first stroke's timing.
+
+    controller.toggleStroke(StrokeDirection.Up);
+    const up = [StrokeDirection.Up, STROKE_DURATION_EIGHTH, 40];
+    expect(strokes()).toEqual([up, up]);
+
+    controller.toggleStroke(StrokeDirection.Up);
+    expect(strokes()).toEqual([undefined, undefined]);
+    controller.undo();
+    expect(strokes()).toEqual([up, up]);
+  });
+
+  test("removing a beat technique clears it from every selected beat that has it", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    controller.toggleStroke(StrokeDirection.Down);
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.setSelectionAnchor();
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+
+    controller.removeBeatTechnique(stroke);
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([
+      false,
+      false,
+    ]);
+    controller.undo();
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([true, false]);
+  });
+
+  test("copy and paste keep a beat's stroke through clipboard text", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    ScoreEditor.setBeatTechnique([beats[0]], stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Up,
+        duration: STROKE_DURATION_QUARTER,
+      }),
+    });
+
+    const clipboard = copyPassage(controller, beats[0]);
+    pasteAfter(controller, beats[1], clipboard);
+
+    const pasted = required(track.staves[0].bars[0].getVoiceBar(1)).beats[2];
+    const pastedStroke = pasted.getBeatTechnique(stroke);
+    expect(pastedStroke?.beat).toBe(pasted);
+    expect(pastedStroke?.options.direction).toBe(StrokeDirection.Up);
+    expect(pastedStroke?.options.duration).toBe(STROKE_DURATION_QUARTER);
+  });
+
   test("explicit beat insertion supports undo, redo, playback, and view-only guards", () => {
     const { track, bar } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -762,6 +894,15 @@ describe("TrackController", () => {
       enabled: true,
     });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
+    expect(controller.canSetBeatTechnique(BeatGuitarTechniqueType.Stroke)).toBe(
+      false
+    );
+    controller.setBeatTechnique(BeatGuitarTechniqueType.Stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Down,
+        duration: STROKE_DURATION_EIGHTH,
+      }),
+    });
     controller.moveSelectedNote(SelectedMoveDirection.Right);
     controller.paste(clipboard);
     controller.deleteSelectedBeats();

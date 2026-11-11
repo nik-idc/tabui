@@ -77,8 +77,8 @@ describe("TrackElement rhythm", () => {
     const beatElements = barElement.beatElements;
     expect(beatElements).toHaveLength(3);
 
-    // The configured 12px attack padding separates notes from the start gap.
-    let expectedX = 12;
+    // The configured 3px attack padding separates beats from the start gap.
+    let expectedX = 3;
     for (let i = 0; i < beatElements.length; i++) {
       expect(beatElements[i].boundingBox.x).toBeCloseTo(expectedX);
       expect(beatElements[i].barLocalBoundingBox.x).toBeCloseTo(
@@ -115,9 +115,8 @@ describe("TrackElement rhythm", () => {
     ) {
       throw Error("Expected tab beat element");
     }
-    expect(rects[0].x).toBeCloseTo(
-      firstSelected.noteElements[0].selectionRect.x
-    );
+    // The selection starts at the box, so it covers the beat technique slot.
+    expect(rects[0].x).toBeCloseTo(firstSelected.globalBoundingBox.x);
     expect(rects[0].right).toBeCloseTo(
       lastSelected.getGlobalVisualBounds().right
     );
@@ -160,7 +159,10 @@ describe("TrackElement rhythm", () => {
 
     expect(rects).toHaveLength(1);
     const preview = noteElement.selectionRect;
-    expect(rects[0].x).toBeCloseTo(preview.x);
+    // The selection starts at the box, so it covers the beat technique slot
+    // and the note preview padding.
+    expect(rects[0].x).toBeCloseTo(beatElement.globalBoundingBox.x);
+    expect(rects[0].x).toBeLessThanOrEqual(preview.x);
     expect(rects[0].x).toBeLessThan(noteElement.textRectGlobal.x);
     expect(rects[0].right).toBeGreaterThanOrEqual(preview.right);
     expect(rects[0].right).toBeCloseTo(

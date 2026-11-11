@@ -1,11 +1,13 @@
 import { JSDOM } from "jsdom";
 import { EditorKeyboardDefCallbacks } from "../../../src/notation/input/editor-keyboard-callbacks";
 import {
+  BeatGuitarTechniqueType,
   DEFAULT_MASTER_BAR,
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
   NoteValue,
+  StrokeDirection,
 } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 import { TrackController } from "../../../src/notation/controller/track-controller";
@@ -129,6 +131,7 @@ function createHarness(rootElement: HTMLElement = createRootElement()) {
       },
       techniqueControlsComponent: {
         showBendControls: jest.fn(),
+        showStrokeControls: jest.fn(),
       },
     },
   } as any;
@@ -1585,6 +1588,42 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(beats[0].notes?.[0]).toEqual(
       expect.objectContaining({ fret: null })
     );
+  });
+
+  test("D and U toggle strokes, and Shift+D opens stroke settings", () => {
+    const { callbacks, uiComponent, notationComponent, rootElement } =
+      createHarness();
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    rootElement.focus();
+    const direction = () =>
+      beats[0].getBeatTechnique(BeatGuitarTechniqueType.Stroke)?.options
+        .direction;
+    const press = (key: string, shiftKey = false) => {
+      const event = createKeyboardEvent(key, { shiftKey });
+      callbacks.onKeyDown(event);
+      return event.preventDefault;
+    };
+
+    expect(press("d")).toHaveBeenCalledTimes(1);
+    expect(direction()).toBe(StrokeDirection.Down);
+    press("u");
+    expect(direction()).toBe(StrokeDirection.Up);
+    press("u");
+    expect(direction()).toBeUndefined();
+
+    expect(press("d", true)).toHaveBeenCalledTimes(1);
+    expect(
+      uiComponent.sideComponent.techniqueControlsComponent.showStrokeControls
+    ).toHaveBeenCalledTimes(1);
+
+    beats[0].makeRest();
+    expect(press("d")).not.toHaveBeenCalled();
+    expect(press("d", true)).not.toHaveBeenCalled();
+    expect(direction()).toBeUndefined();
   });
 
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {

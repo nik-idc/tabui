@@ -1,16 +1,16 @@
-import { TechniqueElement, TrackController } from "../../controller";
+import { TechniquePathElement, TrackController } from "../../controller";
 import { createSVGG, createSVGPath } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "../../../assets";
 
 /**
- * Class for rendering a guitar technique element using SVG
+ * Renders a path-only technique element, owned by a note or a beat, using SVG
  */
 export class SVGTechniqueRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Technique element to render */
-  techniqueElement: TechniqueElement;
+  techniqueElement: TechniquePathElement;
 
   /** Container SVG group  */
   private _containerGroupSVG?: SVGGElement;
@@ -26,7 +26,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
    */
   constructor(
     trackController: TrackController,
-    techniqueElement: TechniqueElement,
+    techniqueElement: TechniquePathElement,
     assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
@@ -61,7 +61,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
-  public updateElementReference(element: TechniqueElement): void {
+  public updateElementReference(element: TechniquePathElement): void {
     this.techniqueElement = element;
   }
 

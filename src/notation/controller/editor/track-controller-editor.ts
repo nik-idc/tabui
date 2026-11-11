@@ -1,5 +1,9 @@
 import {
   Beat,
+  BeatGuitarTechnique,
+  BeatGuitarTechniqueType,
+  type SetBeatTechniqueOptions,
+  StrokeDirection,
   NoteDuration,
   Bar,
   BarRepeatStatusChange,
@@ -38,6 +42,7 @@ import {
   SetTimeSigCommand,
   SetRepeatStatusCommand,
   SetTechniqueCommand,
+  SetBeatTechniqueCommand,
   InsertBeatsCommand,
   InsertBeatCommand,
   ReplaceBeatsCommand,
@@ -848,6 +853,96 @@ export class TrackControllerEditor {
     this.executeCommand(
       new SetTechniqueCommand(
         ScoreEditor.getTechniqueTargetsForNotes(selectionNotes),
+        type,
+        options
+      )
+    );
+  }
+
+  /** Beat technique targets: the cursor beat, or the selected beats when no cursor is set. */
+  private get beatTechniqueTargets(): Beat[] {
+    const cursor = this._selectionManager.selectionCursor;
+    return cursor === undefined
+      ? this._selectionManager.selectionAsBeats
+      : [cursor.beat];
+  }
+
+  /** Checks whether editing is enabled and any target note beat can take or already has the technique. */
+  public canSetBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return (
+      this.editingEnabled &&
+      ScoreEditor.canSetBeatTechnique(this.beatTechniqueTargets, type)
+    );
+  }
+
+  /** Reports whether any target beat has the beat technique. */
+  public hasSelectedBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return this.beatTechniqueTargets.some((b) => b.hasBeatTechnique(type));
+  }
+
+  /** Returns the technique of the first target beat that has it, to show its settings. */
+  public getSelectedBeatTechnique<T extends BeatGuitarTechniqueType>(
+    type: T
+  ): BeatGuitarTechnique<T> | undefined {
+    for (const beat of this.beatTechniqueTargets) {
+      const technique = beat.getBeatTechnique(type);
+      if (technique !== undefined) {
+        return technique;
+      }
+    }
+    return undefined;
+  }
+
+  /** Removes the beat technique from every target beat that has it. */
+  public removeBeatTechnique(type: BeatGuitarTechniqueType): void {
+    if (!this.editingEnabled) {
+      return;
+    }
+    const targets = ScoreEditor.getBeatsWithBeatTechnique(
+      this.beatTechniqueTargets,
+      type
+    );
+    if (targets.length === 0) {
+      return;
+    }
+
+    this.executeCommand(
+      new SetBeatTechniqueCommand(
+        targets.map((b) => ScoreEditor.getBeatPosition(b)),
+        type
+      )
+    );
+  }
+
+  /** Toggles a stroke in one direction on the target beats; see ScoreEditor.getStrokeToggleOptions. */
+  public toggleStroke(direction: StrokeDirection): void {
+    const options = ScoreEditor.getStrokeToggleOptions(
+      this.beatTechniqueTargets,
+      direction
+    );
+    this.setBeatTechnique(BeatGuitarTechniqueType.Stroke, options);
+  }
+
+  /**
+   * Adds, replaces, or removes a beat technique on the cursor beat or the selected beats.
+   * @param type Beat technique type.
+   * @param options Technique settings; omit them to remove the technique when every target beat has it.
+   */
+  public setBeatTechnique(
+    type: BeatGuitarTechniqueType,
+    options: SetBeatTechniqueOptions = {}
+  ): void {
+    if (!this.editingEnabled) {
+      return;
+    }
+    const targets = this.beatTechniqueTargets;
+    if (targets.length === 0) {
+      return;
+    }
+
+    this.executeCommand(
+      new SetBeatTechniqueCommand(
+        targets.map((b) => ScoreEditor.getBeatPosition(b)),
         type,
         options
       )

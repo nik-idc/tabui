@@ -13,6 +13,7 @@ import { TechGapContainer } from "../../../src/notation/controller/element/staff
 import { TechGapLineContainer } from "../../../src/notation/controller/element/staff/tech-gap-line-container";
 import { GuitarTechniqueLabelElement } from "../../../src/notation/controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { GuitarTechniqueElement } from "../../../src/notation/controller/element/technique/guitar-technique/guitar-technique-element";
+import { TabBeatElement } from "../../../src/notation/controller/element/beat/tab-beat-element";
 import { TabNoteSlotElement } from "../../../src/notation/controller/element/note/tab-note-slot-element";
 import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command";
 import {
@@ -670,8 +671,8 @@ describe("TrackElement techniques", () => {
       expect(label.technique.note).toBe(
         [vibratoNote, palmMuteNote, bendNote][index]
       );
-      expect(label.boundingBox.width).toBeCloseTo(
-        label.beatElement.boundingBox.width
+      expect(label.globalBoundingBox.right).toBeCloseTo(
+        label.beatElement.globalBoundingBox.right
       );
       if (index > 0) {
         expect(line.boundingBox.y).toBeCloseTo(
@@ -756,7 +757,10 @@ describe("TrackElement techniques", () => {
 
     expect(bendElements).toHaveLength(3);
     expect(elementFor(BendType.Hold).pathDescriptors).toEqual([]);
-    // A 46.8px beat has 11.7px quarters. The glyph ends at x=6.
+    // The glyph ends at x=22.2 in a 46.8px beat, the last in its bar. With no
+    // next note, curves end by x=44.3 (box right plus 3px attack padding,
+    // minus a 3px gap and a 2.5px half arrow), so each of two segments is
+    // 11.05px.
     // Strings 2 and 3 start 36px and 60px below the technique row.
     const release = required(elementFor(BendType.Release).pathDescriptors);
     const prebend = required(elementFor(BendType.PrebendBend).pathDescriptors);
@@ -766,9 +770,9 @@ describe("TrackElement techniques", () => {
     expect(prebend[0].d).toContain(" l ");
     expect(prebend[2].d).toContain(" C ");
     const expectedPaths = [
-      [release[0], [6, -24, 29.4, -30, 29.4, 6, 29.4, 12]],
-      [prebend[0], [17.7, 12, 0, -60]],
-      [prebend[2], [17.7, -48, 29.4, -48, 29.4, -54, 29.4, -54]],
+      [release[0], [22.2, -24, 44.3, -30, 44.3, 6, 44.3, 12]],
+      [prebend[0], [33.25, 12, 0, -60]],
+      [prebend[2], [33.25, -48, 44.3, -48, 44.3, -54, 44.3, -54]],
     ] as const;
     for (const [descriptor, expected] of expectedPaths) {
       const numbers = parsePathNumbers(descriptor.d);
@@ -778,9 +782,9 @@ describe("TrackElement techniques", () => {
       }
     }
     for (const [descriptor, x, y, tipY] of [
-      [release[1], 29.4, 12, 4],
-      [prebend[1], 17.7, -48, -4],
-      [prebend[3], 29.4, -54, -4],
+      [release[1], 44.3, 12, 4],
+      [prebend[1], 33.25, -48, -4],
+      [prebend[3], 44.3, -54, -4],
     ] as const) {
       const numbers = parsePathNumbers(descriptor.d);
       expect(numbers).toHaveLength(10);
@@ -1153,7 +1157,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["full"],
-      [173.7],
+      [179.6],
     ],
     [
       "Prebend",
@@ -1163,7 +1167,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["½"],
-      [162],
+      [169.2],
     ],
     [
       "Bend/Release",
@@ -1175,7 +1179,7 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["full", "full"],
-      [173.7, 185.4],
+      [172.233, 179.6],
     ],
     [
       "Prebend/Release",
@@ -1187,7 +1191,7 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["full", "½"],
-      [162, 173.7],
+      [168.55, 179.6],
     ],
     [
       "Release",
@@ -1198,7 +1202,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["½"],
-      [173.7],
+      [179.6],
     ],
     [
       "Prebend/Bend",
@@ -1210,7 +1214,7 @@ describe("TrackElement techniques", () => {
       }),
       [1, 3],
       ["½", "full"],
-      [162, 173.7],
+      [168.55, 179.6],
     ],
     [
       "Bend/Release to zero",
@@ -1222,7 +1226,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["full"],
-      [173.7],
+      [172.233],
     ],
     [
       "Prebend/Release to zero",
@@ -1234,7 +1238,7 @@ describe("TrackElement techniques", () => {
       }),
       [1],
       ["full"],
-      [162],
+      [168.55],
     ],
     [
       "Release to zero",
@@ -1281,10 +1285,12 @@ describe("TrackElement techniques", () => {
       const textDescriptors = bendLabel.textDescriptors ?? [];
       const actualTexts = textDescriptors.map((descriptor) => descriptor.text);
 
-      // This quarter beat starts at bar x=144.3 and has a 46.8px slot.
-      // From the glyph's right edge at x=150.3, quarter/half/three-quarter
-      // endpoints are x=162, 173.7, 185.4, independently of label placement.
-      expect(beatElement.barLocalCoords.x).toBeCloseTo(144.3);
+      // This quarter beat starts at bar x=135.3 and has a 46.8px slot. The
+      // glyph's right edge is x=157.5. It is the last beat, so with no next
+      // note curves must end by x=179.6 (box right plus 3px attack padding,
+      // minus a 3px gap and a 2.5px half arrow). Segments shrink from 11.7px
+      // to 11.05px (two) or 7.37px (three).
+      expect(beatElement.barLocalCoords.x).toBeCloseTo(135.3);
       expect(beatElement.boundingBox.width).toBeCloseTo(46.8);
       expect(actualTexts).toEqual(expectedTexts);
       expect(bendLabel.pathDescriptors).toEqual([]);
@@ -1348,6 +1354,89 @@ describe("TrackElement techniques", () => {
     expect(curveEndX).toBeCloseTo(arrowX);
     expect(bend.pathOrigin.x + arrowX + arrowHalfWidth).toBeLessThan(
       nextFretLeft
+    );
+  });
+
+  test("a bend before a rest matches a bend before a note of equal duration", () => {
+    const bendOptions = new BendTechniqueOptions({
+      type: BendType.Bend,
+      bendPitch: 1,
+      bendDuration: 1,
+    });
+    const getBendArrowX = (isNextBeatRest: boolean): number => {
+      // A full bar of eighths keeps beat boxes narrow, so the next fret
+      // limits the bend instead of the quarter-box segment cap.
+      const { track, beats } = createBarWithBeats(
+        Array.from({ length: 8 }, () => ({
+          baseDuration: NoteDuration.Eighth,
+        }))
+      );
+      const note = required(beats[0].notes)[0] as GuitarNote;
+      note.setFret(5);
+      note.addTechnique(
+        new GuitarTechnique(note, GuitarTechniqueType.Bend, bendOptions)
+      );
+      if (isNextBeatRest) {
+        beats[1].makeRest();
+      } else {
+        (required(beats[1].notes)[0] as GuitarNote).setFret(5);
+      }
+
+      const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+      trackElement.update();
+      const beatElement = required(trackElement.getBeatElement(beats[0]));
+      const bend = beatElement.noteElements[0].techniqueElements[0];
+      if (!(bend instanceof GuitarTechniqueElement)) {
+        throw Error("Expected bend element");
+      }
+      return parsePathNumbers(required(bend.pathDescriptors)[1].d)[0];
+    };
+
+    const arrowXBeforeNote = getBendArrowX(false);
+    const arrowXBeforeRest = getBendArrowX(true);
+
+    expect(arrowXBeforeRest).toBeCloseTo(arrowXBeforeNote);
+  });
+
+  test("a bend on the last beat ends inside the bar's voice content", () => {
+    const { track, beats } = createBarWithBeats(
+      Array.from({ length: 8 }, () => ({
+        baseDuration: NoteDuration.Eighth,
+      }))
+    );
+    const lastBeat = required(beats.at(-1));
+    const note = required(lastBeat.notes)[0] as GuitarNote;
+    note.setFret(5);
+    note.addTechnique(
+      new GuitarTechnique(
+        note,
+        GuitarTechniqueType.Bend,
+        new BendTechniqueOptions({
+          type: BendType.Bend,
+          bendPitch: 1,
+          bendDuration: 1,
+        })
+      )
+    );
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const beatElement = required(trackElement.getBeatElement(lastBeat));
+    const bend = beatElement.noteElements[0].techniqueElements[0];
+    if (!(bend instanceof GuitarTechniqueElement)) {
+      throw Error("Expected bend element");
+    }
+    const arrowXs = parsePathNumbers(required(bend.pathDescriptors)[1].d);
+    const arrowRight = bend.pathOrigin.x + arrowXs[0] + arrowXs[2];
+    const voiceContentRight =
+      beatElement.globalBoundingBox.right +
+      TEST_LAYOUT_DIMENSIONS.rhythmAttackPadding;
+
+    // The bend may use the attack padding after the last box. The arrow ends
+    // one 3px gap before the content edge, so it stays before the barline.
+    expect(arrowRight).toBeCloseTo(voiceContentRight - 3);
+    expect(voiceContentRight).toBeLessThanOrEqual(
+      beatElement.barElement.barRightBorderLineGlobal.x
     );
   });
 
@@ -1625,8 +1714,35 @@ describe("TrackElement techniques", () => {
     expect(beatElement.boundingBox.width).not.toBeCloseTo(originalWidth);
     expect(descriptor.attrs?.["text-anchor"]).toBe("middle");
     expect(textX).toBeCloseTo(noteCenterX);
-    expect(palmMuteLabel.boundingBox.width).toBeCloseTo(
-      beatElement.boundingBox.width
+    expect(palmMuteLabel.globalBoundingBox.right).toBeCloseTo(
+      beatElement.globalBoundingBox.right
+    );
+  });
+
+  test("starts a label at the beat attack and ends it at the beat box right", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const note = required(beats[0].notes)[0] as GuitarNote;
+    note.setFret(5);
+    note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
+
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+    const beatElement = trackElement.getBeatElement(beats[0]);
+    if (!(beatElement instanceof TabBeatElement)) {
+      throw Error("Expected tab beat element");
+    }
+    const label = required(
+      trackElement.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0].techGapContainer.techGapLinesAsArray.find(
+        (v) => v.labelElements.length > 0
+      )?.labelElements[0]
+    );
+
+    // The label must not start inside the empty beat technique slot.
+    expect(label.globalBoundingBox.x).toBeCloseTo(beatElement.attackXGlobal);
+    expect(label.globalBoundingBox.right).toBeCloseTo(
+      beatElement.globalBoundingBox.right
     );
   });
 

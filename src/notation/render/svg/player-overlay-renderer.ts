@@ -204,10 +204,11 @@ export class PlayerOverlayRenderer {
       return;
     }
 
-    const startX = beatElement.attackXGlobal;
+    // Stop at the box right: the attack is inset by the beat technique slot,
+    // so attack + width would overshoot into the next beat.
     this.animateToX(
       beatElement,
-      startX + beatElement.boundingBox.width,
+      beatElement.globalBoundingBox.right,
       startTime,
       endTime,
       playbackRunId

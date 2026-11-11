@@ -854,8 +854,8 @@ describe("single-line score layout", () => {
     first.update();
     second.update();
 
-    // Sixteen attacks need 576 px plus 24 px padding and 110.25 px
-    // structure. The sparse bar needs 187.2 + 24 + 74.25 px.
+    // Sixteen attacks need 576 px plus 6 px padding and 110.25 px
+    // structure. The sparse bar needs 187.2 + 6 + 74.25 px.
     for (const element of [first, second]) {
       expect(element.trackLineElements).toHaveLength(1);
       const placements = element.trackLineElements[0].trackLineBars;
@@ -863,10 +863,10 @@ describe("single-line score layout", () => {
         score.masterBars.map((b) => b.uuid)
       );
       expect(placements.map((b) => b.masterBarIndex)).toEqual([0, 1]);
-      expect(placements.map((b) => b.x)).toEqual([18, 728.25]);
-      expect(placements[0].finalizedWidth).toBeCloseTo(710.25);
-      expect(placements[1].finalizedWidth).toBeCloseTo(285.45);
-      expect(element.width).toBeCloseTo(1075.575);
+      expect(placements.map((b) => b.x)).toEqual([18, 710.25]);
+      expect(placements[0].finalizedWidth).toBeCloseTo(692.25);
+      expect(placements[1].finalizedWidth).toBeCloseTo(267.45);
+      expect(element.width).toBeCloseTo(1039.575);
     }
   });
 

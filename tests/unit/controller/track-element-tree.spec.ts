@@ -330,10 +330,10 @@ describe("TrackElement tree", () => {
     expect(styleLine.lineLocalCoords).toEqual({ x: 0, y: 48 });
     expect(barElement.lineLocalCoords).toEqual({ x: 18, y: 72 });
 
-    // The first attack is 12px beyond the 85.5px signature/repeat reserve.
+    // The first beat box is 3px beyond the 85.5px signature/repeat reserve.
     expect(beatElement.voiceBarContainer.boundingBox.x).toBeCloseTo(85.5);
-    expect(beatElement.lineLocalCoords).toEqual({ x: 115.5, y: 72 });
-    expect(beatElement.globalCoords).toEqual({ x: 115.5, y: 72 });
+    expect(beatElement.lineLocalCoords).toEqual({ x: 106.5, y: 72 });
+    expect(beatElement.globalCoords).toEqual({ x: 106.5, y: 72 });
     expect(beatElement.lineLocalCoords.x).toBeCloseTo(
       barElement.lineLocalCoords.x + beatElement.barLocalCoords.x
     );
@@ -347,8 +347,9 @@ describe("TrackElement tree", () => {
       barElement.globalCoords.y + beatElement.barLocalCoords.y
     );
 
-    expect(noteElement.lineLocalCoords).toEqual({ x: 115.5, y: 72 });
-    expect(labelElement.lineLocalCoords).toEqual({ x: 115.5, y: 48 });
+    expect(noteElement.lineLocalCoords).toEqual({ x: 106.5, y: 72 });
+    // Labels start at the attack: 16.2px after the beat box start.
+    expect(labelElement.lineLocalCoords).toEqual({ x: 122.7, y: 48 });
   });
 
   test("tempo and technique origins include the preceding line height only in global space", () => {
@@ -401,13 +402,13 @@ describe("TrackElement tree", () => {
     // The first line is 252px tall; the new tempo occupies the next 30px.
     expect(trackLine.globalCoords).toEqual({ x: 0, y: 252 });
     expect(tempoRectLineLocal).toEqual({
-      x: 55.5,
+      x: 62.7,
       y: 0,
       width: 30,
       height: 30,
     });
     expect(tempoRectGlobal).toEqual({
-      x: 55.5,
+      x: 62.7,
       y: 252,
       width: 30,
       height: 30,
@@ -420,14 +421,15 @@ describe("TrackElement tree", () => {
     if (tempoTextGlobal === undefined || tempoTextLineLocal === undefined) {
       throw Error("Expected tempo text coordinates");
     }
-    expect(tempoTextLineLocal).toEqual({ x: 85.5, y: 24 });
-    expect(tempoTextGlobal).toEqual({ x: 85.5, y: 276 });
+    expect(tempoTextLineLocal).toEqual({ x: 92.7, y: 24 });
+    expect(tempoTextGlobal).toEqual({ x: 92.7, y: 276 });
 
-    // This line has no time signature: 49.5px repeat reserve + 12px attack padding.
-    expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 61.5, y: 72 });
-    expect(techniqueElement.pathOrigin).toEqual({ x: 61.5, y: 324 });
-    expect(labelElement.descriptorOriginLineLocal).toEqual({ x: 61.5, y: 48 });
-    expect(labelElement.descriptorOrigin).toEqual({ x: 61.5, y: 300 });
+    // This line has no time signature: 49.5px repeat reserve + 3px attack
+    // padding. Labels start 16.2px later, at the attack.
+    expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 52.5, y: 72 });
+    expect(techniqueElement.pathOrigin).toEqual({ x: 52.5, y: 324 });
+    expect(labelElement.descriptorOriginLineLocal).toEqual({ x: 68.7, y: 48 });
+    expect(labelElement.descriptorOrigin).toEqual({ x: 68.7, y: 300 });
   });
 
   test("staff outlines borders and note text use the owning line coordinate space", () => {
@@ -500,21 +502,21 @@ describe("TrackElement tree", () => {
     expect(barElement.staffLinesLineLocal[0].x1).toBe(0);
     expect(barElement.staffLinesGlobal[0].x1).toBe(0);
 
-    // A 12px fret glyph is centered on the 61.5px attack and first string.
+    // A 12px fret glyph is centered on the 68.7px attack and first string.
     expect(noteElement.textRectLineLocal).toEqual({
-      x: 55.5,
+      x: 62.7,
       y: 54,
       width: 12,
       height: 12,
     });
     expect(noteElement.textRectGlobal).toEqual({
-      x: 55.5,
+      x: 62.7,
       y: 510,
       width: 12,
       height: 12,
     });
-    expect(noteElement.textCoordsLineLocal).toEqual({ x: 61.5, y: 60 });
-    expect(noteElement.textCoordsGlobal).toEqual({ x: 61.5, y: 516 });
+    expect(noteElement.textCoordsLineLocal).toEqual({ x: 68.7, y: 60 });
+    expect(noteElement.textCoordsGlobal).toEqual({ x: 68.7, y: 516 });
   });
 
   test("registry lookup returns the beat element by model beat", () => {
@@ -940,11 +942,13 @@ describe("TrackElement tree", () => {
     expect(selectionRects[0].width).toBeGreaterThan(0);
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
-    expect(selectionRects[0].x).toBeLessThan(
+    // Selections include the beat technique slot at the box start. Rest
+    // glyphs can reach further left.
+    expect(selectionRects[0].x).toBeLessThanOrEqual(
       firstLineBeatElement.barElement.globalCoords.x +
         firstLineBeatElement.barLocalBoundingBox.x
     );
-    expect(selectionRects[1].x).toBeLessThan(
+    expect(selectionRects[1].x).toBeLessThanOrEqual(
       secondLineBeatElement.barElement.globalCoords.x +
         secondLineBeatElement.barLocalBoundingBox.x
     );

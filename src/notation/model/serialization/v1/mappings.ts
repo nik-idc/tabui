@@ -1,4 +1,6 @@
 import { BeatDots } from "../../beat";
+import { BeatGuitarTechniqueType } from "../../beat-technique-type";
+import { StrokeDirection } from "../../stroke-options";
 import { BendType } from "../../bend-type";
 import { ClefType } from "../../clef-type";
 import { GuitarTechniqueType } from "../../technique-type";
@@ -15,6 +17,7 @@ import { InstrumentFamily } from "../../instrument/instrument-family";
 import { StringInstrumentType } from "../../instrument/instrument-type";
 import { SerializedValueReader } from "../serialized-value-reader";
 import {
+  SerializedBeatTechniqueType,
   SerializedBendType,
   SerializedClefType,
   SerializedInstrumentFamily,
@@ -22,6 +25,7 @@ import {
   SerializedPlayableNoteValue,
   SerializedStringInstrumentTone,
   SerializedStringInstrumentType,
+  SerializedStrokeDirection,
   SerializedTechniqueType,
 } from "./schema";
 
@@ -79,6 +83,32 @@ const TECHNIQUE_BY_VALUE: Record<string, GuitarTechniqueType> = {
   [SerializedTechniqueType.PinchHarmonic]: GuitarTechniqueType.PinchHarmonic,
   [SerializedTechniqueType.Slide]: GuitarTechniqueType.Slide,
   [SerializedTechniqueType.Vibrato]: GuitarTechniqueType.Vibrato,
+};
+
+/** Supported v1 wire values for validated beat-technique reads. */
+const BEAT_TECHNIQUE_BY_VALUE: Record<
+  SerializedBeatTechniqueType,
+  BeatGuitarTechniqueType
+> = {
+  [SerializedBeatTechniqueType.Stroke]: BeatGuitarTechniqueType.Stroke,
+};
+
+/** Stable v1 mapping from model stroke directions to wire values. */
+export const SERIALIZED_STROKE_DIRECTIONS: Record<
+  StrokeDirection,
+  SerializedStrokeDirection
+> = {
+  [StrokeDirection.Down]: SerializedStrokeDirection.Down,
+  [StrokeDirection.Up]: SerializedStrokeDirection.Up,
+};
+
+/** Supported v1 wire values for validated stroke-direction reads. */
+const STROKE_DIRECTION_BY_VALUE: Record<
+  SerializedStrokeDirection,
+  StrokeDirection
+> = {
+  [SerializedStrokeDirection.Down]: StrokeDirection.Down,
+  [SerializedStrokeDirection.Up]: StrokeDirection.Up,
 };
 
 /** Supported v1 wire values for validated bend-type reads. */
@@ -234,6 +264,20 @@ export function readTechniqueType(
   reader: SerializedValueReader
 ): GuitarTechniqueType {
   return reader.readEnumValue(TECHNIQUE_BY_VALUE);
+}
+
+/** Reads and validates a v1 beat technique at the reader's current path. */
+export function readBeatTechniqueType(
+  reader: SerializedValueReader
+): BeatGuitarTechniqueType {
+  return reader.readEnumValue(BEAT_TECHNIQUE_BY_VALUE);
+}
+
+/** Reads and validates a v1 stroke direction at the reader's current path. */
+export function readStrokeDirection(
+  reader: SerializedValueReader
+): StrokeDirection {
+  return reader.readEnumValue(STROKE_DIRECTION_BY_VALUE);
 }
 
 /** Reads and validates a v1 bend type at the reader's current path. */

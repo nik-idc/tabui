@@ -5,6 +5,10 @@ import {
   MasterBar,
   Bar,
   Beat,
+  BeatGuitarTechnique,
+  BeatGuitarTechniqueType,
+  type SetBeatTechniqueOptions,
+  StrokeDirection,
   NoteDuration,
   BarRepeatStatusChange,
   TechniqueType,
@@ -707,6 +711,61 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.setTechnique(type, options);
+  }
+
+  /** Checks beat technique eligibility for the cursor beat or selected beats while editing is allowed. */
+  public canSetBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canSetBeatTechnique(type)
+    );
+  }
+
+  /** Reports whether the cursor beat or any selected beat has the beat technique. */
+  public hasSelectedBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return this._trackControllerEditor.hasSelectedBeatTechnique(type);
+  }
+
+  /** Returns the technique of the cursor beat, or of the first selected beat that has it. */
+  public getSelectedBeatTechnique<T extends BeatGuitarTechniqueType>(
+    type: T
+  ): BeatGuitarTechnique<T> | undefined {
+    return this._trackControllerEditor.getSelectedBeatTechnique(type);
+  }
+
+  /** Removes the beat technique from the cursor beat or from every selected beat that has it. */
+  public removeBeatTechnique(type: BeatGuitarTechniqueType): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.removeBeatTechnique(type);
+  }
+
+  /**
+   * Toggles a stroke in one direction on the cursor beat or selected beats.
+   * Removes the strokes when all of them already go in this direction;
+   * otherwise sets this direction and keeps the first stroke's duration and alignment.
+   */
+  public toggleStroke(direction: StrokeDirection): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.toggleStroke(direction);
+  }
+
+  /**
+   * Adds, replaces, or removes a beat technique on the cursor beat or selected beats.
+   * @param type Beat technique type.
+   * @param options Technique settings; omit them to remove the technique when every target beat has it.
+   */
+  public setBeatTechnique(
+    type: BeatGuitarTechniqueType,
+    options: SetBeatTechniqueOptions = {}
+  ): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.setBeatTechnique(type, options);
   }
 
   /**

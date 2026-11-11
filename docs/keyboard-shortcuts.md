@@ -144,6 +144,13 @@ incompatible or empty note.
 | H       | Toggle natural harmonic.                                |
 | Shift+H | Toggle pinch harmonic.                                  |
 | B       | Open bend settings for a single eligible selected note. |
+| D       | Toggle a down stroke.                                   |
+| U       | Toggle an up stroke.                                    |
+| Shift+D | Open stroke settings.                                   |
+
+Stroke shortcuts apply to the cursor's beat or to every selected beat. They
+apply to whole beats, not single notes, and skip rests. See
+[Strokes](usage.md#strokes) for toggle and settings rules.
 
 See [Ties and Let Ring](usage.md#ties-and-let-ring) for selection and controls,
 and [Guitar techniques](techniques.md) for musical meaning and applicability.

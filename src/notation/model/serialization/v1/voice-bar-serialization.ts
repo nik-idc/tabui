@@ -1,4 +1,14 @@
 import { Beat } from "../../beat";
+import { BeatGuitarTechnique } from "../../beat-guitar-technique";
+import { beatGuitarTechniquesIncompatible } from "../../beat-guitar-technique-lists";
+import { BeatGuitarTechniqueType } from "../../beat-technique-type";
+import {
+  MAX_STROKE_DURATION,
+  MIN_STROKE_DURATION,
+  STROKE_ALIGNMENT_FALLS_ON_TIME,
+  STROKE_ALIGNMENT_STARTS_ON_TIME,
+  StrokeOptions,
+} from "../../stroke-options";
 import {
   BendOptionsData,
   BendTechniqueOptions,
@@ -32,7 +42,10 @@ import {
 import { SerializedValueReader } from "../serialized-value-reader";
 import {
   SERIALIZED_NOTE_DURATIONS,
+  SERIALIZED_STROKE_DIRECTIONS,
   readBeatDots,
+  readBeatTechniqueType,
+  readStrokeDirection,
   readBendType,
   readNoteDuration,
   readTechniqueType,
@@ -40,8 +53,11 @@ import {
 } from "./mappings";
 import {
   SerializedBeat,
+  SerializedBeatTechnique,
+  SerializedBeatTechniqueType,
   SerializedBendOptions,
   SerializedBendType,
+  SerializedStrokeOptions,
   SerializedGuitarNote,
   SerializedGuitarTechnique,
   SerializedTechniqueType,
@@ -387,6 +403,103 @@ function validateBeatTransitions(
   }
 }
 
+/** Encodes stroke options after checking the direction; the options class already validated the numbers. */
+function serializeStrokeOptions(
+  options: StrokeOptions,
+  path: SerializationPath
+): SerializedStrokeOptions {
+  const { direction, duration, alignment } = options;
+  if (
+    !Object.prototype.hasOwnProperty.call(
+      SERIALIZED_STROKE_DIRECTIONS,
+      direction
+    )
+  ) {
+    throw new ScoreSerializationError(
+      propertyPath(path, "direction"),
+      "unsupported stroke direction"
+    );
+  }
+  return {
+    direction: SERIALIZED_STROKE_DIRECTIONS[direction],
+    duration,
+    alignment,
+  };
+}
+
+/** Serializes one beat technique after checking its owner and class, encoding options for its type. */
+function serializeBeatTechnique(
+  technique: BeatGuitarTechnique,
+  path: SerializationPath,
+  beat: Beat<Guitar>
+): SerializedBeatTechnique {
+  if (!(technique instanceof BeatGuitarTechnique)) {
+    throw new ScoreSerializationError(path, "unsupported beat technique type");
+  }
+  if (technique.beat !== beat) {
+    throw new ScoreSerializationError(
+      path,
+      "beat technique belongs to another beat"
+    );
+  }
+
+  const type = technique.type;
+  switch (type) {
+    case BeatGuitarTechniqueType.Stroke:
+      return {
+        type: SerializedBeatTechniqueType.Stroke,
+        options: serializeStrokeOptions(
+          technique.options,
+          propertyPath(path, "options")
+        ),
+      };
+    default: {
+      const unknownType: never = type;
+      throw new ScoreSerializationError(
+        propertyPath(path, "type"),
+        `unsupported beat technique type: ${unknownType}`
+      );
+    }
+  }
+}
+
+/**
+ * Serializes beat techniques, or returns undefined when there are none so the
+ * key is omitted; rejects techniques on a rest and duplicate or incompatible entries.
+ */
+function serializeBeatTechniques(
+  beat: Beat<Guitar>,
+  path: SerializationPath
+): SerializedBeatTechnique[] | undefined {
+  const techniques = beat.beatTechniques;
+  if (techniques.length === 0) {
+    return undefined;
+  }
+  if (beat.isRest()) {
+    throw new ScoreSerializationError(
+      path,
+      "beat techniques require a note beat"
+    );
+  }
+
+  const previous: BeatGuitarTechnique[] = [];
+  return serializeArray([...techniques], path, (technique, techniquePath) => {
+    const serialized = serializeBeatTechnique(technique, techniquePath, beat);
+    if (
+      previous.some((t) =>
+        beatGuitarTechniquesIncompatible(t.type, technique.type)
+      )
+    ) {
+      throw new ScoreSerializationError(
+        techniquePath,
+        "duplicate or incompatible beat technique"
+      );
+    }
+    previous.push(technique);
+    return serialized;
+  });
+}
+
 /**
  * Serializes an owned beat's duration and content after validating its
  * VoiceBar relationship and schema-supported rhythmic values.
@@ -438,12 +551,20 @@ function serializeBeatStructure(
       "out of range"
     );
   }
-  return {
+  const serialized: SerializedBeat = {
     notes: serializeBeatNotes(beat, propertyPath(path, "notes")),
     duration: SERIALIZED_NOTE_DURATIONS[beat.baseDuration],
     dots: beat.dots,
     tuplet: serializeTuplet(beat.tupletSettings, propertyPath(path, "tuplet")),
   };
+  const techniques = serializeBeatTechniques(
+    beat,
+    propertyPath(path, "techniques")
+  );
+  if (techniques !== undefined) {
+    serialized.techniques = techniques;
+  }
+  return serialized;
 }
 
 /**
@@ -695,15 +816,101 @@ function restoreBeatNotes(
   return deferredTechniques;
 }
 
+/** Reconstructs stroke options, checking that the duration ticks and alignment are integers in range. */
+function deserializeStrokeOptions(
+  reader: SerializedValueReader
+): StrokeOptions {
+  reader.readObject(["direction", "duration", "alignment"]);
+  const direction = readStrokeDirection(reader.property("direction"));
+  const duration = reader
+    .property("duration")
+    .readIntegerInRange(MIN_STROKE_DURATION, MAX_STROKE_DURATION);
+  const alignment = reader
+    .property("alignment")
+    .readIntegerInRange(
+      STROKE_ALIGNMENT_STARTS_ON_TIME,
+      STROKE_ALIGNMENT_FALLS_ON_TIME
+    );
+  return reader.runModelOperation(
+    () => new StrokeOptions({ direction, duration, alignment })
+  );
+}
+
+/** Reconstructs one beat technique for its owner beat, reading options for its type. */
+function deserializeBeatTechnique(
+  reader: SerializedValueReader,
+  beat: Beat<Guitar>
+): BeatGuitarTechnique {
+  reader.readObject();
+  const type = readBeatTechniqueType(reader.property("type"));
+  reader.expectKeys(["type", "options"]);
+
+  const optionsReader = reader.property("options");
+  switch (type) {
+    case BeatGuitarTechniqueType.Stroke: {
+      const options = deserializeStrokeOptions(optionsReader);
+      return reader.runModelOperation(
+        () => new BeatGuitarTechnique(beat, type, options)
+      );
+    }
+    default: {
+      const unknownType: never = type;
+      return reader
+        .property("type")
+        .fail(`unsupported beat technique type: ${unknownType}`);
+    }
+  }
+}
+
 /**
- * Reconstructs a detached beat and its rest or sparse note slots while
- * collecting techniques that cannot yet inspect a complete voice.
+ * Adds beat techniques after the beat's notes are restored; a missing key
+ * means none, and a rest cannot hold any.
+ */
+function restoreBeatTechniques(
+  reader: SerializedValueReader,
+  beat: Beat<Guitar>
+): void {
+  if (reader.rawValue() === undefined) {
+    return;
+  }
+  const techniques = reader.readArray();
+  if (techniques.length > 0 && beat.isRest()) {
+    reader.fail("beat techniques require a note beat");
+  }
+
+  const seenTypes = new Set<BeatGuitarTechniqueType>();
+  for (const techniqueReader of techniques) {
+    const technique = deserializeBeatTechnique(techniqueReader, beat);
+    if (seenTypes.has(technique.type)) {
+      techniqueReader.fail("duplicate beat technique");
+    }
+    seenTypes.add(technique.type);
+    if (!beat.addBeatTechnique(technique)) {
+      techniqueReader.fail("incompatible beat technique");
+    }
+  }
+}
+
+/** Beat keys that every v1 beat must have. */
+const REQUIRED_BEAT_KEYS = ["notes", "duration", "dots", "tuplet"] as const;
+
+/**
+ * Reconstructs a detached beat, its rest or sparse note slots, and its beat
+ * techniques, while collecting note techniques that cannot yet inspect a complete voice.
  */
 function deserializeBeat(
   reader: SerializedValueReader,
   voiceBar: VoiceBar<Guitar>
 ): { beat: Beat<Guitar>; deferredTechniques: DeferredNoteTechniques[] } {
-  reader.readObject(["notes", "duration", "dots", "tuplet"]);
+  // Older v1 data has no `techniques` key, so it is accepted only when present.
+  const object = reader.readObject();
+  const hasTechniques = Object.prototype.hasOwnProperty.call(
+    object,
+    "techniques"
+  );
+  reader.expectKeys(
+    hasTechniques ? [...REQUIRED_BEAT_KEYS, "techniques"] : REQUIRED_BEAT_KEYS
+  );
   const duration = readNoteDuration(reader.property("duration"));
   const dots = readBeatDots(reader.property("dots"));
   const tuplet = deserializeTuplet(reader.property("tuplet"));
@@ -724,6 +931,7 @@ function deserializeBeat(
     beat,
     voiceBar
   );
+  restoreBeatTechniques(reader.property("techniques"), beat);
   return { beat, deferredTechniques };
 }
 
