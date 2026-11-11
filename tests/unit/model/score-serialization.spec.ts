@@ -1,4 +1,6 @@
 import {
+  AccentOptions,
+  AccentType,
   BassGuitarTone,
   Beat,
   BeatGuitarTechniqueType,
@@ -112,7 +114,56 @@ function strokeDocument() {
 
 const STROKE_BEAT_PATH = "$.tracks[0].staves[0].bars[0].voices[0].beats[0]";
 
+/** Serializes one note with an accent of the kind. */
+function accentDocument(kind: AccentType) {
+  const score = new Score();
+  const note = firstNote(score);
+  note.setFret(1);
+  note.setTechnique(GuitarTechniqueType.Accent, new AccentOptions({ kind }));
+  return serializeScore(score);
+}
+
 describe("score serialization", () => {
+  test.each([
+    [AccentType.Normal, "normal"],
+    [AccentType.Heavy, "heavy"],
+  ])("round trips accent kind %s as %s", (kind, wire) => {
+    const document = accentDocument(kind);
+    expect(
+      document.tracks[0].staves[0].bars[0].voices[0]?.beats[0].notes?.[0]
+        ?.techniques
+    ).toEqual([{ type: "accent", options: { kind: wire } }]);
+
+    const restored = deserializeScore(document);
+    expect(firstNote(restored).techniques[0].accentOptions?.kind).toBe(kind);
+    expect(serializeScore(restored)).toEqual(document);
+  });
+
+  test.each([
+    [{ kind: "loud" }, ".options.kind", "unsupported value 'loud'"],
+    [{ kind: "heavy", size: 2 }, ".options.size", ""],
+    [undefined, ".options", ""],
+  ])("rejects accent options %j", (options, pathEnd, message) => {
+    const document = accentDocument(AccentType.Normal);
+    const note =
+      document.tracks[0].staves[0].bars[0].voices[0]?.beats[0].notes?.[0];
+    const technique = required(note).techniques[0] as unknown as Record<
+      string,
+      unknown
+    >;
+    if (options === undefined) {
+      delete technique.options;
+    } else {
+      technique.options = options;
+    }
+
+    const error = deserializeError(document);
+    expect(error.path).toBe(
+      `${STROKE_BEAT_PATH}.notes[0].techniques[0]${pathEnd}`
+    );
+    expect(error.message).toContain(message);
+  });
+
   test("round trips a stroke and omits the techniques key on beats without one", () => {
     const document = strokeDocument();
     const savedBeats = required(

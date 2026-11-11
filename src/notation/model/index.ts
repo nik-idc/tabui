@@ -1,3 +1,4 @@
+export * from "./accent-options";
 export * from "./bar";
 export * from "./bar-beaming";
 export * from "./bar-repeat-status";

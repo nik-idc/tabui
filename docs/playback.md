@@ -197,6 +197,9 @@ scheduled note source rather than articulation-specific samples. See
   a softer envelope.
 - Hammer-on/pull-off uses a softer, slightly slower legato-style attack.
 - Vibrato modulates pitch around the target pitch.
+- A normal accent raises the attack's peak gain by 30%, and a heavy one by 60%. This
+  also applies to dead notes, palm mutes, harmonics, and hammer-ons/pull-offs.
+- Tap plays like a normal attack.
 - Slides pair the source note with the next playable same-string target note:
   - the source is scheduled through the target note's duration.
   - pitch ramps from source pitch to target pitch.

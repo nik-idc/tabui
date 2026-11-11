@@ -90,6 +90,7 @@ const NON_BEND_TECHNIQUES: readonly GuitarTechniqueType[] = [
   GuitarTechniqueType.PinchHarmonic,
   GuitarTechniqueType.Slide,
   GuitarTechniqueType.Vibrato,
+  GuitarTechniqueType.Tap,
 ];
 
 function jsonRoundTrip(score: Score): Score {
@@ -263,6 +264,7 @@ describe("exhaustive V1 score serialization", () => {
       [{ type: "pinch-harmonic" }],
       [{ type: "slide" }],
       [{ type: "vibrato" }],
+      [{ type: "tap" }],
     ]);
     const restoredStaff = restored.tracks[0].staves[0];
     const restoredBeats = restoredStaff.bars[0].getVoiceBar(1)?.beats;

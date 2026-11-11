@@ -9,6 +9,7 @@ import {
   BeatGuitarTechniqueType,
   type SetBeatTechniqueOptions,
   StrokeDirection,
+  AccentType,
   NoteDuration,
   BarRepeatStatusChange,
   TechniqueType,
@@ -739,6 +740,23 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.removeBeatTechnique(type);
+  }
+
+  /** Reports whether every cursor or selected note that can have an accent has one of the kind. */
+  public isSelectedAccentOfKind(kind: AccentType): boolean {
+    return this._trackControllerEditor.isSelectedAccentOfKind(kind);
+  }
+
+  /**
+   * Toggles an accent of one kind on the cursor note or selected notes.
+   * Removes the accents when all of them already have this kind; otherwise
+   * sets this kind, switching the other kind directly.
+   */
+  public toggleAccent(kind: AccentType): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.toggleAccent(kind);
   }
 
   /**

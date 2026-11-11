@@ -1,5 +1,5 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { GuitarTechniqueType } from "../../../notation/model";
+import { AccentType, GuitarTechniqueType } from "../../../notation/model";
 import { TechniqueControlsComponent } from "../..";
 import {
   BendControlsCallbacks,
@@ -21,6 +21,9 @@ export interface TechniqueControlsCallbacks {
   onLegatoClicked(): void;
   onSlideClicked(): void;
   onBendClicked(): void;
+  onTapClicked(): void;
+  onAccentClicked(): void;
+  onHeavyAccentClicked(): void;
   onStrokeClicked(): void;
   bind(): void;
   unbind(): void;
@@ -113,6 +116,25 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
     this._renderFunc();
   }
 
+  public onTapClicked(): void {
+    this._notationComponent.trackController.setTechnique(
+      GuitarTechniqueType.Tap
+    );
+    this._renderFunc();
+  }
+
+  /** Toggles a normal accent, like the C shortcut. */
+  public onAccentClicked(): void {
+    this._notationComponent.trackController.toggleAccent(AccentType.Normal);
+    this._renderFunc();
+  }
+
+  /** Toggles a heavy accent, like the Shift+C shortcut. */
+  public onHeavyAccentClicked(): void {
+    this._notationComponent.trackController.toggleAccent(AccentType.Heavy);
+    this._renderFunc();
+  }
+
   public onBendClicked(): void {
     this._techniquesComponent.showBendControls();
   }
@@ -168,6 +190,21 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
         element: this._techniquesComponent.template.bendButton,
         event: "click",
         handler: () => this.onBendClicked(),
+      },
+      {
+        element: this._techniquesComponent.template.tapButton,
+        event: "click",
+        handler: () => this.onTapClicked(),
+      },
+      {
+        element: this._techniquesComponent.template.accentButton,
+        event: "click",
+        handler: () => this.onAccentClicked(),
+      },
+      {
+        element: this._techniquesComponent.template.heavyAccentButton,
+        event: "click",
+        handler: () => this.onHeavyAccentClicked(),
       },
       {
         element: this._techniquesComponent.template.strokeButton,

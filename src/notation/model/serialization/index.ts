@@ -4,6 +4,7 @@ export { ScoreSerializationError } from "./serialization-error";
 export {
   SCORE_SERIALIZATION_FORMAT,
   SCORE_SERIALIZATION_VERSION,
+  SerializedAccentKind,
   SerializedBeatTechniqueType,
   SerializedBendType,
   SerializedClefType,

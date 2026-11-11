@@ -84,7 +84,8 @@ non-empty voice.
 
 A technique belongs to a note or to a beat, never to a passage. Most techniques
 belong to notes. Tie is stored on the continuation note. Let Ring and Palm Mute
-carry only their type, without options; bends carry shape options. See
+carry only their type, without options; bends carry shape options, and
+accents carry their kind (normal or heavy). See
 [Guitar techniques](techniques.md) for musical meaning, applicability, and
 passage rules.
 

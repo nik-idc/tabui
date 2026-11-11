@@ -301,6 +301,12 @@ button, or its shortcut, to toggle the technique. See [Let Ring](techniques.md#l
 for passage support and editing effects, and [Palm Mute](techniques.md#palm-mute)
 for eligible note types.
 
+Use **Tap** or **K** to toggle Tap. Use **Accent** or **C** to toggle a normal
+accent, and **Heavy Accent** or **Shift+C** to toggle a heavy accent. Each
+button shows as pressed when the selected notes have that kind. They follow the
+same selection rules. See [Tap](techniques.md#tap) and
+[Accent](techniques.md#accent).
+
 These techniques have no options. For other techniques and their interpretation,
 see [Guitar techniques](techniques.md). For storage and editing responsibilities,
 see [the domain model](domain.md#technique-ownership-and-editing).

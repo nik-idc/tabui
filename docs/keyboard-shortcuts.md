@@ -143,6 +143,9 @@ incompatible or empty note.
 | S       | Toggle slide.                                           |
 | H       | Toggle natural harmonic.                                |
 | Shift+H | Toggle pinch harmonic.                                  |
+| K       | Toggle tap.                                             |
+| C       | Toggle a normal accent, or switch a heavy one to it.    |
+| Shift+C | Toggle a heavy accent, or switch a normal one to it.    |
 | B       | Open bend settings for a single eligible selected note. |
 | D       | Toggle a down stroke.                                   |
 | U       | Toggle an up stroke.                                    |

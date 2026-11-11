@@ -1,5 +1,7 @@
 import { TrackElement } from "../../../src/notation/controller/element/track-element";
 import {
+  AccentType,
+  AccentOptions,
   DEFAULT_MASTER_BAR,
   BendTechniqueOptions,
   BendType,
@@ -83,6 +85,33 @@ function parseVibratoPath(svgPath: string): {
   };
 }
 
+function bendOptions(): BendTechniqueOptions {
+  return new BendTechniqueOptions({
+    type: BendType.Bend,
+    bendPitch: 1,
+    bendDuration: 1,
+  });
+}
+
+function techGapOf(element: TrackElement): TechGapContainer {
+  return element.trackLineElements[0].staffLineContainers[0]
+    .styleLinesAsArray[0].techGapContainer;
+}
+
+function accent(kind: AccentType): AccentOptions {
+  return new AccentOptions({ kind });
+}
+
+/** Labels on the Accent row for one beat. */
+function accentRowLabels(element: TrackElement, beatIndex: number) {
+  const beat =
+    element.trackLineElements[0].staffLineContainers[0].styleLinesAsArray[0]
+      .barElements[0].beatElements[beatIndex];
+  return required(techGapOf(element).techGapLines[5]).labelElements.filter(
+    (l) => l.beatElement === beat
+  );
+}
+
 describe("TrackElement techniques", () => {
   test("inserting an empty beat at a bar boundary refreshes the following Palm Mute label", () => {
     const { score, track, bar, staff } = createScoreGraph();
@@ -146,6 +175,106 @@ describe("TrackElement techniques", () => {
       expect(continuationPaths).toHaveLength(1);
       expect(continuationPaths[0].d).not.toBe("");
       expect(continuationPaths[0].attrs?.["stroke-dasharray"]).toBe("4 3");
+    }
+  );
+
+  test("shows a separate Tap label on each tapped beat without a passage", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    for (const beat of beats) {
+      const note = required(beat.notes)[0] as GuitarNote;
+      note.setFret(5);
+      note.setTechnique(GuitarTechniqueType.Tap);
+    }
+
+    const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    element.update();
+
+    const labels = element.trackLineElements
+      .flatMap((l) => l.drawableNotationElements)
+      .filter(
+        (v): v is GuitarTechniqueLabelElement =>
+          v instanceof GuitarTechniqueLabelElement
+      );
+    expect(labels.map((v) => v.textDescriptors?.map((d) => d.text))).toEqual([
+      ["T"],
+      ["T"],
+    ]);
+    expect(labels.map((v) => v.pathDescriptors)).toEqual([[], []]);
+  });
+
+  test("orders label rows as Vibrato, Tap, Accent, then Bend", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const notes = required(beats[0].notes) as GuitarNote[];
+    for (const note of notes) {
+      note.setFret(5);
+    }
+    notes[0].setTechnique(GuitarTechniqueType.Bend, bendOptions());
+    notes[1].setTechnique(
+      GuitarTechniqueType.Accent,
+      accent(AccentType.Normal)
+    );
+    notes[2].setTechnique(GuitarTechniqueType.Tap);
+    notes[3].setTechnique(GuitarTechniqueType.Vibrato);
+
+    const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    element.update();
+
+    const rowTypes = techGapOf(element)
+      .techGapLinesAsArray.flatMap((l) => l.labelElements)
+      .map((l) => l.technique.type);
+    expect(rowTypes).toEqual([
+      GuitarTechniqueType.Vibrato,
+      GuitarTechniqueType.Tap,
+      GuitarTechniqueType.Accent,
+      GuitarTechniqueType.Bend,
+    ]);
+  });
+
+  test("draws one accent mark for a beat with accents on two strings", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const notes = required(beats[0].notes) as GuitarNote[];
+    for (const note of notes.slice(0, 2)) {
+      note.setFret(5);
+      note.setTechnique(GuitarTechniqueType.Accent, accent(AccentType.Normal));
+    }
+
+    const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    element.update();
+
+    expect(accentRowLabels(element, 0)).toHaveLength(1);
+  });
+
+  test.each([
+    [AccentType.Normal, AccentType.Heavy],
+    [AccentType.Heavy, AccentType.Normal],
+  ])(
+    "shows only the heavy accent when strings 1 and 2 have kinds %s and %s",
+    (first, second) => {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const notes = required(beats[0].notes) as GuitarNote[];
+      notes[0].setFret(5);
+      notes[0].setTechnique(GuitarTechniqueType.Accent, accent(first));
+      notes[1].setFret(5);
+      notes[1].setTechnique(GuitarTechniqueType.Accent, accent(second));
+
+      const element = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+      element.update();
+
+      const labels = accentRowLabels(element, 0);
+      expect(labels).toHaveLength(1);
+      // "^" ends to the right of its start; ">" ends at its start x.
+      const path = required(labels[0].pathDescriptors)[0].d;
+      const [x1, , x2] = parsePathEndpoints(path);
+      expect(x2).toBeGreaterThan(x1);
     }
   );
 
@@ -656,7 +785,7 @@ describe("TrackElement techniques", () => {
     const techGap =
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
-    const lines = ([1, 2, 4] as const).map((v) =>
+    const lines = ([1, 2, 6] as const).map((v) =>
       required(techGap.techGapLines[v])
     );
     expect(techGap.boundingBox.height).toBe(
@@ -835,7 +964,7 @@ describe("TrackElement techniques", () => {
         .styleLinesAsArray[0];
     const barElement = styleLine.barElements[0];
     const labels = required(
-      styleLine.techGapContainer.techGapLines[4]
+      styleLine.techGapContainer.techGapLines[6]
     ).labelElements;
 
     expect(labels).toHaveLength(3);
@@ -1043,15 +1172,15 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
     const line1 = required(techGap.techGapLines[1]);
-    const line4 = required(techGap.techGapLines[4]);
+    const bendLine = required(techGap.techGapLines[6]);
 
     expect(techGap.boundingBox.height).toBe(
       TEST_LAYOUT_DIMENSIONS.techLabelHeight * 2
     );
     expect(required(techGap.techGapLines[2]).labelElements).toEqual([]);
     expect(line1.labelElements).toHaveLength(1);
-    expect(line4.labelElements).toHaveLength(1);
-    expect(line4.boundingBox.y).toBeCloseTo(line1.boundingBox.bottom);
+    expect(bendLine.labelElements).toHaveLength(1);
+    expect(bendLine.boundingBox.y).toBeCloseTo(line1.boundingBox.bottom);
   });
 
   test("joins adjacent mixed-duration vibratos smoothly", () => {
@@ -1275,7 +1404,7 @@ describe("TrackElement techniques", () => {
       const beatElement = styleLine.barElements[0].beatElements[1];
       const bendElement = beatElement.noteElements[0].techniqueElements[0];
       const bendLabel =
-        styleLine.techGapContainer.techGapLines[4]?.labelElements[0];
+        styleLine.techGapContainer.techGapLines[6]?.labelElements[0];
       if (
         !(bendElement instanceof GuitarTechniqueElement) ||
         !(bendLabel instanceof GuitarTechniqueLabelElement)
@@ -1480,8 +1609,8 @@ describe("TrackElement techniques", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].techGapContainer;
     const line1Label = required(techGap.techGapLines[1]?.labelElements[0]);
-    const line4Label = required(techGap.techGapLines[4]?.labelElements[0]);
-    const beforeLabels = [line1Label, line4Label].map((v) => ({
+    const bendLineLabel = required(techGap.techGapLines[6]?.labelElements[0]);
+    const beforeLabels = [line1Label, bendLineLabel].map((v) => ({
       identity: v.getStableIdentity(),
       technique: v.technique,
       bounds: v.globalBoundingBox,
@@ -1499,7 +1628,7 @@ describe("TrackElement techniques", () => {
 
     const nextLabels = [
       required(nextTechGap.techGapLines[1]?.labelElements[0]),
-      required(nextTechGap.techGapLines[4]?.labelElements[0]),
+      required(nextTechGap.techGapLines[6]?.labelElements[0]),
     ];
     expect(
       nextLabels.map((v) => ({

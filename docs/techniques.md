@@ -144,6 +144,41 @@ TabUI's current playback approximates **both** with a softer tone one octave abo
 the note's base pitch. It does not calculate a natural harmonic's pitch from a
 touch position or reproduce the full range of pinch-harmonic partials.
 
+## Tap
+
+Tap means the note is played by tapping the string onto the fret, usually with
+the picking hand. It applies to playable notes only, not to dead notes, empty
+slots, rests, or tie continuations. Each note needs its own Tap mark. When a
+note becomes a dead note, its Tap mark is removed.
+
+In tab, each tapped beat shows its own `T` above the staff. Unlike `P.M.` and
+`L.R.`, consecutive taps never join into a passage with dashes. Playback plays
+a tapped note like a normal attack.
+
+## Accent
+
+An Accent means “play this attack louder.” It has two kinds: a normal accent
+(`>`) and a heavy accent (`^`), which means “play it much louder.” An Accent
+applies to playable notes and dead notes, but never to empty slots, rests, or
+tie continuations. A note has at most one Accent. Different strings in the same
+beat can use different kinds.
+
+The two kinds toggle like stroke directions. **C** (normal) or **Shift+C**
+(heavy) removes the accents when all selected notes that can have one already
+have that kind. Otherwise, it sets that kind on them, so it also changes the
+other kind directly.
+
+A tie continuation has no attack, so it cannot have Tap or Accent. When you tie
+a note, these marks are removed from the continuation.
+
+In tab, the mark shows above the beat, in one row. A beat shows one mark only.
+If one string has a normal accent and another has a heavy accent, the beat
+shows `^`. Playback makes each marked attack louder; see
+[Playback Architecture](playback.md) for the amounts.
+
+When a note becomes a dead note, it keeps only Palm Mute and Accent. Other
+marks, such as Tap or Vibrato, are removed.
+
 ## Stroke
 
 A Stroke means “strum the notes of this beat one after another, not together.”

@@ -1,4 +1,5 @@
 import {
+  AccentType,
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
@@ -303,6 +304,20 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     return continues && sameLine;
   }
 
+  /** Builds one beat's text label, centered on the beat attack. */
+  private createTextPath(text: string): void {
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
+    this._pathDescriptors = [];
+    this._textDescriptors = [
+      GuitarTechniqueDescriptors.createTextDescriptor(
+        0,
+        this._boundingBox.y + this._boundingBox.height / 2,
+        fontSize,
+        text
+      ),
+    ];
+  }
+
   /** Builds repeated label descriptors, restarting the text after a line break. */
   private createRepeatedTextPath(text: string): void {
     const fontSize = this.trackElement.layoutDimensions.noteTextSize;
@@ -354,6 +369,31 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
   private createLetRingPath(): void {
     this.createRepeatedTextPath("L.R.");
+  }
+
+  /**
+   * Draws one accent mark centered on the beat attack. The beat shows one
+   * mark, so a heavy accent on any string wins.
+   */
+  private createAccentPath(): void {
+    const isHeavy = (this.beatElement.beat.notes ?? []).some(
+      (n) =>
+        n instanceof GuitarNote &&
+        n.techniques.some((t) => t.accentOptions?.kind === AccentType.Heavy)
+    );
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
+    // Text labels hang from the row center, so their middle is half a font lower.
+    const y = this._boundingBox.y + this._boundingBox.height / 2 + fontSize / 2;
+    this._pathDescriptors = [
+      GuitarTechniqueDescriptors.createAccentPath(
+        0,
+        y,
+        fontSize * 0.6,
+        fontSize * 0.5,
+        isHeavy
+      ),
+    ];
+    this._textDescriptors = [];
   }
 
   /**
@@ -479,6 +519,12 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         break;
       case GuitarTechniqueType.LetRing:
         this.createLetRingPath();
+        break;
+      case GuitarTechniqueType.Tap:
+        this.createTextPath("T");
+        break;
+      case GuitarTechniqueType.Accent:
+        this.createAccentPath();
         break;
     }
   }

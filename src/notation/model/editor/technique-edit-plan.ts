@@ -1,6 +1,6 @@
-import type { BendTechniqueOptions } from "../bend-options";
 import type { Beat } from "../beat";
 import type { GuitarNote } from "../guitar-note";
+import type { GuitarTechniqueOptions } from "../guitar-technique";
 import type { TechniqueType } from "../technique-type";
 import type { BeatPosition, NotePosition } from "./edit-position";
 
@@ -59,8 +59,8 @@ export type OrdinaryTechniquePlan = {
   notes: GuitarNote[];
   /** Requested technique to toggle or update. */
   type: TechniqueType;
-  /** Supplied bend settings; null keeps the toggle behavior across target notes. */
-  bendOptions: BendTechniqueOptions | null;
+  /** Supplied bend or accent settings; null keeps the toggle behavior across target notes. */
+  options: GuitarTechniqueOptions | null;
   /** Remove the technique from target notes instead of adding it. */
   removeTechnique: boolean;
 };

@@ -1,4 +1,5 @@
 import {
+  AccentType,
   BarRepeatStatus,
   BeatGuitarTechniqueType,
   GuitarNote,
@@ -49,6 +50,7 @@ export enum EditorKey {
   PinchHarmonic = "h",
   TieToEarliest = "j",
   StrokeSettings = "d",
+  HeavyAccent = "c",
 
   // Space or Shift+Space.
   TogglePlayback = " ",
@@ -71,6 +73,8 @@ export enum EditorKey {
   NaturalHarmonic = "h",
   DownStroke = "d",
   UpStroke = "u",
+  Tap = "k",
+  Accent = "c",
   RepeatStart = "r",
   TempoSettings = "m",
   InsertBeatAfter = "a",
@@ -199,6 +203,18 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     this._uiComponent.sideComponent.techniqueControlsComponent.showBendControls();
+    return true;
+  }
+
+  /** Toggles an accent of one kind when the target notes can take one. */
+  public accentEvent(kind: AccentType): boolean {
+    const controller = this._notationComponent.trackController;
+    if (!controller.canSetTechnique(GuitarTechniqueType.Accent)) {
+      return false;
+    }
+
+    controller.toggleAccent(kind);
+    this._renderFunc();
     return true;
   }
 
@@ -724,6 +740,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         return this.techniqueEvent(GuitarTechniqueType.PinchHarmonic);
       } else if (key === EditorKey.StrokeSettings) {
         return this.strokeSettingsEvent();
+      } else if (key === EditorKey.HeavyAccent) {
+        return this.accentEvent(AccentType.Heavy);
       } else {
         return false;
       }
@@ -764,6 +782,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         return this.strokeEvent(StrokeDirection.Down);
       } else if (key === EditorKey.UpStroke) {
         return this.strokeEvent(StrokeDirection.Up);
+      } else if (key === EditorKey.Tap) {
+        return this.techniqueEvent(GuitarTechniqueType.Tap);
+      } else if (key === EditorKey.Accent) {
+        return this.accentEvent(AccentType.Normal);
       } else if (key === EditorKey.RepeatStart) {
         controller.setSelectedBarRepeatStatus({
           status: BarRepeatStatus.Start,

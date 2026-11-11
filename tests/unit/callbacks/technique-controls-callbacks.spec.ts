@@ -3,7 +3,12 @@
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { SelectedMoveDirection } from "../../../src/notation/controller";
-import { GuitarTechniqueType, NoteDuration } from "../../../src/notation/model";
+import {
+  AccentType,
+  GuitarNote,
+  GuitarTechniqueType,
+  NoteDuration,
+} from "../../../src/notation/model";
 import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
 import { TechniqueControlsComponent } from "../../../src/ui/side-controls/technique-controls/technique-controls-component";
 import { TechniqueControlsDefaultCallbacks } from "../../../src/ui/side-controls/technique-controls/technique-controls-callbacks";
@@ -53,8 +58,13 @@ describe("TechniqueControlsDefaultCallbacks", () => {
         [controls.template.letRingButton, GuitarTechniqueType.LetRing],
         [controls.template.legatoButton, GuitarTechniqueType.Legato],
         [controls.template.slideButton, GuitarTechniqueType.Slide],
+        [controls.template.tapButton, GuitarTechniqueType.Tap],
+        [controls.template.accentButton, GuitarTechniqueType.Accent],
+        [controls.template.heavyAccentButton, GuitarTechniqueType.Accent],
       ] as const) {
+        render.mockClear();
         button.click();
+        expect(render).toHaveBeenCalledTimes(1);
         expect(controller.selectionCursor?.note?.hasTechnique(type)).toBe(true);
         expect(button.getAttribute("aria-pressed")).toBe("true");
         controller.undo();
@@ -63,12 +73,26 @@ describe("TechniqueControlsDefaultCallbacks", () => {
         );
         controls.render();
       }
-      expect(render).toHaveBeenCalledTimes(4);
+
+      const { accentButton, heavyAccentButton } = controls.template;
+      accentButton.click();
+      heavyAccentButton.click();
+      const note = controller.selectionCursor?.note as GuitarNote;
+      const accent = note.techniques.find(
+        (t) => t.type === GuitarTechniqueType.Accent
+      );
+      expect(accent?.accentOptions?.kind).toBe(AccentType.Heavy);
+      expect(accentButton.getAttribute("aria-pressed")).toBe("false");
+      expect(heavyAccentButton.getAttribute("aria-pressed")).toBe("true");
+      controller.undo();
+      controller.undo();
 
       expect(controls.template.tieButton.disabled).toBe(true);
       controller.moveSelectedNote(SelectedMoveDirection.Right);
       controls.render();
+      render.mockClear();
       controls.template.tieButton.click();
+      expect(render).toHaveBeenCalledTimes(1);
       expect(
         controller.selectionCursor?.note?.hasTechnique(GuitarTechniqueType.Tie)
       ).toBe(true);
@@ -85,6 +109,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
       controls.bendControlsComponent.dialog.close();
 
       callbacks.unbind();
+      render.mockClear();
       expect(controls.template.nhButton.disabled).toBe(false);
       controls.template.nhButton.click();
       expect(
@@ -92,7 +117,7 @@ describe("TechniqueControlsDefaultCallbacks", () => {
           GuitarTechniqueType.NaturalHarmonic
         )
       ).toBe(false);
-      expect(render).toHaveBeenCalledTimes(5);
+      expect(render).not.toHaveBeenCalled();
       controls.template.bendButton.click();
       expect(controls.bendControlsComponent.dialog.open).toBe(false);
     } finally {

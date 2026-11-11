@@ -1,3 +1,4 @@
+import { AccentOptions } from "../../accent-options";
 import { Beat } from "../../beat";
 import { BeatGuitarTechnique } from "../../beat-guitar-technique";
 import { beatGuitarTechniquesIncompatible } from "../../beat-guitar-technique-lists";
@@ -41,8 +42,10 @@ import {
 } from "../serialization-path";
 import { SerializedValueReader } from "../serialized-value-reader";
 import {
+  SERIALIZED_ACCENT_KINDS,
   SERIALIZED_NOTE_DURATIONS,
   SERIALIZED_STROKE_DIRECTIONS,
+  readAccentKind,
   readBeatDots,
   readBeatTechniqueType,
   readStrokeDirection,
@@ -52,6 +55,7 @@ import {
   SERIALIZED_TECHNIQUE_TYPES,
 } from "./mappings";
 import {
+  SerializedAccentOptions,
   SerializedBeat,
   SerializedBeatTechnique,
   SerializedBeatTechniqueType,
@@ -166,6 +170,22 @@ function serializeBendOptions(
   }
 }
 
+/** Encodes accent options after checking the kind. */
+function serializeAccentOptions(
+  options: AccentOptions,
+  path: SerializationPath
+): SerializedAccentOptions {
+  if (
+    !Object.prototype.hasOwnProperty.call(SERIALIZED_ACCENT_KINDS, options.kind)
+  ) {
+    throw new ScoreSerializationError(
+      propertyPath(path, "kind"),
+      "unsupported accent kind"
+    );
+  }
+  return { kind: SERIALIZED_ACCENT_KINDS[options.kind] };
+}
+
 /**
  * Serializes a technique after confirming that it is owned by the supplied
  * note and that its type and bend options form a supported combination.
@@ -215,10 +235,32 @@ function serializeTechnique(
       "unexpected bend options"
     );
   }
-  if (type === SerializedTechniqueType.Bend) {
+  if (technique.type === GuitarTechniqueType.Accent) {
+    const options = technique.accentOptions;
+    if (options === null) {
+      throw new ScoreSerializationError(
+        propertyPath(path, "options"),
+        "accent technique missing options"
+      );
+    }
+    return {
+      type: SerializedTechniqueType.Accent,
+      options: serializeAccentOptions(options, propertyPath(path, "options")),
+    };
+  }
+  if (technique.accentOptions !== null) {
+    throw new ScoreSerializationError(
+      propertyPath(path, "options"),
+      "unexpected accent options"
+    );
+  }
+  if (
+    type === SerializedTechniqueType.Bend ||
+    type === SerializedTechniqueType.Accent
+  ) {
     throw new ScoreSerializationError(
       propertyPath(path, "type"),
-      "bend technique type mismatch"
+      "technique type mismatch"
     );
   }
   return { type };
@@ -615,6 +657,15 @@ function deserializeBendOptions(
   return reader.runModelOperation(() => new BendTechniqueOptions(options));
 }
 
+/** Reconstructs accent options, checking the kind. */
+function deserializeAccentOptions(
+  reader: SerializedValueReader
+): AccentOptions {
+  reader.readObject(["kind"]);
+  const kind = readAccentKind(reader.property("kind"));
+  return reader.runModelOperation(() => new AccentOptions({ kind }));
+}
+
 /** Reconstructs one technique against its already attached owning note. */
 function deserializeTechnique(
   reader: SerializedValueReader,
@@ -627,6 +678,13 @@ function deserializeTechnique(
     const bendOptions = deserializeBendOptions(reader.property("options"));
     return reader.runModelOperation(
       () => new GuitarTechnique(note, type, bendOptions)
+    );
+  }
+  if (type === GuitarTechniqueType.Accent) {
+    reader.expectKeys(["type", "options"]);
+    const accentOptions = deserializeAccentOptions(reader.property("options"));
+    return reader.runModelOperation(
+      () => new GuitarTechnique(note, type, accentOptions)
     );
   }
   reader.expectKeys(["type"]);

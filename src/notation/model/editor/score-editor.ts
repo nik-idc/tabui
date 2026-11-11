@@ -1,3 +1,4 @@
+import { AccentOptions, AccentType } from "../accent-options";
 import { Bar, type VoiceBarContentSnapshot } from "../bar";
 import { Beat } from "../beat";
 import type { SetTechniqueOptions } from "./set-technique-options";
@@ -594,6 +595,43 @@ export class ScoreEditor {
     type: BeatGuitarTechniqueType
   ): Beat[] {
     return beats.filter((b) => b.hasBeatTechnique(type));
+  }
+
+  /**
+   * Reports whether every note that can have an accent already has one of the
+   * kind. Then an accent toggle of this kind removes the accents.
+   */
+  public static isAccentOfKind(notes: Note[], kind: AccentType): boolean {
+    const accentNotes = notes.filter(
+      (n): n is GuitarNote =>
+        n instanceof GuitarNote &&
+        (n.hasTechnique(GuitarTechniqueType.Accent) ||
+          n.isTechniqueApplicable(GuitarTechniqueType.Accent))
+    );
+    return (
+      accentNotes.length > 0 &&
+      accentNotes.every(
+        (n) =>
+          n.techniques.find((t) => t.type === GuitarTechniqueType.Accent)
+            ?.accentOptions?.kind === kind
+      )
+    );
+  }
+
+  /**
+   * Returns the settings that toggle an accent of one kind on the notes.
+   * When every note already has that kind, the result has no options, so
+   * applying it removes the accents. Otherwise it sets that kind on them,
+   * which also switches the other kind directly.
+   */
+  public static getAccentToggleOptions(
+    notes: Note[],
+    kind: AccentType
+  ): SetTechniqueOptions {
+    if (this.isAccentOfKind(notes, kind)) {
+      return {};
+    }
+    return { accentOptions: new AccentOptions({ kind }) };
   }
 
   /**

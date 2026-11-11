@@ -2,6 +2,8 @@ import { TrackController as BaseTrackController } from "../../../src/notation/co
 import { ScorePlayer } from "../../../src/player";
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
+  AccentType,
+  AccentOptions,
   BarRepeatStatus,
   BeatGuitarTechniqueType,
   BendTechniqueOptions,
@@ -25,6 +27,7 @@ import {
   StrokeOptions,
   TrackInstrumentChangeMode,
   VoiceBar,
+  deserializeScore,
   serializeScore,
 } from "../../../src/notation/model";
 import { SelectedMoveDirection } from "../../../src/notation/controller/selection/selection-cursor";
@@ -221,6 +224,38 @@ class TrackController extends BaseTrackController {
 }
 
 describe("TrackController", () => {
+  test("a dead note drops pitch-only techniques, saves and loads, and undo restores them", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.setSelectedNoteFret(5);
+    const note = required(controller.selectionCursor?.note) as GuitarNote;
+    note.setTechnique(GuitarTechniqueType.Tap);
+    note.setTechnique(GuitarTechniqueType.Vibrato);
+    note.setTechnique(
+      GuitarTechniqueType.Accent,
+      new AccentOptions({ kind: AccentType.Heavy })
+    );
+    note.setTechnique(GuitarTechniqueType.PalmMute);
+
+    controller.setSelectedNoteFret(-1);
+
+    expect(note.techniques.map((t) => t.type).sort()).toEqual(
+      [GuitarTechniqueType.Accent, GuitarTechniqueType.PalmMute].sort()
+    );
+    const saved = serializeScore(track.score);
+    expect(serializeScore(deserializeScore(saved))).toEqual(saved);
+    controller.undo();
+    const restored = required(controller.selectionCursor?.note);
+    expect(restored.techniques.map((t) => t.type).sort()).toEqual(
+      [
+        GuitarTechniqueType.Tap,
+        GuitarTechniqueType.Vibrato,
+        GuitarTechniqueType.Accent,
+        GuitarTechniqueType.PalmMute,
+      ].sort()
+    );
+  });
+
   test("explicit dot removal clears both dots and preserves selection through undo", () => {
     const { track } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);

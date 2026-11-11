@@ -1,7 +1,8 @@
 import { randomInt } from "../../shared";
 import { Beat } from "./beat";
 import { TrackContext } from "./track-context";
-import { GuitarTechnique } from "./guitar-technique";
+import { GuitarTechnique, GuitarTechniqueOptions } from "./guitar-technique";
+import { AccentOptions } from "./accent-options";
 import { Guitar } from "./instrument/guitar";
 import {
   NoteValue,
@@ -13,7 +14,9 @@ import {
 } from "./note";
 import { GuitarTechniqueType } from "./technique-type";
 import {
+  ATTACK_TECHNIQUES,
   BEND_TYPE_INCOMPATIBILITY,
+  TECHNIQUE_ALLOWED_ON_DEAD_NOTES,
   TECHNIQUE_ALLOWED_ON_EMPTY_NOTES,
   TRANSITIONAL_TECHNIQUES,
 } from "./guitar-technique-lists";
@@ -22,7 +25,6 @@ import {
   guitarTechniqueTypesIncompatible,
   isBendValidForContinuation,
 } from "./guitar-technique-validation";
-import { BendTechniqueOptions } from "./bend-options";
 import { BendType } from "./bend-type";
 
 /**
@@ -135,7 +137,7 @@ export class GuitarNote implements Note<Guitar> {
 
   /**
    * Computes fret from pitch and string tuning, clamping above the fretboard maximum without changing stored pitch.
-   * Empty pitch keeps only Let Ring and sets a null fret; dead pitch removes Let Ring and sets fret -1.
+   * Empty pitch keeps only Let Ring and sets a null fret; dead pitch keeps only dead-note techniques and sets fret -1.
    * @throws If playable pitch/tuning has a null octave, tuning is missing, or the calculated fret is below zero.
    * @param invalidateTies Whether to remove ties invalidated by the new fret.
    */
@@ -152,7 +154,7 @@ export class GuitarNote implements Note<Guitar> {
 
     if (this._noteValue === NoteValue.Dead) {
       this._fret = -1;
-      this.removeTechnique(GuitarTechniqueType.LetRing);
+      this.keepDeadNoteTechniques();
       if (invalidateTies) {
         this.invalidateTies(oldFret);
       }
@@ -308,16 +310,20 @@ export class GuitarNote implements Note<Guitar> {
 
   /**
    * Applies, updates, or removes a technique on this note.
-   * Existing techniques toggle off, except bends with options, which update in place.
+   * Existing techniques toggle off, except bends and accents with options, which update in place.
    * @returns True if changed; false if inapplicable, incompatible, or unchanged.
    * @throws If options do not match the technique. Transition lookup can also throw if this note's beat is a rest.
    */
   public setTechnique(
     type: GuitarTechniqueType,
-    bendOptions: BendTechniqueOptions | null = null
+    options: GuitarTechniqueOptions | null = null
   ): boolean {
     const existingTechnique = this._techniques.find((t) => t.type === type);
     if (existingTechnique !== undefined) {
+      if (options instanceof AccentOptions) {
+        return existingTechnique.replaceAccentOptions(options);
+      }
+      const bendOptions = options;
       if (
         existingTechnique.type === GuitarTechniqueType.Bend &&
         bendOptions !== null
@@ -338,7 +344,7 @@ export class GuitarNote implements Note<Guitar> {
       return this.removeTechnique(type);
     }
 
-    return this.addTechnique(new GuitarTechnique(this, type, bendOptions));
+    return this.addTechnique(new GuitarTechnique(this, type, options));
   }
 
   /**
@@ -416,6 +422,13 @@ export class GuitarNote implements Note<Guitar> {
     );
   }
 
+  /** Removes techniques that need a pitch when the note becomes dead. */
+  private keepDeadNoteTechniques(): void {
+    this._techniques = this._techniques.filter(
+      (t) => TECHNIQUE_ALLOWED_ON_DEAD_NOTES[t.type]
+    );
+  }
+
   /**
    * Sorts the live technique array in descending technique-type order.
    */
@@ -445,16 +458,15 @@ export class GuitarNote implements Note<Guitar> {
       return TECHNIQUE_ALLOWED_ON_EMPTY_NOTES[type] && !someIncompatible;
     }
 
-    if (type === GuitarTechniqueType.PalmMute) {
-      return this._fret !== null && !someIncompatible;
-    }
-
-    if (type === GuitarTechniqueType.LetRing) {
-      return this._fret >= 0 && !someIncompatible;
+    if (
+      ATTACK_TECHNIQUES.has(type) &&
+      this.hasTechnique(GuitarTechniqueType.Tie)
+    ) {
+      return false;
     }
 
     if (this._fret === -1) {
-      return false;
+      return TECHNIQUE_ALLOWED_ON_DEAD_NOTES[type] && !someIncompatible;
     }
 
     if (type === GuitarTechniqueType.Slide && this._fret === 0) {
@@ -559,7 +571,7 @@ export class GuitarNote implements Note<Guitar> {
       this.invalidateTies(oldFret);
     }
     if (this._fret === -1) {
-      this.removeTechnique(GuitarTechniqueType.LetRing);
+      this.keepDeadNoteTechniques();
     }
   }
 
