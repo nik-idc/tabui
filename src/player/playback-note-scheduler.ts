@@ -1,6 +1,7 @@
 import { AccentType } from "../notation/model/accent-options";
 import { BendTechniqueOptions } from "../notation/model/bend-options";
 import { BendType } from "../notation/model/bend-type";
+import { Dynamic } from "../notation/model/dynamic";
 import { GuitarNote } from "../notation/model/guitar-note";
 import { GuitarTechnique } from "../notation/model/guitar-technique";
 import { GuitarTechniqueType } from "../notation/model/technique-type";
@@ -73,6 +74,27 @@ const repeatedNoteGainMultiplier = 0.92;
 const accentGainMultiplier = 1.3;
 /** Makes heavily accented attacks louder than accented notes. */
 const heavyAccentGainMultiplier = 1.6;
+/**
+ * Peak gain multiplier of each beat dynamic, relative to mf. Soft levels are
+ * spread wider than loud ones (ppp is about -10 dB, fff about +4 dB), so loud
+ * beats keep headroom for accents.
+ */
+const dynamicGainMultipliers: Record<Dynamic, number> = {
+  [Dynamic.Pianississimo]: 0.3,
+  [Dynamic.Pianissimo]: 0.42,
+  [Dynamic.Piano]: 0.56,
+  [Dynamic.MezzoPiano]: 0.75,
+  [Dynamic.MezzoForte]: 1,
+  [Dynamic.Forte]: 1.2,
+  [Dynamic.Fortissimo]: 1.38,
+  [Dynamic.Fortississimo]: 1.55,
+};
+/**
+ * Highest envelope peak of one note. Sources reach at most full scale, and track
+ * and master volumes are at most 1, so one note cannot clip; the limit leaves a
+ * small safety margin. Only the loudest dynamics with accents can reach it.
+ */
+export const MAX_NOTE_PEAK_GAIN = 0.9;
 /** Allows floating-point timing drift when comparing a tie with the playback boundary. */
 const continuationTimingToleranceSeconds = 1e-9;
 /** Dead-note noise is a short string strike rather than a pitched note. */
@@ -296,12 +318,13 @@ export class PlaybackNoteScheduler {
       intermediateNodes.push(shaperNode);
     }
     const gainNode = this._audioContext.createGain();
-    const peakGain =
+    const unlimitedPeakGain =
       notePeakGain *
       deadNoteGainMultiplier *
       toneProfile.deadNoteGainMultiplier *
       this.getContextGainMultiplier(note) *
-      this.getAccentGainMultiplier(note);
+      this.getAttackGainMultiplier(note);
+    const peakGain = Math.min(unlimitedPeakGain, MAX_NOTE_PEAK_GAIN);
     const attackEndTime = Math.min(
       startTime + deadNoteAttackSeconds * toneProfile.attackMultiplier,
       effectiveStopTime
@@ -362,6 +385,14 @@ export class PlaybackNoteScheduler {
     }
 
     return multiplier;
+  }
+
+  /** Returns the attack loudness of a note: its beat's dynamic times its accent. */
+  private getAttackGainMultiplier(note: Note): number {
+    return (
+      dynamicGainMultipliers[note.beat.dynamic] *
+      this.getAccentGainMultiplier(note)
+    );
   }
 
   /** Returns the gain boost of an accented or heavily accented note. */
@@ -633,22 +664,37 @@ export class PlaybackNoteScheduler {
     }
   }
 
-  /** Resolves note envelope settings affected by guitar techniques. */
+  /** Resolves note envelope settings, limiting the peak to MAX_NOTE_PEAK_GAIN. */
   private getTechniqueEnvelopeSettings(
+    note: Note,
+    stopTime: number,
+    startTime: number
+  ): TechniqueEnvelopeSettings {
+    const settings = this.getUnlimitedEnvelopeSettings(
+      note,
+      stopTime,
+      startTime
+    );
+    settings.peakGain = Math.min(settings.peakGain, MAX_NOTE_PEAK_GAIN);
+    return settings;
+  }
+
+  /** Resolves note envelope settings affected by guitar techniques. */
+  private getUnlimitedEnvelopeSettings(
     note: Note,
     stopTime: number,
     startTime: number
   ): TechniqueEnvelopeSettings {
     const profile = this.getToneProfile(note);
     // Legato and harmonics replace the peak gain, so they apply it again.
-    const accentGain = this.getAccentGainMultiplier(note);
+    const attackGain = this.getAttackGainMultiplier(note);
     const settings: TechniqueEnvelopeSettings = {
       attackSeconds: attackSeconds * profile.attackMultiplier,
       peakGain:
         notePeakGain *
         profile.gainMultiplier *
         this.getContextGainMultiplier(note) *
-        accentGain,
+        attackGain,
       releaseSeconds: releaseSeconds * profile.releaseMultiplier,
       stopTime,
     };
@@ -666,14 +712,14 @@ export class PlaybackNoteScheduler {
 
     if (note.hasTechnique(GuitarTechniqueType.Legato)) {
       settings.attackSeconds = hammerOnPullOffAttackSeconds;
-      settings.peakGain = hammerOnPullOffGain * accentGain;
+      settings.peakGain = hammerOnPullOffGain * attackGain;
     }
 
     const hasHarmonic =
       note.hasTechnique(GuitarTechniqueType.NaturalHarmonic) ||
       note.hasTechnique(GuitarTechniqueType.PinchHarmonic);
     if (hasHarmonic) {
-      settings.peakGain = harmonicGain * accentGain;
+      settings.peakGain = harmonicGain * attackGain;
     }
 
     if (note.hasTechnique(GuitarTechniqueType.Slide)) {

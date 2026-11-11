@@ -22,6 +22,7 @@ export * from "./notation/model/beat-technique-type";
 export * from "./notation/model/bend-options";
 export { BendType } from "./notation/model/bend-type";
 export * from "./notation/model/clef-type";
+export * from "./notation/model/dynamic";
 export * from "./notation/model/editor";
 export * from "./notation/model/guitar-note";
 export * from "./notation/model/guitar-technique";

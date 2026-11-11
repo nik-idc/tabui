@@ -10,6 +10,18 @@ type NoteDurationButtons = readonly [
   HTMLButtonElement, // Sixty-fourth
 ];
 
+/** One button per dynamic, from ppp to fff. */
+type DynamicButtons = readonly [
+  HTMLButtonElement, // ppp
+  HTMLButtonElement, // pp
+  HTMLButtonElement, // p
+  HTMLButtonElement, // mp
+  HTMLButtonElement, // mf
+  HTMLButtonElement, // f
+  HTMLButtonElement, // ff
+  HTMLButtonElement, // fff
+];
+
 type VoiceButtons = readonly [
   HTMLButtonElement,
   HTMLButtonElement,
@@ -19,7 +31,7 @@ type VoiceButtons = readonly [
 
 /**
  * Class defining the template of note controls:
- * Duration change, Tuplets and Dots
+ * Duration change, Tuplets, Dots and Dynamics
  */
 export class NoteControlsTemplate {
   readonly container: HTMLDivElement = createDiv();
@@ -60,4 +72,17 @@ export class NoteControlsTemplate {
   readonly tuplet2Button: HTMLButtonElement = createButton();
   readonly tuplet3Button: HTMLButtonElement = createButton();
   readonly tupletButton: HTMLButtonElement = createButton();
+  /** Grid below the tuplet buttons that holds the dynamic buttons. */
+  readonly dynamicGrid: HTMLDivElement = createDiv();
+  /** Buttons that set a dynamic on the selected beats, in DYNAMICS order. */
+  readonly dynamicButtons: DynamicButtons = [
+    createButton(), // ppp
+    createButton(), // pp
+    createButton(), // p
+    createButton(), // mp
+    createButton(), // mf
+    createButton(), // f
+    createButton(), // ff
+    createButton(), // fff
+  ];
 }

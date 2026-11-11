@@ -3,6 +3,7 @@ import { Beat } from "../../beat";
 import { BeatGuitarTechnique } from "../../beat-guitar-technique";
 import { beatGuitarTechniquesIncompatible } from "../../beat-guitar-technique-lists";
 import { BeatGuitarTechniqueType } from "../../beat-technique-type";
+import { DEFAULT_DYNAMIC } from "../../dynamic";
 import {
   MAX_STROKE_DURATION,
   MIN_STROKE_DURATION,
@@ -43,11 +44,13 @@ import {
 import { SerializedValueReader } from "../serialized-value-reader";
 import {
   SERIALIZED_ACCENT_KINDS,
+  SERIALIZED_DYNAMICS,
   SERIALIZED_NOTE_DURATIONS,
   SERIALIZED_STROKE_DIRECTIONS,
   readAccentKind,
   readBeatDots,
   readBeatTechniqueType,
+  readDynamic,
   readStrokeDirection,
   readBendType,
   readNoteDuration,
@@ -606,6 +609,18 @@ function serializeBeatStructure(
   if (techniques !== undefined) {
     serialized.techniques = techniques;
   }
+  if (
+    !Object.prototype.hasOwnProperty.call(SERIALIZED_DYNAMICS, beat.dynamic)
+  ) {
+    throw new ScoreSerializationError(
+      propertyPath(path, "dynamic"),
+      "unsupported dynamic"
+    );
+  }
+  // mf is the default, so it is not written.
+  if (beat.dynamic !== DEFAULT_DYNAMIC) {
+    serialized.dynamic = SERIALIZED_DYNAMICS[beat.dynamic];
+  }
   return serialized;
 }
 
@@ -951,6 +966,8 @@ function restoreBeatTechniques(
 
 /** Beat keys that every v1 beat must have. */
 const REQUIRED_BEAT_KEYS = ["notes", "duration", "dots", "tuplet"] as const;
+/** Beat keys that v1 writes only when they differ from their default. */
+const OPTIONAL_BEAT_KEYS = ["techniques", "dynamic"] as const;
 
 /**
  * Reconstructs a detached beat, its rest or sparse note slots, and its beat
@@ -960,18 +977,20 @@ function deserializeBeat(
   reader: SerializedValueReader,
   voiceBar: VoiceBar<Guitar>
 ): { beat: Beat<Guitar>; deferredTechniques: DeferredNoteTechniques[] } {
-  // Older v1 data has no `techniques` key, so it is accepted only when present.
+  // `techniques` and `dynamic` are optional, so each is accepted only when present.
   const object = reader.readObject();
-  const hasTechniques = Object.prototype.hasOwnProperty.call(
-    object,
-    "techniques"
+  const optionalKeys = OPTIONAL_BEAT_KEYS.filter((key) =>
+    Object.prototype.hasOwnProperty.call(object, key)
   );
-  reader.expectKeys(
-    hasTechniques ? [...REQUIRED_BEAT_KEYS, "techniques"] : REQUIRED_BEAT_KEYS
-  );
+  reader.expectKeys([...REQUIRED_BEAT_KEYS, ...optionalKeys]);
   const duration = readNoteDuration(reader.property("duration"));
   const dots = readBeatDots(reader.property("dots"));
   const tuplet = deserializeTuplet(reader.property("tuplet"));
+  const dynamicReader = reader.property("dynamic");
+  const dynamic =
+    dynamicReader.rawValue() === undefined
+      ? DEFAULT_DYNAMIC
+      : readDynamic(dynamicReader);
   const beat = reader.runModelOperation(
     () =>
       new Beat<Guitar>(
@@ -980,7 +999,8 @@ function deserializeBeat(
         [],
         duration,
         dots,
-        tuplet
+        tuplet,
+        dynamic
       )
   );
   const deferredTechniques = restoreBeatNotes(

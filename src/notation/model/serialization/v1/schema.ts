@@ -66,6 +66,18 @@ export enum SerializedStrokeDirection {
   Up = "up",
 }
 
+/** Wire tokens for beat dynamics, independent from the model enum. */
+export enum SerializedDynamic {
+  Pianississimo = "ppp",
+  Pianissimo = "pp",
+  Piano = "p",
+  MezzoPiano = "mp",
+  MezzoForte = "mf",
+  Forte = "f",
+  Fortissimo = "ff",
+  Fortississimo = "fff",
+}
+
 /** Wire tokens for staff clefs, frozen independently from the model enum. */
 export enum SerializedClefType {
   Treble = "Treble",
@@ -325,6 +337,8 @@ export type SerializedBeatTechnique = SerializedStrokeTechnique;
  * A note array must match the instrument string count; dots are 0, 1, or 2.
  * `techniques` is written only when non-empty, may be missing in older data,
  * must be unique and compatible, and is not allowed on a rest.
+ * `dynamic` is written only when it is not `mf`; a missing key means `mf`.
+ * Rests can have a dynamic too.
  */
 export type SerializedBeat = {
   notes: SerializedNoteSlot[] | null;
@@ -332,6 +346,7 @@ export type SerializedBeat = {
   dots: number;
   tuplet: SerializedTuplet | null;
   techniques?: SerializedBeatTechnique[];
+  dynamic?: SerializedDynamic;
 };
 
 /** A ratio where normalCount notes occupy tupletCount written units (3:2 for triplets); both are integers in 1–256. */

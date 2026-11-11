@@ -11,6 +11,8 @@ import {
   StrokeDirection,
   AccentType,
   NoteDuration,
+  Dynamic,
+  DynamicDirection,
   BarRepeatStatusChange,
   TechniqueType,
   VoiceNumber,
@@ -582,6 +584,28 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.setDuration(newDuration);
+  }
+
+  /**
+   * Sets one dynamic on the selected beats, rests included.
+   * @returns True if any beat changed.
+   */
+  public setDynamic(dynamic: Dynamic): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setSelectedDynamic(dynamic);
+  }
+
+  /**
+   * Moves each selected beat's own dynamic one level, staying at ppp and fff.
+   * @returns True if any beat changed.
+   */
+  public shiftSelectedDynamics(direction: DynamicDirection): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.shiftSelectedDynamics(direction);
   }
 
   public setSelectedBeatRest(): void {

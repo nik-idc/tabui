@@ -15,6 +15,7 @@ import {
   StrokeDirection,
   StrokeOptions,
 } from "../stroke-options";
+import { Dynamic, DynamicDirection, shiftDynamic } from "../dynamic";
 import { GuitarNote } from "../guitar-note";
 import { MusicInstrument } from "../instrument/instrument";
 import { type MasterBarData } from "../master-bar";
@@ -77,12 +78,14 @@ export type BeatRestoreSnapshot<I extends MusicInstrument = MusicInstrument> = {
   beat: Beat<I>;
 };
 
-/** Fixed note and beat technique content addressed by voice and position, so history can replace beat objects. */
+/** Fixed note, beat technique, and dynamic content addressed by voice and position, so history can replace beat objects. */
 export type BeatSnapshot = BeatPosition & {
   /** Saved slot content, or null for an explicit rest. */
   notes: Note[] | null;
   /** Saved beat techniques; always empty for a rest. */
   beatTechniques: BeatGuitarTechnique[];
+  /** Saved dynamic; rests have one too. */
+  dynamic: Dynamic;
 };
 
 /** Saved bar content and the original voice bars needed for undo and redo. */
@@ -206,18 +209,19 @@ export class ScoreEditor {
     return this.getNoteEditBeats(beats);
   }
 
-  /** Saves fixed note content and beat techniques at positions that survive later beat replacement during history. */
+  /** Saves fixed note content, beat techniques, and dynamics at positions that survive later beat replacement during history. */
   public static snapshotBeatNotes(beats: Beat[]): BeatSnapshot[] {
     return beats.map((b) => ({
       voiceBar: b.voiceBar,
       index: b.voiceBar.beats.indexOf(b),
       notes: b.notes?.map((n) => n.deepCopy(b)) ?? null,
       beatTechniques: b.beatTechniques.map((t) => t.deepCopy(b)),
+      dynamic: b.dynamic,
     }));
   }
 
   /**
-   * Restores rests first, then fixed slot content, then beat techniques, without repeating dependency discovery.
+   * Restores rests first, then fixed slot content, then dynamics and beat techniques, without repeating dependency discovery.
    * @throws If a saved beat technique cannot be added to its restored beat.
    */
   public static restoreBeatSnapshots(snapshots: BeatSnapshot[]): void {
@@ -242,6 +246,7 @@ export class ScoreEditor {
     // Notes come first because a rest cannot hold beat techniques.
     for (const [i, snapshot] of snapshots.entries()) {
       const beat = beats[i];
+      beat.dynamic = snapshot.dynamic;
       beat.clearBeatTechniques();
       for (const technique of snapshot.beatTechniques) {
         if (!beat.addBeatTechnique(technique.deepCopy(beat))) {
@@ -748,6 +753,48 @@ export class ScoreEditor {
         throw Error(`Unknown beat technique type: ${unknownType}`);
       }
     }
+  }
+
+  // Dynamics
+
+  /** Returns true when every beat already has the dynamic. */
+  public static allBeatsHaveDynamic(beats: Beat[], dynamic: Dynamic): boolean {
+    return beats.every((b) => b.dynamic === dynamic);
+  }
+
+  /**
+   * Sets one dynamic on every beat, rests included.
+   * @returns True if any beat changed.
+   */
+  public static setDynamic(beats: Beat[], dynamic: Dynamic): boolean {
+    const isChanged = !this.allBeatsHaveDynamic(beats, dynamic);
+    for (const beat of beats) {
+      beat.dynamic = dynamic;
+    }
+    return isChanged;
+  }
+
+  /** Reports whether a shift would change any beat, so a shift at ppp or fff can skip history. */
+  public static canShiftDynamics(
+    beats: Beat[],
+    direction: DynamicDirection
+  ): boolean {
+    return beats.some((b) => b.dynamic !== shiftDynamic(b.dynamic, direction));
+  }
+
+  /**
+   * Moves each beat one level from its own dynamic, staying at ppp and fff.
+   * @returns True if any beat changed.
+   */
+  public static shiftDynamics(
+    beats: Beat[],
+    direction: DynamicDirection
+  ): boolean {
+    const isChanged = this.canShiftDynamics(beats, direction);
+    for (const beat of new Set(beats)) {
+      beat.dynamic = shiftDynamic(beat.dynamic, direction);
+    }
+    return isChanged;
   }
 
   /** Applies a prepared plan without searching again; save affected beats before this model boundary. */

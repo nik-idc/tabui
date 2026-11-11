@@ -95,6 +95,8 @@ These actions require edit mode and stopped playback.
 | .         | Cycle duration dots: none → one → two → none.                                                                                  |
 | T         | Cycle tuplets: none → duplet → triplet → none. A custom tuplet returns to none.                                                |
 | Shift+T   | Open tuplet settings.                                                                                                          |
+| >         | Make each selected beat's dynamic one level louder, up to `fff`.                                                               |
+| <         | Make each selected beat's dynamic one level softer, down to `ppp`.                                                             |
 
 Duration steps run from sixty-fourth to whole notes. For a range, duration, dots,
 and tuplet cycling use the active-end beat as the reference and apply the result
@@ -103,7 +105,9 @@ single note cursor.
 Backspace does not clear a beat range.
 
 The `+` shortcut accepts either Shift state because some keyboard layouts need
-Shift to produce it. The `=` shortcut is unshifted.
+Shift to produce it. The `=` shortcut is unshifted. The `<` and `>` shortcuts
+also accept either Shift state. Each selected beat, rests included, steps from
+its own dynamic. See [Dynamics](usage.md#dynamics).
 
 ## Beats and bars
 

@@ -5,6 +5,7 @@ import {
   BeatGuitarTechniqueType,
   BendType,
   DURATION_TO_DESC,
+  DYNAMIC_NAMES,
   Guitar,
   GuitarNote,
   GuitarTechnique,
@@ -14,7 +15,8 @@ import {
 import { SelectionCursor } from "../controller";
 import { describeStroke } from "./stroke-description";
 
-interface NotationSelectionSource {
+/** Selection state read by the announcement formatters. */
+export interface NotationSelectionSource {
   readonly selectionCursor: SelectionCursor | undefined;
   readonly selectionAsBeats: Beat[];
   readonly selectionEndBeat: Beat | undefined;
@@ -121,6 +123,35 @@ function formatBeatTechniques(beat: Beat): string {
   return beat.beatTechniques
     .map((t) => `, ${describeBeatTechnique(t.type, t.options)}`)
     .join("");
+}
+
+/**
+ * Names the beat's dynamic only where it changes from the previous beat in the
+ * voice (or from mf at the start), as printed music does.
+ */
+function formatDynamicChange(beat: Beat): string {
+  const index = beat.voiceBar.beats.indexOf(beat);
+  if (beat.dynamic === beat.voiceBar.getInheritedDynamic(index)) {
+    return "";
+  }
+  return `, ${DYNAMIC_NAMES[beat.dynamic].toLowerCase()}`;
+}
+
+/**
+ * Names the dynamic of the active beat (range end, cursor beat, or last selected
+ * beat) for a spoken confirmation after a dynamic edit.
+ */
+export function formatActiveDynamic(
+  source: NotationSelectionSource
+): string | undefined {
+  const beat =
+    source.selectionEndBeat ??
+    source.selectionCursor?.beat ??
+    source.selectionAsBeats.at(-1);
+  if (beat === undefined) {
+    return undefined;
+  }
+  return `Dynamic ${DYNAMIC_NAMES[beat.dynamic].toLowerCase()}`;
 }
 
 /** Formats duration and optional rhythm details. */
@@ -235,7 +266,8 @@ export function formatNotationSelection(
   const masterBar = bar.masterBar;
   const beatText =
     `Beat ${voiceBar.beats.indexOf(beat) + 1},` +
-    ` ${formatRhythm(beat)}${formatBeatTechniques(beat)},` +
+    ` ${formatRhythm(beat)}${formatDynamicChange(beat)}` +
+    `${formatBeatTechniques(beat)},` +
     ` ${formatNoteSlot(current)}`;
   const voiceText = `Voice ${voiceNumber}, ${beatText}`;
   const barPrefix =

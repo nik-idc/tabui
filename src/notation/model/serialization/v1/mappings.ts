@@ -4,6 +4,7 @@ import { BeatGuitarTechniqueType } from "../../beat-technique-type";
 import { StrokeDirection } from "../../stroke-options";
 import { BendType } from "../../bend-type";
 import { ClefType } from "../../clef-type";
+import { Dynamic } from "../../dynamic";
 import { GuitarTechniqueType } from "../../technique-type";
 import { NoteDuration } from "../../note-duration";
 import { NoteValue } from "../../note";
@@ -21,6 +22,7 @@ import {
   SerializedBeatTechniqueType,
   SerializedBendType,
   SerializedClefType,
+  SerializedDynamic,
   SerializedInstrumentFamily,
   SerializedNoteDuration,
   SerializedPlayableNoteValue,
@@ -115,6 +117,30 @@ const STROKE_DIRECTION_BY_VALUE: Record<
 > = {
   [SerializedStrokeDirection.Down]: StrokeDirection.Down,
   [SerializedStrokeDirection.Up]: StrokeDirection.Up,
+};
+
+/** Stable v1 mapping from model dynamics to wire values. */
+export const SERIALIZED_DYNAMICS: Record<Dynamic, SerializedDynamic> = {
+  [Dynamic.Pianississimo]: SerializedDynamic.Pianississimo,
+  [Dynamic.Pianissimo]: SerializedDynamic.Pianissimo,
+  [Dynamic.Piano]: SerializedDynamic.Piano,
+  [Dynamic.MezzoPiano]: SerializedDynamic.MezzoPiano,
+  [Dynamic.MezzoForte]: SerializedDynamic.MezzoForte,
+  [Dynamic.Forte]: SerializedDynamic.Forte,
+  [Dynamic.Fortissimo]: SerializedDynamic.Fortissimo,
+  [Dynamic.Fortississimo]: SerializedDynamic.Fortississimo,
+};
+
+/** Supported v1 wire values for validated dynamic reads. */
+const DYNAMIC_BY_VALUE: Record<SerializedDynamic, Dynamic> = {
+  [SerializedDynamic.Pianississimo]: Dynamic.Pianississimo,
+  [SerializedDynamic.Pianissimo]: Dynamic.Pianissimo,
+  [SerializedDynamic.Piano]: Dynamic.Piano,
+  [SerializedDynamic.MezzoPiano]: Dynamic.MezzoPiano,
+  [SerializedDynamic.MezzoForte]: Dynamic.MezzoForte,
+  [SerializedDynamic.Forte]: Dynamic.Forte,
+  [SerializedDynamic.Fortissimo]: Dynamic.Fortissimo,
+  [SerializedDynamic.Fortississimo]: Dynamic.Fortississimo,
 };
 
 /** Stable v1 mapping from model accent kinds to wire values. */
@@ -297,6 +323,11 @@ export function readStrokeDirection(
   reader: SerializedValueReader
 ): StrokeDirection {
   return reader.readEnumValue(STROKE_DIRECTION_BY_VALUE);
+}
+
+/** Reads and validates a v1 beat dynamic at the reader's current path. */
+export function readDynamic(reader: SerializedValueReader): Dynamic {
+  return reader.readEnumValue(DYNAMIC_BY_VALUE);
 }
 
 /** Reads and validates a v1 accent kind at the reader's current path. */

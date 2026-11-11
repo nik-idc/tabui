@@ -14,6 +14,7 @@ import {
   lcmAll,
 } from "./timing";
 import { Bar } from "./bar";
+import { DEFAULT_DYNAMIC, Dynamic } from "./dynamic";
 
 /** Beat-array edit metadata with live beat references. */
 export type BeatArrayOperationOutput<
@@ -465,7 +466,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   /**
    * Inserts a beat copy and rebuilds timing and beaming.
    * @param index Zero-based insertion position, from zero through the beat count.
-   * @param beat Content to copy; omitted creates a quarter-duration beat with empty note slots.
+   * @param beat Content to copy; omitted creates a quarter-duration beat with empty note slots and the inherited dynamic.
    * @returns Live inserted copy and its insertion index.
    * @throws If the index is outside the voice, copying fails, or timing/bookkeeping fails.
    */
@@ -474,17 +475,49 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     beat?: Beat<I>
   ): BeatArrayOperationOutput<I> {
     if (beat === undefined) {
-      beat = new Beat<I>(this, this.trackContext);
+      beat = this.createDefaultBeat(index, true);
     }
     const insertedBeats = this.insertBeats(index, [beat]);
 
     return { index: index, beats: insertedBeats };
   }
 
-  private createDefaultBeat(index: number): Beat<I> {
+  /**
+   * Creates a detached default beat for an index in this voice. All new default
+   * beats come from here, so each one takes the inherited dynamic.
+   * @param index Zero-based position the beat will take.
+   * @param hasNotes True for a quarter beat with empty note slots; false for a
+   *   rest with the previous beat's written duration (quarter at index zero).
+   */
+  public createDefaultBeat(index: number, hasNotes: boolean = false): Beat<I> {
+    const previous = index > 0 ? this.beats[index - 1] : undefined;
     const duration =
-      index === 0 ? NoteDuration.Quarter : this.beats[index - 1].baseDuration;
-    return new Beat(this, this.trackContext, null, duration);
+      hasNotes || previous === undefined
+        ? NoteDuration.Quarter
+        : previous.baseDuration;
+    return new Beat<I>(
+      this,
+      this.trackContext,
+      hasNotes ? [] : null,
+      duration,
+      0,
+      null,
+      this.getInheritedDynamic(index)
+    );
+  }
+
+  /**
+   * Returns the dynamic a new beat at this index takes: the one of the previous
+   * beat in this voice, also in earlier bars of the staff, or mf if there is none.
+   * @param index Zero-based insertion position in this voice.
+   */
+  public getInheritedDynamic(index: number): Dynamic {
+    // The constructor creates its default rest before `beats` is assigned.
+    const previous =
+      index > 0
+        ? this.beats[index - 1]
+        : this.bar.staff.getLastBeatBefore(this.bar, this.voiceNumber);
+    return previous?.dynamic ?? DEFAULT_DYNAMIC;
   }
 
   /**

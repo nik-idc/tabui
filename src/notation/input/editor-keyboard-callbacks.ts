@@ -2,6 +2,7 @@ import {
   AccentType,
   BarRepeatStatus,
   BeatGuitarTechniqueType,
+  DynamicDirection,
   GuitarNote,
   GuitarTechniqueType,
   Note,
@@ -82,6 +83,10 @@ export enum EditorKey {
 
   /** No Ctrl; accepts either Shift state for keyboard-layout differences. */
   LengthenDuration = "+",
+  /** One dynamic level louder ("greater"). No Ctrl; either Shift state. */
+  LouderDynamic = ">",
+  /** One dynamic level softer ("less"). No Ctrl; either Shift state. */
+  SofterDynamic = "<",
 
   // No modifiers: move cursor. Horizontal arrows also accept Ctrl (by bar),
   // Shift (extend by beat), or Ctrl+Shift (extend by bar).
@@ -268,6 +273,24 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     );
     this._notationComponent.trackController.setDuration(durations[nextIndex]);
     this._renderFunc();
+  }
+
+  /**
+   * Shifts each selected beat's own dynamic one level, stopping at ppp and fff,
+   * then speaks the active beat's dynamic.
+   * @returns False when there is no selected beat, so the key is not used.
+   */
+  public shiftDynamicEvent(direction: DynamicDirection): boolean {
+    const controller = this._notationComponent.trackController;
+    if (controller.selectionAsBeats.length === 0) {
+      return false;
+    }
+
+    controller.shiftSelectedDynamics(direction);
+    this._renderFunc();
+    // At ppp or fff nothing changes; speaking the level still confirms the key.
+    this._uiComponent.sideComponent.noteControlsComponent.announceDynamic();
+    return true;
   }
 
   /** Cycles dots on the selected beats, using the active-end beat as reference. */
@@ -697,8 +720,16 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     const lengthen =
       key === EditorKey.LengthenDuration ||
       (key === EditorKey.LengthenDurationAlternate && !shiftKey);
+    const isDynamicShift =
+      key === EditorKey.LouderDynamic || key === EditorKey.SofterDynamic;
     if (!ctrlKey && lengthen) {
       this.changeDurationEvent(true);
+    } else if (!ctrlKey && isDynamicShift) {
+      return this.shiftDynamicEvent(
+        key === EditorKey.LouderDynamic
+          ? DynamicDirection.Louder
+          : DynamicDirection.Softer
+      );
     } else if (ctrlKey && shiftKey) {
       if (key !== EditorKey.Undo) {
         return false;

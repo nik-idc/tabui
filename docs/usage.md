@@ -22,6 +22,7 @@ For installation and a minimal example, see the [README](../README.md).
   - [Mouse, touch, and pen input](#mouse-touch-and-pen-input)
 - [Ties and Let Ring](#ties-and-let-ring)
 - [Strokes](#strokes)
+- [Dynamics](#dynamics)
 - [Accessibility](#accessibility)
   - [Keyboard navigation](#keyboard-navigation)
   - [Screen-reader feedback](#screen-reader-feedback)
@@ -336,6 +337,26 @@ meaning and playback.
 The sliders work with the arrow keys, Page Up, Page Down, Home, and End. Screen
 readers hear the value as a note value or a timing, such as “16th note”.
 
+## Dynamics
+
+A dynamic tells how loud a beat is played, from `ppp` (very soft) to `fff`
+(very loud). Every beat has one, rests included. A new beat takes the dynamic
+of the beat before it in the same voice, also across bar lines. See
+[Beat dynamic](domain.md#beat-dynamic) for the rules.
+
+- The **Beat** section has eight dynamic buttons below the tuplet buttons.
+  A click sets that dynamic on the cursor's beat or on every selected beat.
+- A button shows as pressed when any selected beat has that dynamic. A
+  selection with mixed dynamics shows more than one pressed button.
+- **>** makes each selected beat one level louder, and **<** makes it one level
+  softer. Each beat changes from its own dynamic. The change stops at `fff`
+  and `ppp`.
+- After a button or shortcut, screen readers hear the new dynamic of the
+  active beat, such as “Dynamic forte”.
+
+Dynamics are not drawn in tab. They change playback loudness and are saved
+with the score.
+
 ## Accessibility
 
 TabUI aims to make tablature navigation and editing usable by blind and
@@ -386,6 +407,8 @@ action, these describe:
 
 - The active track, staff, voice, bar, time signature, and tempo.
 - The selected beat, duration, stroke, string, fret or rest, and techniques.
+- The beat's dynamic, on the beat where it changes. After you change a
+  dynamic, the new dynamic of the active beat.
 - Changes to a selected beat range.
 - Changes made through controls such as tempo, repeat count, and string tuning.
 

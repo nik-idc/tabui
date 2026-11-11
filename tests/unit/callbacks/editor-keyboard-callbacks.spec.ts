@@ -4,6 +4,7 @@ import {
   AccentType,
   BeatGuitarTechniqueType,
   DEFAULT_MASTER_BAR,
+  Dynamic,
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
@@ -124,7 +125,10 @@ function createHarness(rootElement: HTMLElement = createRootElement()) {
   } as any;
   const uiComponent = {
     sideComponent: {
-      noteControlsComponent: { showTupletControls: jest.fn() },
+      noteControlsComponent: {
+        showTupletControls: jest.fn(),
+        announceDynamic: jest.fn(),
+      },
       measureControlsComponent: {
         showRepeatCountControls: jest.fn(),
         showTempoControls: jest.fn(),
@@ -1662,6 +1666,33 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(press("d")).not.toHaveBeenCalled();
     expect(press("d", true)).not.toHaveBeenCalled();
     expect(direction()).toBeUndefined();
+  });
+
+  test("> and < shift the dynamic with either Shift state, then speak it", () => {
+    const { callbacks, uiComponent, notationComponent, rootElement } =
+      createHarness();
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    rootElement.focus();
+    const announceDynamic =
+      uiComponent.sideComponent.noteControlsComponent.announceDynamic;
+    const press = (key: string, options: KeyboardEventInit = {}) => {
+      const event = createKeyboardEvent(key, options);
+      callbacks.onKeyDown(event);
+      return event.preventDefault;
+    };
+
+    expect(press(">")).toHaveBeenCalledTimes(1);
+    expect(beats[0].dynamic).toBe(Dynamic.Forte);
+    expect(press("<", { shiftKey: true })).toHaveBeenCalledTimes(1);
+    expect(beats[0].dynamic).toBe(Dynamic.MezzoForte);
+    expect(announceDynamic).toHaveBeenCalledTimes(2);
+
+    expect(press(">", { ctrlKey: true })).not.toHaveBeenCalled();
+    expect(beats[0].dynamic).toBe(Dynamic.MezzoForte);
   });
 
   test("technique shortcuts respect selection and bend shortcut opens bend controls", () => {
