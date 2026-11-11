@@ -336,7 +336,7 @@ export class Bar<I extends MusicInstrument = MusicInstrument> {
         const created = this.insertVoiceBar(voiceNumberToKeep);
         inserted.push({ index: 0, beats: [...created.beats] });
       } else {
-        const rest = new Beat(keptVoiceBar, this.trackContext, null);
+        const rest = keptVoiceBar.createDefaultBeat(0);
         keptVoiceBar.beats.push(rest);
         keptVoiceBar.rebuildTiming();
         this.staff.recordVoiceBarAdded(keptVoiceBar);

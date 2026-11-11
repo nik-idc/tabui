@@ -782,6 +782,12 @@
       grid-template-columns: repeat(4, 2.4rem);
     }
 
+    .tu-dynamic-grid {
+      grid-template-columns: repeat(4, 2.4rem);
+      // With the section gap, this matches the button gap above.
+      margin-top: 0.1rem;
+    }
+
     img {
       width: 2.4rem;
       height: 2.4rem;

@@ -6,6 +6,8 @@ import {
   type SetBeatTechniqueOptions,
   StrokeDirection,
   NoteDuration,
+  Dynamic,
+  DynamicDirection,
   Bar,
   BarRepeatStatusChange,
   TechniqueType,
@@ -38,6 +40,9 @@ import {
   SetFretCommand,
   SetDotsCommand,
   SetDurationCommand,
+  SetDynamicCommand,
+  DynamicEditKind,
+  type DynamicEdit,
   SetTupletCommand,
   SetTempoCommand,
   SetTimeSigCommand,
@@ -611,6 +616,49 @@ export class TrackControllerEditor {
     }
 
     this.executeCommand(new SetDurationCommand(selection, newDuration));
+  }
+
+  /**
+   * Sets one dynamic on the selected beats, rests included.
+   * @returns True if any beat changed.
+   */
+  public setSelectedDynamic(dynamic: Dynamic): boolean {
+    const beats = this._selectionManager.selectionAsBeats;
+    const isUnchanged = ScoreEditor.allBeatsHaveDynamic(beats, dynamic);
+    if (!this.editingEnabled || isUnchanged) {
+      return false;
+    }
+    return this.executeDynamicEdit(beats, {
+      kind: DynamicEditKind.Set,
+      dynamic,
+    });
+  }
+
+  /**
+   * Moves each selected beat's own dynamic one level, staying at ppp and fff.
+   * @returns True if any beat changed.
+   */
+  public shiftSelectedDynamics(direction: DynamicDirection): boolean {
+    const beats = this._selectionManager.selectionAsBeats;
+    const canShift = ScoreEditor.canShiftDynamics(beats, direction);
+    if (!this.editingEnabled || !canShift) {
+      return false;
+    }
+    return this.executeDynamicEdit(beats, {
+      kind: DynamicEditKind.Shift,
+      direction,
+    });
+  }
+
+  /** Runs a dynamic edit as one undoable command. */
+  private executeDynamicEdit(beats: Beat[], edit: DynamicEdit): boolean {
+    const command = this.executeCommand(
+      new SetDynamicCommand(
+        beats.map((b) => ScoreEditor.getBeatPosition(b)),
+        edit
+      )
+    );
+    return command.executed;
   }
 
   public setSelectedBeatRest(): void {

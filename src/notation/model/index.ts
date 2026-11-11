@@ -10,6 +10,7 @@ export * from "./beat-technique-type";
 export * from "./bend-options";
 export * from "./bend-type";
 export * from "./clef-type";
+export * from "./dynamic";
 export * from "./editor";
 export * from "./guitar-note";
 export * from "./guitar-technique";

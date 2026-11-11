@@ -16,6 +16,7 @@ Score
       bars: Bar[]
         voiceBars: Record<VoiceNumber, VoiceBar | null>
           beats: Beat[]
+            dynamic: Dynamic
             beatTechniques: BeatTechnique[]
             notes: Note[] | null
               techniques: Technique[]
@@ -24,6 +25,7 @@ Score
 - `VoiceNumber` is `1 | 2 | 3 | 4`. Each voice slot can be `null`.
 - `Beat.notes === null` means the beat is a rest. A rest has no beat techniques.
 - `VoiceBar.isEmpty()` means `beats.length === 0`.
+- Every beat has a `dynamic`, rests included. See [Beat dynamic](#beat-dynamic).
 
 ## Display and playback
 
@@ -99,6 +101,20 @@ Beat techniques are a separate family from note techniques. They have their own
 types (`BeatTechnique`, `BeatGuitarTechniqueType`), options, and edit rules. Do
 not merge the two families or their enums: both are numeric enums, so one value
 would mean two techniques.
+
+### Beat dynamic
+
+How loud a beat is played: `ppp`, `pp`, `p`, `mp`, `mf`, `f`, `ff`, or `fff`.
+It is a plain beat property, not a beat technique and not a note technique.
+Every beat has one, rests included. The default is `mf`.
+
+A new beat takes the dynamic of the previous beat in the same voice. The search
+goes back across bar lines and skips bars where the voice is absent. If there
+is no previous beat, the new beat gets `mf`. Copies and pasted beats keep their
+own dynamic. Rests keep a dynamic, so the next new beat can take it.
+
+Dynamics are not drawn in tab. They change playback loudness. Screen readers
+name a dynamic on the beat where it changes, and after each dynamic edit.
 
 ### Note transition
 

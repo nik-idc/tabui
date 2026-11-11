@@ -12,6 +12,7 @@ export * from "./remove-beats-command";
 export * from "./replace-beats-command";
 export * from "./set-beat-technique-command";
 export * from "./set-dots-command";
+export * from "./set-dynamic-command";
 export * from "./set-duration-command";
 export * from "./set-fret-command";
 export * from "./set-note-command";

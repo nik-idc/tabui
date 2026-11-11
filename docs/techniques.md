@@ -174,7 +174,9 @@ a note, these marks are removed from the continuation.
 In tab, the mark shows above the beat, in one row. A beat shows one mark only.
 If one string has a normal accent and another has a heavy accent, the beat
 shows `^`. Playback makes each marked attack louder; see
-[Playback Architecture](playback.md) for the amounts.
+[Playback Architecture](playback.md) for the amounts. An Accent adds to the
+beat's [dynamic](domain.md#beat-dynamic): an accented note in a `p` beat is
+still softer than an accented note in an `f` beat.
 
 When a note becomes a dead note, it keeps only Palm Mute and Accent. Other
 marks, such as Tap or Vibrato, are removed.

@@ -8,6 +8,7 @@ export {
   SerializedBeatTechniqueType,
   SerializedBendType,
   SerializedClefType,
+  SerializedDynamic,
   SerializedInstrumentFamily,
   SerializedNoteDuration,
   SerializedPlayableNoteValue,

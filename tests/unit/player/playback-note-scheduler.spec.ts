@@ -5,6 +5,8 @@ import {
   BendType,
   BassGuitarTone,
   DEFAULT_TUNINGS,
+  DYNAMICS,
+  Dynamic,
   ElectricGuitarTone,
   Guitar,
   GuitarNote,
@@ -14,7 +16,10 @@ import {
   NoteValue,
   StringInstrumentType,
 } from "../../../src/notation/model";
-import { PlaybackNoteScheduler } from "../../../src/player/playback-note-scheduler";
+import {
+  MAX_NOTE_PEAK_GAIN,
+  PlaybackNoteScheduler,
+} from "../../../src/player/playback-note-scheduler";
 import { PlaybackSampleManager } from "../../../src/player/playback-sample-manager";
 import { createBarWithBeats } from "../model/helpers";
 import { createLoopWav } from "./wav-loop-fixture";
@@ -554,6 +559,52 @@ describe("PlaybackNoteScheduler", () => {
 
     expect(peaks[1]).toBeGreaterThan(peaks[0]);
     expect(peaks[2]).toBeGreaterThan(peaks[1]);
+  });
+
+  /** Schedules the first (downbeat) note with a dynamic and accent and returns its envelope peak. */
+  function dynamicPeak(dynamic: Dynamic, accent: AccentType | null): number {
+    const notes = notesAtFrets(5, 7);
+    notes[0].beat.dynamic = dynamic;
+    if (accent !== null) {
+      notes[0].setTechnique(
+        GuitarTechniqueType.Accent,
+        new AccentOptions({ kind: accent })
+      );
+    }
+    const audio = createAudioContext();
+    scheduler(audio.context).scheduleNote(notes[0], 1, 2, trackBus());
+    return audio.gains[0].gain.linearRampToValueAtTime.mock
+      .calls[0][0] as number;
+  }
+
+  test("each dynamic level is louder than the one below it", () => {
+    const peaks = DYNAMICS.map((d) => dynamicPeak(d, null));
+
+    for (let i = 1; i < peaks.length; i++) {
+      expect(peaks[i]).toBeGreaterThan(peaks[i - 1]);
+    }
+  });
+
+  test("the dynamic and the accent multiply the note gain", () => {
+    const mf = dynamicPeak(Dynamic.MezzoForte, null);
+    const accentGain = dynamicPeak(Dynamic.MezzoForte, AccentType.Normal) / mf;
+    const pianoGain = dynamicPeak(Dynamic.Piano, null) / mf;
+
+    expect(dynamicPeak(Dynamic.Piano, AccentType.Normal)).toBeCloseTo(
+      mf * pianoGain * accentGain,
+      10
+    );
+  });
+
+  test("the peak limit holds a loud downbeat at the limit instead of above it", () => {
+    // A clean downbeat with fff and a heavy accent is about 0.96 without the
+    // limit. Track and master volumes are at most 1, so the limit is the top level.
+    expect(dynamicPeak(Dynamic.Fortississimo, AccentType.Heavy)).toBe(
+      MAX_NOTE_PEAK_GAIN
+    );
+    expect(dynamicPeak(Dynamic.Fortissimo, AccentType.Heavy)).toBeLessThan(
+      MAX_NOTE_PEAK_GAIN
+    );
   });
 
   test("Palm Mute is local to marked attacks and does not mute later notes or other strings", () => {

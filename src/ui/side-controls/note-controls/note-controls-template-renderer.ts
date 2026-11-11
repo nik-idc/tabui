@@ -2,6 +2,11 @@ import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "../../../notation/notation-component";
 import type { ResolvedAssetConfig } from "../../../assets";
+import {
+  DYNAMIC_NAMES,
+  DYNAMIC_SYMBOLS,
+  DYNAMICS,
+} from "../../../notation/model";
 
 export class NoteControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -61,7 +66,16 @@ export class NoteControlsTemplateRenderer {
 
     this.template.beatSection.classList.add("tu-control-section");
     this.template.beatGrid.classList.add("tu-control-grid", "tu-beat-grid");
-    this.template.beatSection.append("Beat:", this.template.beatGrid);
+    this.template.dynamicGrid.classList.add(
+      "tu-control-grid",
+      "tu-dynamic-grid"
+    );
+    this.template.dynamicGrid.append(...this.template.dynamicButtons);
+    this.template.beatSection.append(
+      "Beat:",
+      this.template.beatGrid,
+      this.template.dynamicGrid
+    );
     this.template.beatGrid.append(
       this.template.restButton,
       this.template.insertBeatBeforeButton,
@@ -275,6 +289,32 @@ export class NoteControlsTemplateRenderer {
     this.template.tupletButton.setAttribute("aria-pressed", `${hasTuplet}`);
   }
 
+  /** Marks every dynamic that any selected beat has, like the duration buttons. */
+  private renderDynamicButtons(): void {
+    const selectedBeats =
+      this.notationComponent.trackController.selectionAsBeats;
+    const appliedCSSClass = "tu-applied-img";
+
+    for (const [i, dynamic] of DYNAMICS.entries()) {
+      const button = this.template.dynamicButtons[i];
+      const symbol = DYNAMIC_SYMBOLS[dynamic];
+      const label = DYNAMIC_NAMES[dynamic];
+      setImageAsset(
+        button,
+        this.assetsPath,
+        `img/ui/dynamic-${symbol}.svg`,
+        label,
+        { "data-dynamic": symbol }
+      );
+      // The shortcuts shift one level louder or softer, like +/− for durations.
+      setShortcutTooltip(button, label, ">/<");
+
+      const isApplied = selectedBeats.some((b) => b.dynamic === dynamic);
+      button.classList.toggle(appliedCSSClass, isApplied);
+      button.setAttribute("aria-pressed", `${isApplied}`);
+    }
+  }
+
   private renderBeatEditButtons(): void {
     setImageAsset(
       this.template.insertBeatBeforeButton,
@@ -358,7 +398,7 @@ export class NoteControlsTemplateRenderer {
 
   /**
    * Responsible for setting up the note controls:
-   * Duration change, Dots & Tuplets
+   * Duration change, Dots, Tuplets & Dynamics
    */
   public render(): void {
     this.renderDurationButtons();
@@ -367,6 +407,7 @@ export class NoteControlsTemplateRenderer {
     this.renderBeatEditButtons();
     this.renderFretButton();
     this.renderTupletButtons();
+    this.renderDynamicButtons();
 
     this._assembled = renderOnce(this._assembled, () =>
       this.assembleContainer()

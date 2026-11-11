@@ -2,7 +2,7 @@
 
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
-import { GuitarNote, NoteDuration } from "../../../src/notation/model";
+import { Dynamic, GuitarNote, NoteDuration } from "../../../src/notation/model";
 import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
 import { NoteControlsComponent } from "../../../src/ui/side-controls/note-controls/note-controls-component";
 import { NoteControlsDefaultCallbacks } from "../../../src/ui/side-controls/note-controls/note-controls-callbacks";
@@ -28,11 +28,12 @@ function createControls() {
     createTestLayoutDimensions()
   );
   const enforcer = new DialogEnforcer(dialogHost, () => {});
+  const announce = jest.fn<void, [string]>();
   const controls = new NoteControlsComponent(
     controlsHost,
     enforcer,
     notation,
-    () => {}
+    announce
   );
   const callbacks = new NoteControlsDefaultCallbacks(
     controls,
@@ -43,6 +44,7 @@ function createControls() {
   controls.render();
 
   return {
+    announce,
     beat: beats[0],
     controller: notation.trackController,
     controls,
@@ -88,6 +90,21 @@ describe("NoteControlsDefaultCallbacks", () => {
     expect(beat.baseDuration).toBe(NoteDuration.Quarter);
     controller.undo();
     expect(beat.baseDuration).toBe(NoteDuration.Eighth);
+  });
+
+  test("a dynamic button sets and speaks that dynamic on the selected beat, with undo", () => {
+    const { announce, callbacks, controls, beat, controller } = fixture;
+    callbacks.bind();
+
+    controls.template.dynamicButtons[1].click();
+    expect(beat.dynamic).toBe(Dynamic.Pianissimo);
+    expect(announce).toHaveBeenLastCalledWith("Dynamic pianissimo");
+    expect(
+      controls.template.dynamicButtons[1].getAttribute("aria-pressed")
+    ).toBe("true");
+
+    controller.undo();
+    expect(beat.dynamic).toBe(Dynamic.MezzoForte);
   });
 
   test("repeated binding inserts before and after, then removes one beat per click", () => {

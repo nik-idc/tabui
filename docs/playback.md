@@ -200,6 +200,16 @@ scheduled note source rather than articulation-specific samples. See
 - A normal accent raises the attack's peak gain by 30%, and a heavy one by 60%. This
   also applies to dead notes, palm mutes, harmonics, and hammer-ons/pull-offs.
 - Tap plays like a normal attack.
+- The beat's dynamic sets the attack loudness. `mf` keeps the normal level.
+  Soft dynamics go down to about -10 dB (`ppp`), and loud ones go up to about
+  +4 dB (`fff`). The loud side is smaller, so accents keep some headroom. The
+  dynamic and the accent multiply: the peak is `dynamic × accent` times the
+  other note gains. This applies to all attack kinds.
+- One note's envelope peak is limited to `MAX_NOTE_PEAK_GAIN` (0.9). Sources
+  reach at most full scale, and track and master volumes are at most 1, so one
+  note cannot clip, even with `fff` and a heavy accent. Only the loudest
+  dynamics with a heavy accent can reach the limit. Many notes that sound
+  together can still add up above full scale.
 - Slides pair the source note with the next playable same-string target note:
   - the source is scheduled through the target note's duration.
   - pitch ramps from source pitch to target pitch.

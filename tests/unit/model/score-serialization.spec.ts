@@ -7,6 +7,7 @@ import {
   BendTechniqueOptions,
   BendType,
   ClefType,
+  Dynamic,
   Guitar,
   GuitarNote,
   GuitarTechnique,
@@ -259,6 +260,51 @@ describe("score serialization", () => {
 
     const error = deserializeError(document);
     expect(error.path).toBe(`${STROKE_BEAT_PATH}.techniques[0].options.${key}`);
+    expect(error.message).toContain(message);
+  });
+
+  test("round trips beat dynamics as tokens and omits mf", () => {
+    const { score, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[0].dynamic = Dynamic.Pianississimo;
+    beats[2].dynamic = Dynamic.Fortississimo;
+    beats[2].makeRest();
+
+    const document = serializeScore(score);
+    const savedBeats = required(
+      document.tracks[0].staves[0].bars[0].voices[0]
+    ).beats;
+    expect(savedBeats[0].dynamic).toBe("ppp");
+    expect("dynamic" in savedBeats[1]).toBe(false);
+    expect(savedBeats[2].dynamic).toBe("fff");
+
+    const restored = deserializeScore(document);
+    const restoredBeats = required(
+      restored.tracks[0].staves[0].bars[0].getVoiceBar(1)
+    ).beats;
+    expect(restoredBeats.map((b) => b.dynamic)).toEqual([
+      Dynamic.Pianississimo,
+      Dynamic.MezzoForte,
+      Dynamic.Fortississimo,
+    ]);
+    expect(serializeScore(restored)).toEqual(document);
+  });
+
+  test.each([
+    ["an unknown token", "sfz", "unsupported value 'sfz'"],
+    ["a model enum number", Dynamic.Forte, "expected string"],
+    ["null", null, "expected string"],
+  ])("rejects a beat dynamic that is %s", (_, value, message) => {
+    const document = strokeDocument();
+    const beat = required(document.tracks[0].staves[0].bars[0].voices[0])
+      .beats[0] as unknown as Record<string, unknown>;
+    beat.dynamic = value;
+
+    const error = deserializeError(document);
+    expect(error.path).toBe(`${STROKE_BEAT_PATH}.dynamic`);
     expect(error.message).toContain(message);
   });
 

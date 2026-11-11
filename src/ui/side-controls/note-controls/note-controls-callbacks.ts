@@ -1,4 +1,9 @@
-import { NoteDuration, VoiceNumber } from "../../../notation/model";
+import {
+  Dynamic,
+  DYNAMICS,
+  NoteDuration,
+  VoiceNumber,
+} from "../../../notation/model";
 import { NotationComponent } from "../../../notation/notation-component";
 import { NoteControlsComponent } from "../..";
 import { ListenerConfig, ListenerManager } from "../../../shared/misc";
@@ -19,6 +24,7 @@ export interface NoteControlsCallbacks {
   onTupletNormalClicked(normalCount: number): void;
   onTupletClicked(): void;
   onPitchShiftClicked(semitones: number): void;
+  onDynamicClicked(dynamic: Dynamic): void;
   bind(): void;
   unbind(): void;
 }
@@ -128,6 +134,13 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._renderFunc();
   }
 
+  /** Sets the dynamic on all selected beats and speaks the result. */
+  onDynamicClicked(dynamic: Dynamic): void {
+    this._notationComponent.trackController.setDynamic(dynamic);
+    this._renderFunc();
+    this._noteComponent.announceDynamic();
+  }
+
   bind(): void {
     // Bind duration buttons
     const durationConfigs: ListenerConfig[] =
@@ -144,6 +157,14 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
         event: "click",
         handler: () =>
           this.onVoiceClicked(parseVoiceNumber(button.dataset["voiceNumber"])),
+      }));
+
+    // Buttons follow DYNAMICS order, so the index names the dynamic.
+    const dynamicConfigs: ListenerConfig[] =
+      this._noteComponent.template.dynamicButtons.map((button, i) => ({
+        element: button,
+        event: "click",
+        handler: () => this.onDynamicClicked(DYNAMICS[i]),
       }));
 
     // Bind dot and tuplet buttons
@@ -213,6 +234,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._listeners.bindAll([
       ...durationConfigs,
       ...voiceConfigs,
+      ...dynamicConfigs,
       ...otherConfigs,
     ]);
 

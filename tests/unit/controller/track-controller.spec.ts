@@ -11,6 +11,8 @@ import {
   DEFAULT_MASTER_BAR,
   DEFAULT_STROKE_DURATION,
   Beat,
+  Dynamic,
+  DynamicDirection,
   Guitar,
   GuitarNote,
   GuitarTechnique,
@@ -556,6 +558,49 @@ describe("TrackController", () => {
     expect(pastedStroke?.beat).toBe(pasted);
     expect(pastedStroke?.options.direction).toBe(StrokeDirection.Up);
     expect(pastedStroke?.options.duration).toBe(STROKE_DURATION_QUARTER);
+  });
+
+  test("dynamic edits skip no-op history and are blocked in playback and view-only", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(true);
+
+    // A no-op edit adds no undo step, so one undo restores mf.
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(false);
+    controller.undo();
+    expect(beats[0].dynamic).toBe(Dynamic.MezzoForte);
+
+    mockScorePlayerInstances[0].isPlaying = true;
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(false);
+    expect(controller.shiftSelectedDynamics(DynamicDirection.Louder)).toBe(
+      false
+    );
+    mockScorePlayerInstances[0].isPlaying = false;
+
+    controller.setEditingEnabled(false);
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(false);
+    expect(controller.shiftSelectedDynamics(DynamicDirection.Louder)).toBe(
+      false
+    );
+    expect(beats[0].dynamic).toBe(Dynamic.MezzoForte);
+  });
+
+  test("pasted beats keep their own dynamics", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    beats[0].dynamic = Dynamic.Pianissimo;
+    beats[1].dynamic = Dynamic.Fortissimo;
+
+    const clipboard = copyPassage(controller, beats[0]);
+    pasteAfter(controller, beats[1], clipboard);
+
+    const pasted = required(track.staves[0].bars[0].getVoiceBar(1)).beats[2];
+    expect(pasted.dynamic).toBe(Dynamic.Pianissimo);
   });
 
   test("explicit beat insertion supports undo, redo, playback, and view-only guards", () => {

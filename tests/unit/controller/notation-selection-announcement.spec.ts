@@ -1,5 +1,6 @@
 import {
   captureSelectionCursor,
+  formatActiveDynamic,
   formatNotationSelection,
   notationSelectionsEqual,
 } from "../../../src/notation/accessibility/notation-selection-announcement";
@@ -9,6 +10,7 @@ import {
   AccentOptions,
   BeatGuitarTechniqueType,
   DEFAULT_MASTER_BAR,
+  Dynamic,
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
@@ -137,6 +139,41 @@ describe("notation selection announcements", () => {
       );
     }
   );
+
+  test("names a dynamic only on the beat where it changes, also across bars", () => {
+    const { selection, beats } = createSelection();
+    beats[1].dynamic = Dynamic.Forte;
+    beats[2].dynamic = Dynamic.Forte;
+    beats[3].dynamic = Dynamic.Piano;
+    const announce = (index: number) => {
+      selection.selectBeatCursor(beats[index], 0);
+      return formatNotationSelection(selection);
+    };
+
+    expect(announce(0)).not.toContain("forte");
+    expect(announce(1)).toContain("Beat 2, half, forte, String 1");
+    // Bar 2 beat 1 keeps forte from bar 1, so it is not named again.
+    expect(announce(2)).not.toContain("forte");
+    expect(announce(3)).toContain("Beat 2, half, piano, String 1");
+  });
+
+  test("speaks an edited dynamic even when navigation text would not name it", () => {
+    const { selection, beats } = createSelection();
+    beats[0].dynamic = Dynamic.Forte;
+    selection.selectBeatCursor(beats[1], 0);
+    expect(formatActiveDynamic(selection)).toBe("Dynamic mezzo forte");
+
+    // The edit makes beat 2 match beat 1, so navigation text drops it.
+    beats[1].dynamic = Dynamic.Forte;
+    expect(formatNotationSelection(selection)).not.toContain("forte");
+    expect(formatActiveDynamic(selection)).toBe("Dynamic forte");
+
+    // A range speaks its active end.
+    beats[3].dynamic = Dynamic.Piano;
+    selection.selectBeat(beats[1]);
+    selection.selectBeat(beats[3]);
+    expect(formatActiveDynamic(selection)).toBe("Dynamic piano");
+  });
 
   test("announces a heavy accent on its string", () => {
     const { selection, beats } = createSelection();

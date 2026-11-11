@@ -14,6 +14,7 @@ import { BeatGuitarTechnique } from "./beat-guitar-technique";
 import { beatGuitarTechniquesIncompatible } from "./beat-guitar-technique-lists";
 import { BeatGuitarTechniqueType } from "./beat-technique-type";
 import { NoteValue } from "./note";
+import { DEFAULT_DYNAMIC, Dynamic } from "./dynamic";
 
 import {
   applyDotsToFraction,
@@ -93,6 +94,8 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   private _notes: Note<I>[] | null = null;
   /** Techniques that apply to the whole beat, such as a stroke; always empty for a rest. */
   private _beatTechniques: BeatGuitarTechnique[] = [];
+  /** Written loudness; every beat has one, rests included, so later beats can inherit it. */
+  private _dynamic: Dynamic;
   /** Original bar identity recognizes generated fallback rests through history and destination copies. */
   private _fallbackRestOwner: Bar<I> | null = null;
   /** * Base beat duration */
@@ -122,6 +125,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
    * @param baseDuration Base duration
    * @param dots Dots count
    * @param tupletSettings Tuplet settings
+   * @param dynamic Written loudness; new beats in a voice usually take the inherited one.
    * @param beamGroupId Derived beam-group ID, or null; overwritten on timing rebuild.
    * @param lastInBeamGroup Derived final-beat marker; overwritten on timing rebuild.
    * @throws If note-slot count or tuplet settings are invalid, or default-note construction fails.
@@ -133,6 +137,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     baseDuration: NoteDuration = NoteDuration.Quarter,
     dots: BeatDots = 0,
     tupletSettings: TupletSettings | null = null,
+    dynamic: Dynamic = DEFAULT_DYNAMIC,
     beamGroupId: number | null = null,
     lastInBeamGroup: boolean = false
   ) {
@@ -145,6 +150,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._dots = dots === undefined ? 0 : dots;
     this._lastInBeamGroup = false;
     this.tupletSettings = tupletSettings;
+    this._dynamic = dynamic;
     this._beamGroupId = beamGroupId;
     this._lastInBeamGroup = lastInBeamGroup;
     this._baseDurationTicks = 0;
@@ -314,7 +320,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Compares shared track-context identity, written rhythm, and note content, ignoring UUID and derived timing.
+   * Compares shared track-context identity, written rhythm, dynamic, and note content, ignoring UUID and derived timing.
    * @param otherBeat Beat to compare with
    * @returns True if equal, false otherwise
    */
@@ -324,6 +330,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
       this.hasNotes() !== otherBeat.hasNotes() ||
       this._baseDuration !== otherBeat._baseDuration ||
       this._dots !== otherBeat._dots ||
+      this._dynamic !== otherBeat._dynamic ||
       !tupletSettingsEqual(this._tupletSettings, otherBeat._tupletSettings)
     ) {
       return false;
@@ -349,7 +356,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Copies rhythm, note content, beat techniques, and beam markers with new UUIDs; derived ticks remain zero until rebuilt.
+   * Copies rhythm, dynamic, note content, beat techniques, and beam markers with new UUIDs; derived ticks remain zero until rebuilt.
    * @param voiceBar Destination owner and instrument context; extra lanes are dropped and missing lanes stay empty.
    * @returns Beat's deep copy
    * @throws If copied rhythm or note data is invalid for the destination instrument.
@@ -370,6 +377,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
       this._baseDuration,
       this._dots,
       tupletSettingsCopy,
+      this._dynamic,
       this._beamGroupId,
       this._lastInBeamGroup
     );
@@ -391,6 +399,7 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
     this._beatTechniques = content._beatTechniques.map((t) => t.deepCopy(this));
     this._baseDuration = content._baseDuration;
     this._dots = content._dots;
+    this._dynamic = content._dynamic;
     this._tupletSettings =
       content._tupletSettings === null ? null : { ...content._tupletSettings };
     this._fallbackRestOwner = content._fallbackRestOwner;
@@ -412,6 +421,15 @@ export class Beat<I extends MusicInstrument = MusicInstrument> {
   /** Live note-slot array, or null for a rest; empty note values are not rests. */
   public get notes(): Note<I>[] | null {
     return this._notes;
+  }
+
+  /** Written loudness of the beat; a rest keeps one too. */
+  public get dynamic(): Dynamic {
+    return this._dynamic;
+  }
+  /** Changes the written loudness; it does not affect timing. */
+  public set dynamic(newDynamic: Dynamic) {
+    this._dynamic = newDynamic;
   }
 
   /** Changes written duration without rebuilding timing; call voiceBar.rebuildTiming() afterward. */

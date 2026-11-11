@@ -288,6 +288,25 @@ export class Staff<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
+   * Gets the last beat of a voice in the bars before a bar, skipping bars where
+   * that voice is absent or empty.
+   * @param bar Bar to search back from; a bar not on this staff has no earlier bars.
+   * @returns Live beat, or null when no earlier bar has beats in the voice.
+   */
+  public getLastBeatBefore(
+    bar: Bar<I>,
+    voiceNumber: VoiceNumber
+  ): Beat<I> | null {
+    for (let i = this._bars.indexOf(bar) - 1; i >= 0; i--) {
+      const last = this._bars[i].getVoiceBar(voiceNumber)?.beats.at(-1);
+      if (last !== undefined) {
+        return last;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Gets the same note slot in the next beat of this voice, including across a bar boundary.
    * @param note Note after which to find the next note
    * @returns Live slot note (which may be empty), or null at a boundary or rest. The input must be present in its beat on this staff.
