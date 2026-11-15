@@ -1,80 +1,80 @@
 # Domain Model and Terms
 
+This file explains the concepts TabUI uses to describe music. It is written for
+readers with some musical knowledge who do not know the code. For how these
+concepts behave in TabUI, see [Features](features.md).
+
 TabUI models and renders editable guitar tablature. Standard notation has partial
 scaffolding but is not implemented yet.
 
 ## Score structure
 
-Models are under `src/notation/model/`. This diagram shows their main
-relationships:
-
 ```text
 Score
-  masterBars: MasterBar[]
-  tracks: Track[]
-    staves: Staff[]
-      bars: Bar[]
-        voiceBars: Record<VoiceNumber, VoiceBar | null>
-          beats: Beat[]
-            dynamic: Dynamic
-            beatTechniques: BeatTechnique[]
-            notes: Note[] | null
-              techniques: Technique[]
+├── Master bars: tempo, time signature, and repeat signs
+└── Tracks: one per instrument part
+    └── Staves: usually one per track
+        └── Bars: one per master bar
+            └── Voices: 1 to 4 per bar
+                └── Beats: a rest, or one note slot per string
+                    └── Notes
 ```
 
-- `VoiceNumber` is `1 | 2 | 3 | 4`. Each voice slot can be `null`.
-- `Beat.notes === null` means the beat is a rest. A rest has no beat techniques.
-- `VoiceBar.isEmpty()` means `beats.length === 0`.
-- Every beat has a `dynamic`, rests included. See [Beat dynamic](#beat-dynamic).
+### Score
 
-## Display and playback
+A score is one whole piece of music, for example a song.
 
-Each notation component displays one active track at a time. Playback schedules
-all tracks through separate audio buses, including muted and non-soloed tracks.
-Bus gains control which tracks are audible.
+### Master bar
 
-See [Playback Architecture](playback.md) for scheduling and audio module details.
+All tracks in a score share the same bar structure. A master bar holds the
+score-wide information for one bar position:
 
-### Repeat sections
+- Tempo
+- Time signature
+- Repeat signs
 
-Repeat signs mark a section to play again.
+### Track
 
-A repeat section starts at a repeat-start sign and ends at the next repeat-end
-sign, with no other repeat signs between them. A bar with both signs repeats on
-its own. Nested repeats are not supported in version `0.5.0`.
+A track is one instrument's part in the score, for example rhythm guitar, lead
+guitar, or bass guitar.
 
-Examples:
+### Staff
 
-1. Two starts followed by two ends:
+A staff is one line of notation inside a track. Most tracks have one staff. The
+classic example is the piano, which uses two staves, usually one for each hand.
 
-   ```text
-   Bar 1: Start | Bar 2: Start | Bar 3 | Bar 4: End | Bar 5: End
-   ```
+### Bar
 
-   The repeat section is **Bar 2 to Bar 4**.
-   The repeat signs in Bars 1 and 5 are invalid.
+A bar is one staff's content for one master bar. It holds up to four voices.
 
-2. An end before a start:
+### Voice
 
-   ```text
-   Bar 1: End | Bar 2: Start | Bar 3
-   ```
+A voice is an independent rhythmic line on one staff, played by the same player
+at the same time as the other voices. Each voice fills the bar with its own
+rhythm. For example, in fingerstyle guitar, a bass note can ring for a half note
+in one voice while the melody moves in eighth notes in another voice.
 
-   No repeat section: Bar 1 has no start sign before it, and Bar 2 has no end sign
-   after it.
+A bar has up to four voices and always keeps at least one.
 
-3. Two separate sections:
+### Beat
 
-   ```text
-   Bar 1: Start | Bar 2: End | Bar 3 | Bar 4: Start | Bar 5: End
-   ```
+A beat is a point in a voice where notes start together, last the same time, and
+share rhythmic modifiers (dots and tuplets).
 
-   Repeat sections are **Bar 1 to Bar 2** and **Bar 4 to Bar 5**.
+A beat is either a **rest**, which is written silence, or a set of **note
+slots**, one per string. Slots can be empty, so a beat can hold no notes, one
+note, or a chord.
 
-With nested repeats, the first example would have an outer section from
-**Bar 1 to Bar 5** and an inner section from **Bar 2 to Bar 4**.
+### Note
 
-## Terms
+A note is one string's slot in a beat: a fret number, a dead note (`x`), or
+empty.
+
+### Dynamic
+
+A dynamic tells how loud a beat is played, from `ppp` (very soft) to `fff` (very
+loud). Every beat has one, rests included. The default is `mf`. Dynamics are not
+drawn in tab. They change playback loudness.
 
 ### Rhythm row
 
@@ -82,44 +82,52 @@ A visual row below a staff that contains one voice's durations, beams, and
 tuplets. Bars on the same staff line share one vertical row position per
 non-empty voice.
 
-### Technique ownership and editing
+The rhythm row applies only to tablature. Sheet notation shows rhythm on the
+notes themselves, so it does not need a rhythm row.
 
-A technique belongs to a note or to a beat, never to a passage. Most techniques
-belong to notes. Tie is stored on the continuation note. Let Ring and Palm Mute
-carry only their type, without options; bends carry shape options, and
-accents carry their kind (normal or heavy). See
-[Guitar techniques](techniques.md) for musical meaning, applicability, and
-passage rules.
+## Techniques
 
-### Beat technique
+A technique tells how a note or beat is played.
 
-A technique that belongs to a whole beat, not to one note. Stroke is currently
-the only beat technique. It carries stroke options: direction, duration, and
-alignment. A beat has at most one technique of each type.
+- **Note techniques** belong to one note. Most techniques are note techniques.
+- **Beat techniques** belong to a whole beat. Stroke is currently the only beat
+  technique.
 
-Beat techniques are a separate family from note techniques. They have their own
-types (`BeatTechnique`, `BeatGuitarTechniqueType`), options, and edit rules. Do
-not merge the two families or their enums: both are numeric enums, so one value
-would mean two techniques.
+A beat/note can have at most one technique of each type.
 
-### Beat dynamic
-
-How loud a beat is played: `ppp`, `pp`, `p`, `mp`, `mf`, `f`, `ff`, or `fff`.
-It is a plain beat property, not a beat technique and not a note technique.
-Every beat has one, rests included. The default is `mf`.
-
-A new beat takes the dynamic of the previous beat in the same voice. The search
-goes back across bar lines and skips bars where the voice is absent. If there
-is no previous beat, the new beat gets `mf`. Copies and pasted beats keep their
-own dynamic. Rests keep a dynamic, so the next new beat can take it.
-
-Dynamics are not drawn in tab. They change playback loudness. Screen readers
-name a dynamic on the beat where it changes, and after each dynamic edit.
+Let Ring and Palm Mute passages are not stored as spans. Each note carries its
+own mark, and TabUI draws a passage from consecutive marks. A Tie belongs to the
+second note, the continuation, not to the note it continues.
 
 ### Note transition
 
-A guitar technique from a source note to a compatible target note. In TabUI,
-the target is the immediate next beat's note on the same voice and string.
+A guitar technique from a source note to a compatible target note, such as a
+slide or a hammer-on. In TabUI, the target is the immediate next beat's note on
+the same voice and string.
 
 Use **note transition** instead of relation target, spanner, or slur when
 describing this concept in TabUI documentation, code, tests, and issues.
+
+### Technique list
+
+| Technique                   | Meaning                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| Tie                         | The note continues the previous note on the same string, with no new attack. |
+| Let Ring                    | The string keeps ringing after the note.                                     |
+| Palm Mute                   | The picking hand damps the string, for a short, muted sound.                 |
+| Bend                        | The string is pushed to raise the pitch. Prebends and releases are included. |
+| Legato (hammer-on/pull-off) | The next note is played by the fretting hand alone, without picking.         |
+| Slide                       | The finger slides along the string to the next note's fret.                  |
+| Vibrato                     | The pitch moves slightly up and down around the note.                        |
+| Natural and pinch harmonics | A high, bell-like overtone sounds instead of the normal note.                |
+| Tap                         | The note is played by tapping the string onto the fret.                      |
+| Accent                      | The note is played louder. A heavy accent is played much louder.             |
+| Stroke                      | The notes of the beat are strummed one after another, down or up.            |
+
+See [Features](features.md#guitar-techniques) for the rules and controls of each
+technique.
+
+## Display and playback
+
+TabUI shows one track at a time. Playback plays all tracks. Mute and solo change
+only which tracks you hear.

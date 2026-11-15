@@ -28,7 +28,9 @@
   "files": [
     "/assets/img",
     "/assets/img-dark",
-    "/docs/usage.md",
+    "/docs/embedding.md",
+    "/docs/features.md",
+    "/docs/domain.md",
     "/docs/keyboard-shortcuts.md",
     "/dist/**/*.d.ts",
     "/dist/index.mjs",

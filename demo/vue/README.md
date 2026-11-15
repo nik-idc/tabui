@@ -74,7 +74,7 @@ Checks include:
 - Note edits surviving theme changes.
 - Browser, Vue, and network errors.
 
-This is a client-rendered example. See the [usage guide](../../docs/usage.md#framework-integration)
+This is a client-rendered example. See the [embedding guide](../../docs/embedding.md#framework-integration)
 for shared lifecycle guidance and the other framework examples.
 
 ## Versions
