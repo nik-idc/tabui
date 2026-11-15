@@ -26,3 +26,5 @@ node_modules/
 .env
 .env.*
 !.env.example
+/site/dist/
+/docs/.vitepress/cache/

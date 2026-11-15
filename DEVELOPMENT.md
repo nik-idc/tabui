@@ -123,7 +123,18 @@ TabUI package version. Each version lives in its own folder, such as
 ## Releases and deployment
 
 Pull requests and pushes to `master` run `npm run verify` in CI. Tags matching
-`v*` run the same checks and deploy `demo/dist` to GitHub Pages. Set the Pages
+`v*` run the same checks and deploy the site to GitHub Pages: the VitePress site
+from `docs/` at the root, the demo under `demo/`, and the API reference under
+`api/`. `TABUI_SITE_BASE` sets the base path, so another host can use a
+different one. The API reference's links in `typedoc.json` use the same path.
+
+- `npm run site:build` builds all three into `site/dist`. A plain
+  `vitepress build` empties that folder, so always use this command.
+- `npm run site:preview` runs the full build, then serves the site.
+- `npm run site:dev` live-reloads the VitePress pages only. The demo and API
+  links show a 404 there.
+
+Set the Pages
 source to **GitHub Actions**. The maintainer creates and pushes release tags.
 
 Before a release, review [ROADMAP.md](ROADMAP.md), run the update benchmark, and

@@ -114,6 +114,8 @@ in no particular order.
 
 - Comments. Basically just text, I imagine attached to bars.
 
+- Hot config reloading & changing.
+
 ## Unsure
 
 - Plugin system. Not really sure what this means in the context of TabUI, just

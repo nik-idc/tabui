@@ -159,8 +159,8 @@ export async function createConsumerProject(
     await cp(fixture, directory, { recursive: true });
     await mkdir(path.join(directory, "public"), { recursive: true });
     await cp(
-      path.join(rootDir, "assets/tabber-favicon.svg"),
-      path.join(directory, "public/tabber-favicon.svg")
+      path.join(rootDir, "assets/tabui-favicon.svg"),
+      path.join(directory, "public/tabui-favicon.svg")
     );
     const supplied = options.tarball ?? process.env.TABUI_INTEGRATION_TARBALL;
     const tarball =
