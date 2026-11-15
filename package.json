@@ -50,6 +50,9 @@
     "build:package": "vite build --config vite.config.lib.js && tsc --build",
     "build:demo": "vite build",
     "docs:build": "typedoc",
+    "site:dev": "vitepress dev docs",
+    "site:build": "vitepress build docs && vite build --mode site && typedoc --out site/dist/api",
+    "site:preview": "npm run site:build && vitepress preview docs",
     "docs:preview": "vite preview --config vite.config.docs.js",
     "test": "npm run test:unit",
     "test:unit": "tsc --project tsconfig.test.json && npx jest",
@@ -90,6 +93,7 @@
     "typedoc": "^0.28.20",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.71.0",
-    "vite": "^6.3.1"
+    "vite": "^6.3.1",
+    "vitepress": "^1.6.4"
   }
 }

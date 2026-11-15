@@ -5,8 +5,6 @@ the editor itself, see [Keyboard shortcuts and controls](keyboard-shortcuts.md).
 configuration option, see `TabUIConfig` in the
 [API reference](https://nik-idc.github.io/tabui/api/).
 
-Try the [demo](https://nik-idc.github.io/tabui/) to see the editor first.
-
 ## Package usage
 
 Import supported classes, functions, and types from `@atikincode/tabui`.
@@ -59,11 +57,70 @@ unsubscribe();
 editor.dispose();
 ```
 
-## Creating a populated score
+## Scores
 
-`new Score()` creates one guitar track, one staff, and one empty 4/4 bar.
-Build musical content before mounting the editor. This function fills that bar
-with four quarter notes on the first (highest-pitched) string:
+### Load a saved score
+
+Use `deserializeScore()` to load a score that TabUI saved before, then pass it to
+`TabUIEditor`:
+
+```ts
+import {
+  Score,
+  ScoreSerializationError,
+  TabUIEditor,
+  deserializeScore,
+} from "@atikincode/tabui";
+
+let score = new Score();
+const stored = localStorage.getItem("score");
+if (stored !== null) {
+  try {
+    score = deserializeScore(JSON.parse(stored));
+  } catch (error) {
+    if (error instanceof ScoreSerializationError) {
+      console.error(error.path, error.message);
+    }
+  }
+}
+
+const editor = new TabUIEditor(root, score);
+editor.init();
+```
+
+A malformed document throws `ScoreSerializationError` with a JSONPath-like path,
+such as `$.tracks[0].staves[0].bars`. `deserializeScore()` reads only TabUI score
+documents, not Guitar Pro, MusicXML, MIDI, or plain-text tablature files. Newer
+TabUI versions keep reading scores saved by older versions.
+
+To show a different score, dispose the current editor and create a new one with
+that score.
+
+### Save a score
+
+Use `serializeScore()`, then `JSON.stringify()`. Do not stringify model objects
+directly.
+
+```ts
+import { serializeScore } from "@atikincode/tabui";
+
+const document = serializeScore(editor.score);
+localStorage.setItem("score", JSON.stringify(document));
+```
+
+The document keeps tracks, instruments and mix state, master bars, voices,
+rests, tuplets, notes, and techniques. Runtime UUIDs and timing are rebuilt when
+the score is loaded.
+
+Not every `"change"` event is an unsaved edit. For autosave or an unsaved-changes
+indicator, compare the serialized score with the last saved one, for example in
+a debounced change handler.
+
+### Build a score in code
+
+`new Score()` creates one guitar track, one staff, and one empty 4/4 bar. This
+function fills that bar with four quarter notes on the first (highest-pitched)
+string:
 
 ```ts
 import { Beat, GuitarNote, NoteDuration, Score } from "@atikincode/tabui";
@@ -93,14 +150,11 @@ function createExampleScore(): Score {
 }
 ```
 
-In the [package usage example](#package-usage), pass `createExampleScore()` instead
-of `new Score()` to `TabUIEditor`. A beat contains a note slot for each string;
-the other string slots stay empty in this example. Voice numbers run from 1 to 4.
-Use `null` for the beat constructor's notes argument to create a rest.
-
-See the [domain model](domain.md#score-structure) for the score structure and
-the repository's [shared fixtures](../fixtures/README.md) for larger examples.
-To restore a saved TabUI score, use [score persistence](#score-persistence).
+A beat has a note slot for each string. Use `null` as the beat's notes argument
+to create a rest. Build the score before you create the editor. See the
+[domain model](domain.md#score-structure) and the
+[shared fixtures](https://github.com/nik-idc/tabui/blob/master/fixtures/README.md)
+for larger examples.
 
 ## Styles and icons
 
@@ -116,7 +170,7 @@ hosting is needed. Use `assets.variant: "dark"` for the dark icons; the default 
 ### Custom and hosted icons
 
 To use externally hosted or custom icons, set `assets.baseUrl` to their public
-folder URL (for example, `/tabui-assets`). That folder must contain the matching
+folder URL. That folder must contain the matching
 `img` and `img-dark` subfolders. An omitted or empty base URL uses bundled icons.
 The original SVG files are still exported under `@atikincode/tabui/assets/*`
 for optional self-hosting or direct imports. Apps with a Content Security Policy
@@ -152,7 +206,7 @@ it to transpose the recording to each played note. If omitted, it defaults to
 E2. Set it explicitly when your recording has a different pitch. Tones without
 a configured sample use synthesized audio.
 
-The [raw demo source](../demo/raw/main.ts) includes configurations for several
+The [raw demo source](https://github.com/nik-idc/tabui/blob/master/demo/raw/main.ts) includes configurations for several
 guitar and bass tones.
 
 Set `playback.preloadAudio` to `true` to prepare configured `playback.samples` in the
@@ -187,20 +241,20 @@ Create the editor after the root is attached to the DOM, and dispose it when
 the component unmounts. Keep the score and setup dependencies stable so normal
 framework updates do not recreate the editor.
 
-For React, see the [runnable demo and lifecycle guide](../demo/react/README.md)
-and its [wrapper component](../demo/react/tabui.tsx). The wrapper creates a fresh
+For React, see the [runnable demo and lifecycle guide](https://github.com/nik-idc/tabui/blob/master/demo/react/README.md)
+and its [wrapper component](https://github.com/nik-idc/tabui/blob/master/demo/react/tabui.tsx). The wrapper creates a fresh
 editor in each effect setup, then unsubscribes and disposes it in cleanup. This
 also handles development Strict Mode's setup → cleanup → setup cycle. The parent
 keeps callbacks stable with `useCallback` to avoid unnecessary recreation; theme
 changes intentionally recreate the editor while preserving the score.
 
-The [Angular demo and lifecycle guide](../demo/angular/README.md) shows the same
+The [Angular demo and lifecycle guide](https://github.com/nik-idc/tabui/blob/master/demo/angular/README.md) shows the same
 host/editor boundary using Angular components and forms. The
-[Vue demo and lifecycle guide](../demo/vue/README.md) uses Composition API lifecycle
+[Vue demo and lifecycle guide](https://github.com/nik-idc/tabui/blob/master/demo/vue/README.md) uses Composition API lifecycle
 hooks, `v-model`, and `shallowRef`/`markRaw` to keep library objects out of deep
 reactivity.
 
-All four examples—[raw JavaScript/TypeScript](../demo/raw/README.md), React,
+All four examples—[raw JavaScript/TypeScript](https://github.com/nik-idc/tabui/blob/master/demo/raw/README.md), React,
 Angular, and Vue—are tested using a locally built npm package, as a separate app
 would install it. The framework examples run in the browser. They do not cover
 server-side rendering (SSR) or hydration; create the editor after its container
@@ -222,12 +276,8 @@ to model objects; they are not serialized score documents or deep score copies.
 ## Score ownership and host updates
 
 The host owns the `Score` passed to `TabUIEditor`. TabUI edits that same object,
-available as `editor.score`; it does not create a separate working copy. Save it
-with `serializeScore(editor.score)`, as shown in [score persistence](#score-persistence).
-
-Do not treat every `"change"` event as an unsaved score edit. For autosave or a
-dirty indicator, compare serialized score content with the last saved content
-at an appropriate point, such as a debounced change handler.
+available as `editor.score`; it does not create a separate working copy. To save
+it, see [Save a score](#save-a-score).
 
 Direct model mutations are not a supported live-update mechanism for a mounted
 editor. They do not automatically refresh all editor state or enter its undo
@@ -285,46 +335,6 @@ overscan. Configure the mode when you construct the editor.
 The score panel can be placed above or below notation. In edit mode, the side
 panel can be placed left or right, hidden, or collapsible. View-only mode always
 omits the side panel.
-
-## Score persistence
-
-Use the versioned score serialization API for persistence.
-Call `JSON.stringify(serializeScore(score))` rather than stringifying model
-instances directly.
-
-```ts
-import {
-  ScoreSerializationError,
-  deserializeScore,
-  serializeScore,
-} from "@atikincode/tabui";
-
-// Use the score owned by the initialized editor.
-const document = serializeScore(editor.score);
-localStorage.setItem("score", JSON.stringify(document));
-
-const stored = localStorage.getItem("score");
-if (stored !== null) {
-  try {
-    const restoredScore = deserializeScore(JSON.parse(stored));
-  } catch (error) {
-    if (error instanceof ScoreSerializationError) {
-      console.error(error.path, error.message);
-    }
-  }
-}
-```
-
-The `tabui-score` V1 document preserves guitar tablature metadata, master bars,
-tracks, instruments and mix state, sparse voices, rests, tuplets, notes,
-techniques, and bends. Runtime UUIDs and derived timing state are regenerated.
-Malformed documents throw `ScoreSerializationError` with a JSONPath-like path,
-such as `$.tracks[0].staves[0].bars`.
-
-`deserializeScore()` expects a TabUI score document, not a Guitar Pro, MusicXML,
-MIDI, or plain-text tablature file. Importers for those formats are not currently
-provided. To display the restored score, dispose the current editor and pass
-`restoredScore` to a new `TabUIEditor`, then call `init()` on that instance.
 
 ## Compatibility
 

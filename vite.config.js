@@ -1,15 +1,20 @@
 import { defineConfig } from "vite";
 import path from "path";
+import process from "process";
+
+// The "site" mode builds the demo into the website under <site base>demo/.
+const siteBase = process.env.TABUI_SITE_BASE ?? "/tabui/";
+const outDirs = {
+  e2e: "node_modules/.cache/tabui-e2e",
+  site: "site/dist/demo",
+};
 
 export default defineConfig(({ command, mode }) => ({
   root: path.resolve(__dirname, "demo/raw"),
   publicDir: path.resolve(__dirname, "assets"),
-  base: "/tabui/",
+  base: mode === "site" ? `${siteBase}demo/` : "/tabui/",
   build: {
-    outDir: path.resolve(
-      __dirname,
-      mode === "e2e" ? "node_modules/.cache/tabui-e2e" : "demo/dist"
-    ),
+    outDir: path.resolve(__dirname, outDirs[mode] ?? "demo/dist"),
     emptyOutDir: true,
     ...(mode === "e2e"
       ? {
