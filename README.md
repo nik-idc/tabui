@@ -11,64 +11,89 @@ TypeScript.
 
 ## Features
 
-- Mouse, touch, and keyboard interaction, with undo and redo.
-- Multi-track scores, up to four voices per staff, rests, and tuplets.
-- Guitar techniques, including bends, slides, harmonics, and palm mute.
-- Multi-track playback with volume, pan, mute, solo, and looping.
+- Mouse, touch, and keyboard interaction.
+- Notation editing, with undo and redo.
+- Multi-track scores, up to four voices per staff.
+- Guitar techniques, including bends, slides, harmonics, palm mute, strokes,
+  accents, and more.
+- Multi-track playback with dynamics, volume, pan, mute, solo, and looping.
 - Wrapped and single-line layouts, view-only mode, and configurable themes.
 - Screen reader compatibility (NVDA, Orca), with keyboard navigation and selection
   announcements. See [accessibility](docs/usage.md#accessibility).
 
-## Quick start
+## Why I built this
 
-Install:
+Before I describe what TabUI offers, I want to be upfront.
 
-```sh
-npm install @atikincode/tabui
-```
+**I built this mainly for fun and for my own use.** I enjoy working on it, and I
+plan on using it myself. So don't think TabUI solves some fundamental flaw that
+all other tablature editors have.
 
-Container for the editor:
+With that said, along the way it got a few things I haven't seen elsewhere:
 
-```html
-<div id="tabui-editor"></div>
-```
+- A full editor you can embed into any web app. You don't have to write your own
+  editing code: TabUI handles all of that. It's designed to be as plug-and-play
+  as possible. Each instance is fully self-contained, so several editors can run
+  on one page without affecting each other. It runs in any modern browser on Windows and Linux (macOS is not
+  tested yet). On small screens it switches to a view-only mode.
 
-Initialize and attach TabUI:
+- Customizability. You can define any theme (fonts and colors), and use your own
+  icons and samples.
 
-```ts
-import { Score, TabUIEditor } from "@atikincode/tabui";
-import "@atikincode/tabui/styles.css";
+- Performance. Note: this isn't a formal benchmark, just my experience on my
+  machine. TabUI stays responsive with a dense 1000-bar score, just like it does
+  with a small score under 10 bars. I spent a lot of time making sure most edits
+  in large scores stay under 100ms. It's not perfect yet: some paths can still
+  make an edit take a couple of seconds. But overall, TabUI performs well with
+  large scores. Performance is a core part of TabUI, and I don't want to
+  compromise on it.
 
-const root = document.getElementById("tabui-editor");
-if (!(root instanceof HTMLDivElement)) {
-  throw new Error("Missing editor root");
-}
+- Accessibility. I want anything a sighted user can do to also be possible for
+  blind and low-vision users, and for users with limited mobility. I focus on two
+  things:
+  - Equal input methods. The mouse and the keyboard are independent and equally
+    important. Every action you can do with one, you can also do with the other,
+    so you can use TabUI with only a keyboard, only a mouse, or both. Neither one
+    comes first.
+  - Announcements. Actions are announced, so a screen reader user gets the same
+    information a sighted user sees. I have tested this with NVDA on Windows (in
+    a VM) and Orca on Linux. macOS is not tested yet, mainly because I don't own
+    a Mac.
 
-const editor = new TabUIEditor(root, new Score());
-editor.init();
-
-// When your app removes the editor:
-// editor.dispose();
-```
-
-See the [usage guide](docs/usage.md) for configuration, events, persistence,
-and lifecycle details. For framework setup, see the
-[React, Angular, and Vue examples](docs/usage.md#framework-integration).
+  I am not visually impaired myself, and my mobility is not limited, so I can't
+  be 100% sure TabUI is as comfortable for these users as it is for me. But I
+  take accessibility feedback seriously and fix it as quickly as any other bug. I
+  want TabUI to be usable by **all** users.
 
 ## Status and limits
 
 TabUI is under active development toward v0.5.0. APIs and saved-score formats
 may change before v1.0.0.
 
-**Only guitar tablature is supported**. Standard and drum notation are not yet implemented.
+The following limits are planned work:
 
-One track is displayed at a time, while playback includes all tracks. Playback
-uses synthesized tones unless you provide audio samples.
+- **Only guitar tablature is supported.** Standard and drum notation are
+  planned. I try to keep the code independent of notation style, so I can add
+  them later without rewriting everything. I learned this from voices: I
+  initially assumed that TabUI would not support multiple voices, so adding them
+  later required rewriting every layer of the code.
+- **One track is displayed at a time.** Playback still includes all tracks.
+  Showing several tracks together is planned.
+- **No import or export of other formats.** Scores are saved in TabUI's own JSON
+  format. Guitar Pro, MusicXML, and MIDI are not supported yet.
 
-The interface is designed for desktop and larger screens. By default, notation
-widths below 1000px use view-only mode, and widths below 500px block interaction.
-Full phone editing is not yet supported. Screen-reader support includes keyboard
-navigation, labeled controls, and selection announcements.
+These limits, on the other hand, are explicit design choices I made:
+
+- **One score per TabUI instance.** You can put several instances with
+  different scores on one page. They are fully self-contained and do not
+  interact.
+- **No samples are included.** If no samples are provided, playback uses
+  synthesized tones.
+- **Editing needs enough screen space.** TabUI checks the available width, not
+  the device type. By default, viewports narrower than 1000px use view-only mode,
+  and viewports narrower than 500px block interaction. So an unfolded foldable
+  phone in landscape may be wide enough to edit, while a small tablet in
+  portrait, like an iPad Mini, can only view.
 
 ## Contributing
 
@@ -77,15 +102,23 @@ request features through [GitHub Issues](https://github.com/nik-idc/tabui/issues
 
 ## License
 
-[MIT](LICENSE).
+TabUI is licensed under the [MIT License](LICENSE).
+
+### Third-party assets
 
 The favicon lettering is based on [JetBrains Mono NL](https://www.jetbrains.com/lp/mono/)
 (Ultra-Bold Italic), designed by Philipp Nurullin for JetBrains. The font is
 licensed under the [SIL Open Font License 1.1](https://github.com/JetBrains/JetBrainsMono/blob/master/OFL.txt).
 
-The demo audio samples were recorded by Jason Champion and provided by
-[Free Wave Samples](https://freewavesamples.com/). They are freeware for
-royalty-free use under the site's [sample license](https://freewavesamples.com/about-us-license),
-which allows hosting samples for web-app playback but not as a separate download
-collection. These samples are not covered by TabUI's MIT license and are not
+The [demo](https://nik-idc.github.io/tabui/) uses two sets of audio samples. They
+are demo resources only: they are not covered by TabUI's MIT license and are not
 included in the npm package.
+
+- **FluidR3** (the demo default): extracted from the Fluid (R3) SoundFont,
+  copyright 2000-2002, 2008 Frank Wen and contributors, under its own MIT-style
+  license. See [the FluidR3 samples README](assets/samples/fluidr3/README.md).
+- **Free Wave Samples**: recorded by Jason Champion and provided by
+  [Free Wave Samples](https://freewavesamples.com/), under the site's
+  [sample license](https://freewavesamples.com/about-us-license). It allows
+  hosting the samples for web-app playback, but not as a separate download
+  collection. See [the samples README](assets/samples/README.md).

@@ -1,182 +1,124 @@
 # Roadmap
 
-TabUI's next milestone is `0.5.0`: a usable, embeddable tablature editor for
-browser applications. APIs and serialized formats may change before `1.0.0`.
-These priorities guide the work; they are not release commitments.
+This file describes my vision for TabUI and its future.
 
-This file replaces the phase roadmap and stabilization inbox. New findings belong
-here with their user impact and priority. Completed implementation does not
-replace release validation.
+## Major milestones
 
-## Completed foundations
+TabUI currently has two major milestones set:
 
-- Tick-based rhythm, sparse voices, explicit rests, and undoable structural edits.
-- Incremental layout, viewport materialization, score-wide bar widths, and
-  single-line horizontal virtualization.
-- Multi-track Web Audio playback, samples with synthesized fallback, mix controls,
-  repeats, seeking, and selection loops.
-- ESM package, styles, declarations, runtime icons, and a packed-consumer check.
-- Editor disposal, isolated input ownership, multiple instances, host state/events,
-  and layout refresh.
-- Versioned score serialization with input validation.
-- View-only mode, responsive embedding, configurable panels, and themes.
-- Pointer selection, keyboard editing, baseline control accessibility, and
-  expanded Playwright coverage.
-- Release-blocking editing fixes from the former Phase 6 Stage 10, including
-  technique copying/application, selection, repeat controls, contained dialogs,
-  and technique ownership. The callback-owner refactor was deferred.
+- `0.5.0`. **First version is ready to be used and built upon**. After `0.5.0`
+  is released, I will begin working on a wrapper React + Nest.js app. That is
+  the point of `0.5.0`: TabUI is stable and presentable enough to be embedded
+  into an actual app meant for guitarists to use. As it is pre-`1.0.0`, APIs can
+  and will break.
 
-## Before 0.5.0 (release blockers)
+- `1.0.0`. As of now, there is no concrete `1.0.0` vision. Treat this list as a
+  direction, not a fixed plan. It may change. But for now I feel like `1.0.0`
+  should at least achieve:
+  - Sheet and drum notation. I think a good threshold for `1.0.0` is TabUI
+    turning from guitar tabs only to tab + sheet + drum. So that passages on
+    virtually any instrument are transcribable in TabUI.
+  - Richer functionality. More techniques, more customization, etc.
+  - Improved realistic playback.
+  - Commitment. TabUI can be rewritten from the ground up before `1.0.0`. After
+    that, breaking changes will require a new major version. This includes the
+    score format: it can only break in a major version.
 
-- [x] Apply tempo and time-signature edits from the cursor through the remaining
-      section, stopping at the next existing change. Support selected-bar ranges,
-      with one undoable edit and the affected bars shown in the dialog.
-- [x] Remove the instrument family selector (Strings, Orchestra, Drums) from
-      track dialogs, keeping the models in code.
-- [x] Review the active test-quality audit and confirm its release scope.
-- [x] Test the installed TabUI package in raw, React, Angular, and Vue apps.
-      Provide runnable demos and test framework apps in development and production.
-- [x] Audit headless feasibility. Models and internal geometry work without a
-      browser; public geometry APIs and one-shot export are deferred until after
-      `0.5.0`.
-- [x] Confirm provenance and redistribution terms for the demo audio samples.
-      Credit Jason Champion / Free Wave Samples in the README and demo, with a
-      link to the sample license.
-- [x] ~Investigate the recurring Chromium timeout in the view-only keyboard test
-      (`tests/e2e/keyboard-editing.spec.ts`). It passes in isolation but has exceeded
-      its 10-second limit in full runs, stopping the verification gate.~
-      Determined that 10s is too little for these e2e tests. Increased timeout
-      threshold to 30s
-- [x] Run `npm run verify`, `npx eslint .`,
-      `git diff --check`, and `npm run benchmark:updates` from clean build output.
-- [x] Review the root API and remove 16 implementation-only exports, keeping
-      internal exports unchanged. Controllers and notation elements remain internal.
-- [x] Explore best ways to generate public API documentation. If any public code is not
-      properly documented, it should be.
-- [x] Correct bend playback to use whole tones: a Full bend raises pitch by two
-      semitones, including prebends, releases, and sustained continuations.
-- [x] Return null when staff traversal reaches an empty adjacent voice, preventing
-      note traversal from throwing on that boundary.
-- [x] Display tuning at the start of the track + make it clickable. The click would invoke
-      the existing track settings dialog.
-- [x] Resolve toolbar Space conflicts: mouse-clicked buttons allow playback,
-      keyboard navigation keeps native activation, and Shift+Space toggles playback.
-- [x] Separate Tie from Let Ring. Ties copy and continue the preceding string or
-      chord without a new attack. Let Ring marks resonance passages, keeps plain
-      fret numbers, and stops at the next same-string attack or passage/playback end.
-- [x] Current tie implementation always ties as long as it is allowed.
-      Need it be optional: - "j" -> tie just the previous beat - "Shift + j" -> tie as far back as possible
-- [x] Don't render the release pitch if it's 0
-- [x] Implement the same "+" but for bars **only for the last bar**
-- [x] Implement "↑" & "↓" to increase/decrease the pitch of selection by 1 semitone
-- [x] Repeat playback doesn't actually use the specified repeat count - always defaults to 2.
-      **Only occurs when a single bar is a self contained repeat section**. With multi-bar
-      repeat sections this error doesn't appear and playback & visuals respect the repeat count.
-- [x] Store expanded/collapsed state of "About this demo" & "Demo controls" in `localStorage`
-- [x] Highlight the note symbol in the tempo display as well as the "= _BPM number_"
-- [x] Completely remove interactivity from inline techniques. 99% of the time gets in the
-      way of normal editing
-- [x] Make whole-beat selection easier.
-- [x] Improve selection rectangle geometry.
-- [x] Block the remaining editing interactions during playback.
-- [x] Add metronome and playback pitch-shift controls.
-- [x] Shift + Arrow selection selects the current beat before extending
-- [x] Keep a valid selection after range paste
-  - [x] Restore cursor and range state with immutable snapshots owned by each
-        undoable command, including valid post-edit context for structural edits
-        and fallback restoration when model objects are recreated. The current
-        design uses one selection-history wrapper around each model command.
-  - [x] Restore editing selection when playback returns to idle: select the last
-        seeked beat, or the last selected beat if playback did not seek. Cover Stop,
-        natural completion, and cancelled startup.
-- [x] Unify cross string LR markings
-- [x] Redo insert & paste
-- [x] Fix focus issues
-- [x] Use system clipboard
-- [x] Fix LR/PM markings logic
-- [x] Ctrl+A to select all
-      I was thinking. How hard would it be to modify the insertion algo a bit to fill the bars as long as they are empty. Here is my thought process with this
-- [x] Revisit Palm Mute sound
-- [x] Appended bars don't inherit the BPM & Time Signature
-- [x] Trace & fix all other spots where BPM & Time Sig are **not** inherited
-- [x] Display bar number
-- [x] Style interactivity of top buttons in the same way side buttons are
-- [ ] UI Polish:
-      STYLING:
-  - [x] Remove "()" from tooltips where the there is no key (e.g. - increase/decrease
-        pitch buttons)
-  - [x] Use lowercase letters in tooltips to avoid confusion. E.g.
-        "Does 'Shift+L' mean 'Shift and `l` key' or 'Shift + Shift + `l` key'?"
-  - [x] Equalize the bottoms of the side control panel and the notation viewport.
-        Currently notation's bottom seems a bit lower than that of side controls
-  - [x] Remove the red color from the delete track button
-  - [x] Align the whole tempo marking with the first beat's fret text without
-        changing its Y position.
-        DESIGN:
-  - [x] Redesign track selection
-  - [x] Put score title inside notation viewport
-- [x] Refine dialogs design
+  See [Long term work](#long-term-work) for details.
 
-With the score name input being at the very top of notation, kinda like in GuitarPro
+## Short term/immediate work
 
-## Follow-up inbox
+This file **does not** describe immediate features or bug fixes that are planned
+or in progress. Those live in GitHub issues.
 
-These notes came from the older roadmaps. Some overlap completed work. Confirm
-each against the current code before scheduling it; they are not all release
-blockers.
+## Medium term work
 
-### Behavior and notation
+These are issues that I want to address in the medium term. Meaning some time
+after `0.5.0` is released and a full web app is built on top of it. These are
+in no particular order.
 
-- Audit recoverable public errors and use dedicated error classes where useful.
-- Recheck inline-technique geometry, hit bounds, voice opacity, repeat visuals,
-  time signatures on one- through four-string instruments, and control layout.
-- Draw continuous Palm Mute and Let Ring spans across consecutive applications.
-- Confirm first-class tied-note behavior across sustain, destination attacks,
-  bends, serialization, editing, and notation; remove any remaining temporary
-  use of Let Ring as a tied-destination marker.
-- Define empty non-null voice rendering before allowing it in persisted scores.
-- Recheck atomic beat replacement and empty-bar normalization; the older plan
-  described eager fallback-rest repair as an immediate task.
-- Investigate multi-bar insertion cost against focused-update benchmarks.
-- Improve action announcements beyond selection descriptions.
+- Layout rethink. Keep the time-based spacing, add a collision detector in the
+  Element layer, and let each notation style report how much space it needs.
+  Grace notes follow after that. I want to start this one soon.
 
-### Architecture and performance
+- Show several tracks together. Currently one track is displayed at a time.
+  Bar widths are already calculated across all tracks, so part of the groundwork
+  exists.
 
-- Measure construction, materialization, updates, and retained memory before
-  changing presentation-shell architecture or `TabBeatElement` ownership.
-- Replace callback parameters with direct owner dependencies where this makes
-  ownership clearer. Deferred until after `0.5.0`.
-- Reassess component/callback boundaries, internal event scope, and hierarchical
-  template objects where measured simplification justifies it.
-- Improve the heterogeneous renderer registry's type boundary.
-- Consider `noUncheckedIndexedAccess` through guarded input and selection paths,
-  rather than adding assertions in bulk.
-- Assess separate model, element, and controller entry points and additional
-  customization based on actual consumer needs.
+- Desloppify editing. This one is admittedly going to be pretty vague.
+  Currently `ScoreEditor` just _feels_ a little sloppy. It's not vibe coded but I
+  feel like I may have been a bit too permissive with some outputs of my agents.
+  I imagine desloppifying this layer would entail better separation of concerns,
+  improved modularization, and reduction of excessive complexity.
 
-## After 0.5.0
+- Audit and potentially rewrite the test suite. The current test suite has about
+  1500 tests as of writing this. Any time I start a strict audit of the test
+  suite my agents report that actually the majority of these tests are fine and
+  only ~100 can be trimmed down. Maybe they are right but I just have a _hunch_
+  that close to 1500 tests for this project is too much. Not to mention that a
+  good chunk of these tests **are** vibe coded. I usually only quickly glance at
+  the diff to check if there are any red flags, not analyze the code as deeply
+  as I do with actual source code, which is part of why I want to audit them.
 
-### Headless use and export
+- Formats and parsing. At least MusicXML, since that is a universally supported
+  format. But also preferably Guitar Pro (`.gp`) and MIDI too.
 
-- Expose model-to-geometry APIs for line breaks, positions, and bounds in Node.
-  Score creation, editing, validation, and serialization already work without a
-  browser; the geometry classes are currently internal.
-- Add browser-backed, one-shot SVG export, then PNG/PDF export through Playwright.
-  Render all lines, omit interaction overlays, include styles/assets, and bypass
-  the editor's playback lifecycle.
-- Assess browser-free SVG export separately. The current renderer needs DOM nodes
-  and browser SVG measurements, so this requires more than a small API addition.
+- Headless use. This entails being able to install TabUI and use it via CLI.
+  Something like:
+  - `tabui calculate some-score.gp`: Takes a Guitar Pro score and calculates the
+    TabUI geometry from its model data (`TrackElement.update()`).
+  - `tabui render some-score.gp`: Renders the state of the model data in the
+    file to SVG, the same way TabUI renders normally in the DOM.
+  - `tabui convert tabui-format-score.json "gp"`: Converts the given file to the
+    requested format. Input/output can be of any supported format.
 
-### Other deferred work
+- Agentic use. This largely means being able to implement this loop:
+  - Speak/write text to an LLM instructing what to do. E.g. "put a bend on the
+    3rd string".
+  - The LLM interprets this and outputs JSON, something like:
 
-The former P2 work is deferred:
+    ```jsonc
+    {
+      "command": "SetTechniqueCommand",
+      "targets": [20, 4, 3], // Bar index, beat index, string number
+      "type": "GuitarTechniqueType.Bend",
+      "options": {...} // Bend options
+    }
+    ```
 
-- Full phone editing with mobile-specific selection, controls, and panels.
-- A coherent icon set and more consistent top controls.
-- Further review of hard-coded colors and configurable behavior.
-- Standard and drum notation.
-- More realistic playback: multisampling, velocity layers, and articulations.
-- A plugin system and schema migrations when concrete needs appear.
+  - TabUI receives this JSON via a top level method like `TabUI.execute()` and
+    executes the specified command.
 
-Broad architecture rewrites and compatibility wrappers for unpublished
-internals need a measured benefit or a real integration requirement.
+  I guess it could be said this isn't really about agentic use but more about a
+  defined programmatic way for consumers to modify notation. But the immediate
+  actual use case my mind jumps to is agentic use. And I think it's easiest to
+  understand why it's useful in this context too.
+
+- Examine performance bottlenecks. Some paths still result in long edits of 3
+  seconds or more. It would be ideal if **no** editing path is longer than
+  100ms.
+
+## Long term work
+
+- Sheet and drum notation. Arguably one of the most crucial pieces of work
+  described in this file. When complete, this would allow **any** instrument and
+  **any** score. Not just guitar focused pieces. "Spiritually" TabUI will remain
+  focused on guitarists, but this would allow transcribing whole scores instead
+  of just the guitar parts. This could be especially useful for drummers in rock
+  and metal bands.
+
+- Realistic playback. This would most likely require obtaining/recording a much
+  more detailed set of samples. For example Palm Mutes: instead of emulating
+  them, as TabUI does now, this separate sample set could have a separate set of
+  recordings of palm muted notes.
+
+## Unsure
+
+- Plugin system. Not really sure what this means in the context of TabUI, just
+  putting it here so that this isn't forgotten.
+
+- Canvas-based notation rendering. Currently rendering is done via SVG, which is
+  much easier to develop and debug. Canvas may improve performance, but only if
+  profiling shows that drawing, not layout, is the bottleneck. Canvas output
+  must be as accessible as SVG output. If added, it would work **alongside** SVG
+  rendering, not replace it.

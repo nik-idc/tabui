@@ -1,83 +1,41 @@
 # AGENTS.md
 
-This document provides practical guidance for AI agents working on the TabUI codebase.
+This document provides guidance for AI agents working on TabUI.
 
 ## Core Commands
 
 `npm run verify` checks types, builds the package, runs unit, raw, React, Angular,
 and Vue integration, and Playwright tests, then builds the demo. A passing run does
-not prove that all behavior is correct. See `package.json` for individual commands.
+not prove that all behavior is correct. See [Development](DEVELOPMENT.md) for
+focused test commands and test worker limits.
 
 ## Coding Rules
 
 Before editing or reviewing code, read [Code Style](docs/code-style.md).
-These rules apply to both human and agent contributors. See
-[Contributing](CONTRIBUTING.md) for verification steps.
-
-## Tests
-
-- Unit tests are in `tests/unit/`, integration tests are in
-  `tests/integration/`, and Playwright tests are in `tests/e2e/`.
-- Prefer TDD when it fits the task. Use the `tdd` skill for further guidance.
+These rules apply to both human and agent contributors. Follow the principles and
+verification steps in [Contributing](CONTRIBUTING.md).
 
 ## Architecture Overview
 
 Read [Domain Model and Terms](docs/domain.md) before working on notation code.
 It describes score structure, voice/rest conventions, and shared vocabulary.
 
-### Notation controller structure (current)
+Brief overview of the `src/` folders:
 
-- `src/notation/controller/editor/`
-  - includes command layer in `editor/command/`
-- `src/notation/controller/selection/`
-- `src/notation/controller/element/`
-  - top-level anchors:
-    - `track-element.ts`
-    - `notation-element.ts`
-  - shallow folders:
-    - `track/`
-    - `staff/`
-    - `bar/`
-    - `beat/`
-    - `note/`
-    - `technique/`
-      - `guitar-technique/` draws note techniques. `TabNoteSlotElement` owns
-        them.
-      - `beat-technique/` draws beat techniques, such as the stroke arrow.
-        `TabBeatElement` owns them, not the note slots.
-- `src/notation/controller/layout/score-layout-plan.ts` contains
-  `ScoreLayoutPlanner`, which calculates score-wide line breaks and finalized
-  bar widths across all tracks.
-- `element/track/track-element-skeleton-builder.ts` uses that plan to build
-  track skeletons and predict line heights for lazy materialization. Single-line
-  mode uses the plan's intrinsic bar widths instead of wrapped lines.
+- `config/`: TabUI configuration code.
+- `notation/`: model, geometry, rendering, and editing.
+- `player/`: playback.
+- `shared/`: code shared across the codebase.
+- `ui/`: editor UI layout and rendering (dialogs, buttons, etc.).
 
-### Render
+## Git and version control
 
-- SVG renderer code is under `src/notation/render/svg/`.
-- `EditorSVGRenderer` renders materialized viewport lines and may retain
-  offscreen renderer instances for reuse.
+Do not commit or push unless the user explicitly asks. Read-only Git operations
+and `git stash push` / `git stash apply` are allowed. Leave other Git operations
+that change repository state to humans unless explicitly requested.
 
-### Playback
+## Communication
 
-- Playback is implemented directly with Web Audio under `src/player/`.
-- See [Playback Architecture](docs/playback.md) for module roles and scheduling.
-
-## Patterns and Practices
-
-- Command pattern is used for undoable edits (`execute`, `undo`, `redo`).
-- Commands expose affected model anchors through `affectedModels`; do not
-  reintroduce eager update-type semantics such as horizontal/vertical/targeted
-  command update requests.
-- Keep behavior changes small and verifiable with tests.
-- Do not commit or push unless the user explicitly asks. Read-only Git operations
-  and `git stash push` / `git stash apply` are allowed. Leave other Git operations
-  that change repository state to humans unless explicitly requested.
-
-## Communication & Response Guidelines
-
-Follow the principles of the **Google Developer Documentation Style Guide** and
-**ASD-STE100 (Simplified Technical English)** across all text outputs.
-
-Keep your language and response structure as simple as you can. It should be understandable by
-a teenager whose English level is at best B1.
+- Keep your responses brief. Use simple English.
+- Write docs and comments in plain English, following the Google developer
+  documentation style.
