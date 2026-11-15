@@ -1,11 +1,17 @@
-import { cpSync, createReadStream, statSync } from "node:fs";
+import {
+  cpSync,
+  createReadStream,
+  existsSync,
+  readFileSync,
+  statSync,
+} from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitepress";
 
-// The site and API reference share one base path. GitHub Pages serves them
-// under /tabui/; a custom domain would set TABUI_SITE_BASE=/ instead.
+// GitHub Pages serves the site under /tabui/; a custom domain would set
+// TABUI_SITE_BASE=/ instead.
 const base = process.env.TABUI_SITE_BASE ?? "/tabui/";
 
 // The demo's audio samples live in assets/samples. The dev server serves them
@@ -13,6 +19,27 @@ const base = process.env.TABUI_SITE_BASE ?? "/tabui/";
 const samplesDir = fileURLToPath(
   new URL("../../assets/samples", import.meta.url)
 );
+
+// TypeDoc writes the API reference into docs/api, with a sidebar file.
+// Run `npm run docs:build` to make it.
+const apiSidebarFile = fileURLToPath(
+  new URL("../api/typedoc-sidebar.json", import.meta.url)
+);
+const apiSidebar = existsSync(apiSidebarFile)
+  ? JSON.parse(readFileSync(apiSidebarFile, "utf8"))
+  : [];
+
+const guidesSidebar = [
+  {
+    text: "Guides",
+    items: [
+      { text: "Embedding TabUI", link: "/embedding" },
+      { text: "Keyboard shortcuts", link: "/keyboard-shortcuts" },
+      { text: "Features", link: "/features" },
+      { text: "Domain model and terms", link: "/domain" },
+    ],
+  },
+];
 
 /** Serves assets/samples at <base>samples/ in the dev server. */
 function serveDemoSamples(): Plugin {
@@ -51,9 +78,7 @@ export default defineConfig({
   base,
   cleanUrls: true,
   outDir: "../site/dist",
-  // The API reference is built separately into the same folder.
-  ignoreDeadLinks: [/^\/api\//],
-  srcExclude: ["api/**", "api-introduction.md", "code-style.md", "playback.md"],
+  srcExclude: ["api-introduction.md", "code-style.md", "playback.md"],
   head: [
     [
       "link",
@@ -64,19 +89,12 @@ export default defineConfig({
     nav: [
       { text: "Demo", link: "/demo" },
       { text: "Guides", link: "/embedding" },
-      { text: "API", link: "/api/", target: "_self" },
+      { text: "API", link: "/api/" },
     ],
-    sidebar: [
-      {
-        text: "Guides",
-        items: [
-          { text: "Embedding TabUI", link: "/embedding" },
-          { text: "Keyboard shortcuts", link: "/keyboard-shortcuts" },
-          { text: "Features", link: "/features" },
-          { text: "Domain model and terms", link: "/domain" },
-        ],
-      },
-    ],
+    sidebar: {
+      "/api/": [{ text: "API reference", link: "/api/" }, ...apiSidebar],
+      "/": guidesSidebar,
+    },
     socialLinks: [{ icon: "github", link: "https://github.com/nik-idc/tabui" }],
     search: { provider: "local" },
   },
