@@ -7,6 +7,8 @@ test("keeps one mounted notation tree inside its owned root after reconfiguratio
   const editor = page.locator("#tabui-editor");
   await expect(editor.locator(".tu-root-svg")).toHaveCount(1);
   for (const placement of ["right", "left", "right"]) {
+    // Clicks in the editor close the Panels menu, so open it each time.
+    await page.locator("#panels-menu summary").click();
     await page.locator("#side-panel-placement-select").selectOption(placement);
     await expect(editor).toHaveClass(
       new RegExp(`tu-side-controls-${placement}`)

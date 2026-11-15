@@ -22,3 +22,19 @@
   font-family: var(--vp-font-family-mono);
   letter-spacing: 0;
 }
+
+/* The demo page is wider than a guide page. */
+.demo-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px 24px 32px;
+}
+
+.demo-page .vp-doc h1 {
+  margin-bottom: 8px;
+}
+
+.demo-page .vp-doc p {
+  margin: 0 0 16px;
+  color: var(--vp-c-text-2);
+}

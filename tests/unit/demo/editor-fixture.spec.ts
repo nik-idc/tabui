@@ -295,8 +295,11 @@ describe("editor fixture and theme resolution", () => {
     ["obsidian", "obsidian"],
     ["paper", "paper"],
     ["contrast", "contrast"],
-    ["unknown", "obsidian"],
-    ["", "obsidian"],
+    ["light", "light"],
+    ["dark", "dark"],
+    ["auto", "auto"],
+    ["unknown", "auto"],
+    ["", "auto"],
   ])("resolves theme=%s to %s", (key, expected) => {
     const params = new URLSearchParams(key ? `theme=${key}` : "");
 
@@ -305,6 +308,8 @@ describe("editor fixture and theme resolution", () => {
 
   it("exposes theme options for demo UI", () => {
     expect(getEditorThemes().map((theme) => theme.key)).toEqual([
+      "light",
+      "dark",
       "midnight",
       "obsidian",
       "paper",
@@ -320,6 +325,13 @@ describe("editor fixture and theme resolution", () => {
     expect(theme.theme?.notation?.fonts?.notation).toContain(
       "Cormorant Garamond"
     );
+  });
+
+  it("resolves the auto theme from the page appearance", () => {
+    const params = new URLSearchParams("theme=auto");
+
+    expect(resolveEditorTheme(params, false).assets?.variant).toBe("light");
+    expect(resolveEditorTheme(params, true).assets?.variant).toBe("dark");
   });
 
   it("applies and replaces page theme CSS without clearing unrelated styles", () => {

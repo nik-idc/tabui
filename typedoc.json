@@ -8,7 +8,7 @@
   "includeVersion": true,
   "navigationLinks": {
     "Website": "/tabui/",
-    "Demo": "/tabui/demo/",
+    "Demo": "/tabui/demo",
     "GitHub": "https://github.com/nik-idc/tabui"
   },
   "excludePrivate": true,

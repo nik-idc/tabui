@@ -14,7 +14,7 @@ use an older version, check your installed package's declarations and comments.
 - [Framework examples](https://github.com/nik-idc/tabui/blob/master/docs/embedding.md#framework-integration):
   React, Angular, and Vue integration.
 - [Keyboard shortcuts](https://github.com/nik-idc/tabui/blob/master/docs/keyboard-shortcuts.md).
-- [Try the demo](/tabui/demo/).
+- [Try the demo](/tabui/demo).
 
 The guides above follow the repository's current `master` branch.
 

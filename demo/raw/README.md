@@ -1,7 +1,15 @@
 # Raw demo
 
-This is the main TabUI showcase deployed to GitHub Pages at `/tabui/`. It uses
-TypeScript and browser APIs directly, without a UI framework.
+This is the TabUI showcase as a plain TypeScript page, without a UI framework.
+The website's [demo page](https://nik-idc.github.io/tabui/demo) runs the same
+code inside VitePress.
+
+- `demo-app.ts` renders the controls and the editor into a host element. Both
+  this page and `docs/demo.md` call its `mountDemo` function.
+- `demo-template.ts` holds the controls markup, and `demo-app.css` their styles.
+  The host page sets the `--demo-*` colors.
+- `main.ts` mounts the demo into `index.html` and colors the page with the
+  selected editor theme.
 
 Shared score builders and score factories live in the top-level `fixtures/`
 folder. The integration consumer copies them alongside the demo and checks them
@@ -20,17 +28,22 @@ npm run build:package
 npm run build:demo
 ```
 
-The output remains `demo/dist/`, used by the existing Pages deployment. Sample
-audio comes from `assets/samples/`; samples are demo resources and do not ship in
-the npm package.
+The output is `demo/dist/`. Sample audio comes from `assets/samples/`; samples
+are demo resources and do not ship in the npm package.
 
-Use **Demo controls → Playback → Sound source** to compare **FluidR3**
-(the default pack), **Free Wave Samples**, and **Synth** (built-in oscillator
-tones). Switching stops playback and remounts the editor with the current score.
-The choice stays in the URL as `soundSource=samples`, `soundSource=fluidr3`, or
-`soundSource=synths`, including after reload. Existing links keep their meaning.
-Synth mode does not load samples; all sources use the same playback scheduling
-and techniques.
+Every setting is stored in the URL, so a link keeps it. Changing a setting
+remounts the editor with the current score. Changing the score fixture loads a
+new score.
+
+The **Theme** setting defaults to **Auto**, which uses the **Light** or **Dark**
+theme to match the page: the system setting here, or the site's light/dark
+toggle on the website.
+
+Use **Sound** to compare **FluidR3** (the default pack), **Free Wave Samples**,
+and **Synth** (built-in oscillator tones). The choice is stored as
+`soundSource=fluidr3`, `soundSource=samples`, or `soundSource=synths`. Synth mode
+does not load samples; all sources use the same playback scheduling and
+techniques.
 
 The [FluidR3 subset](../../assets/samples/fluidr3/README.md) contains six
 MIT-licensed WAV extracts, not a browser SoundFont engine. Each tone uses one
@@ -49,8 +62,6 @@ The test copies this app into an isolated consumer project, installs the locally
 packed npm package, checks its types, and builds it with consumer-local tools.
 Chromium checks the showcase at a nested deployment base, including themes,
 fixture selection, score download/upload, layout controls, reset, and WAV files.
-The deployed demo keeps its Google Fonts links; the automated check supplies an
-empty stylesheet for that external request so it can run offline.
 
 A focused fixture in `tests/integration/raw/fixture/` also checks subscriptions,
 unsubscription, resize, disposal, remounting, and package asset exports. These

@@ -51,7 +51,7 @@
     "build:demo": "vite build",
     "docs:build": "typedoc",
     "site:dev": "vitepress dev docs",
-    "site:build": "vitepress build docs && vite build --mode site && typedoc --out site/dist/api",
+    "site:build": "vitepress build docs && typedoc --out site/dist/api",
     "site:preview": "npm run site:build && vitepress preview docs",
     "docs:preview": "vite preview --config vite.config.docs.js",
     "test": "npm run test:unit",

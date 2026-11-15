@@ -1,4 +1,4 @@
-name: Deploy Site, Demo, and API Docs to GitHub Pages
+name: Deploy Site and API Docs to GitHub Pages
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
       - name: Verify and build
         run: npm run verify
 
-      - name: Build site, demo, and API docs
+      - name: Build site and API docs
         env:
           TABUI_SITE_BASE: /tabui/
         run: npm run site:build

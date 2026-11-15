@@ -168,16 +168,14 @@ test("contains modal behavior within the editor", async ({ page }) => {
   ).toBe(true);
 
   // Use real host-page UI to prove that editor-local modality does not block it.
-  const about = page.getByText("About this demo", { exact: true });
-  const description = page.getByText("This is a demo of TabUI.", {
-    exact: false,
-  });
-  await expect(description).toBeVisible();
-  await about.click();
-  await expect(description).toBeHidden();
+  const panels = page.locator("#panels-menu summary");
+  const placement = page.locator("#side-panel-placement-select");
+  await expect(placement).toBeHidden();
+  await panels.click();
+  await expect(placement).toBeVisible();
   await expect(dialog).toBeVisible();
-  await about.click();
-  await expect(description).toBeVisible();
+  await panels.click();
+  await expect(placement).toBeHidden();
   await dialog
     .getByRole("button", { name: "Cancel", exact: true })
     .scrollIntoViewIfNeeded();

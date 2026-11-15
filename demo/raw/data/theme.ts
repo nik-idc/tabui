@@ -1,15 +1,109 @@
 import type { TabUIConfig } from "@atikincode/tabui";
 
-export type EditorThemeKey = "midnight" | "obsidian" | "paper" | "contrast";
+export type EditorThemeKey =
+  | "auto"
+  | "light"
+  | "dark"
+  | "midnight"
+  | "obsidian"
+  | "paper"
+  | "contrast";
+
+/** A theme with a fixed config. "auto" is not one: it picks light or dark. */
+export type FixedEditorThemeKey = Exclude<EditorThemeKey, "auto">;
 
 export interface EditorThemeOption {
-  key: EditorThemeKey;
+  key: FixedEditorThemeKey;
   label: string;
   isDark: boolean;
   config: TabUIConfig;
 }
 
+const BASIC_FONT = '"Inter", ui-sans-serif, system-ui, sans-serif';
+
 const EDITOR_THEMES: EditorThemeOption[] = [
+  {
+    key: "light",
+    label: "Light",
+    isDark: false,
+    config: {
+      assets: {
+        variant: "light",
+      },
+      theme: {
+        ui: {
+          colors: {
+            background: "#ffffff",
+            surface: "#f6f6f7",
+            surfaceAlt: "#ebebef",
+            border: "#c2c2c4",
+            text: "#3c3c43",
+            hover: "#e2e2e3",
+            applied: "#3c3c4326",
+          },
+          fonts: {
+            default: { family: BASIC_FONT },
+          },
+          radius: "6px",
+        },
+        notation: {
+          colors: {
+            ink: "#3c3c43",
+            text: "#1b1b1f",
+            noteBackground: "#ffffff",
+            selectionStroke: "#67676c",
+            selectionFill: "#67676c1f",
+            cursor: "#1b1b1f",
+            danger: "#c62828",
+          },
+          fonts: {
+            notation: BASIC_FONT,
+          },
+        },
+      },
+    },
+  },
+  {
+    key: "dark",
+    label: "Dark",
+    isDark: true,
+    config: {
+      assets: {
+        variant: "dark",
+      },
+      theme: {
+        ui: {
+          colors: {
+            background: "#1b1b1f",
+            surface: "#202127",
+            surfaceAlt: "#2e2e32",
+            border: "#3c3f44",
+            text: "#dfdfd6",
+            hover: "#32363f",
+            applied: "#dfdfd626",
+          },
+          fonts: {
+            default: { family: BASIC_FONT },
+          },
+          radius: "6px",
+        },
+        notation: {
+          colors: {
+            ink: "#c8c8c0",
+            text: "#dfdfd6",
+            noteBackground: "#1b1b1f",
+            selectionStroke: "#98989f",
+            selectionFill: "#98989f26",
+            cursor: "#ffffff",
+            danger: "#f66f81",
+          },
+          fonts: {
+            notation: BASIC_FONT,
+          },
+        },
+      },
+    },
+  },
   {
     key: "midnight",
     label: "Midnight",
@@ -184,26 +278,29 @@ export function resolveEditorThemeKey(
   searchParams: URLSearchParams
 ): EditorThemeKey {
   const theme = searchParams.get("theme");
-  if (
-    theme === "midnight" ||
-    theme === "obsidian" ||
-    theme === "paper" ||
-    theme === "contrast"
-  ) {
-    return theme;
-  }
-
-  return "obsidian";
+  const fixedTheme = EDITOR_THEMES.find((v) => v.key === theme);
+  return fixedTheme?.key ?? "auto";
 }
 
-export function resolveEditorTheme(searchParams: URLSearchParams): TabUIConfig {
-  const themeKey = resolveEditorThemeKey(searchParams);
-  const theme = EDITOR_THEMES.find((option) => option.key === themeKey);
+/** Returns the config for a theme key. "auto" uses Dark when isDark is true. */
+export function getEditorThemeConfig(
+  themeKey: EditorThemeKey,
+  isDark = false
+): TabUIConfig {
+  const key = themeKey === "auto" ? (isDark ? "dark" : "light") : themeKey;
+  const theme = EDITOR_THEMES.find((option) => option.key === key);
   if (theme === undefined) {
-    throw new Error(`Unknown theme key: ${themeKey}`);
+    throw new Error(`Unknown theme key: ${key}`);
   }
 
   return theme.config;
+}
+
+export function resolveEditorTheme(
+  searchParams: URLSearchParams,
+  isDark = false
+): TabUIConfig {
+  return getEditorThemeConfig(resolveEditorThemeKey(searchParams), isDark);
 }
 
 /** Applies the selected editor theme to demo-owned page chrome outside the editor. */
