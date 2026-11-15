@@ -124,18 +124,23 @@ TabUI package version. Each version lives in its own folder, such as
 
 Pull requests and pushes to `master` run `npm run verify` in CI. Tags matching
 `v*` run the same checks and deploy the site to GitHub Pages: the VitePress site
-from `docs/` at the root, and the API reference under `api/`. The demo page
+from `docs/`. The demo page
 (`docs/demo.md`) mounts the raw demo from `demo/raw/` and uses TabUI from source.
 The VitePress config serves the demo's audio samples from `assets/samples`
 and copies them into the build. `TABUI_SITE_BASE` sets the
-base path, so another host can use a different one. The API reference's links
-in `typedoc.json` use the same path.
+base path, so another host can use a different one.
 
-- `npm run site:build` builds both into `site/dist`. A plain
-  `vitepress build` empties that folder, so always use this command.
+TypeDoc writes the API reference as Markdown pages into `docs/api/`, and
+VitePress builds them with the other pages. `docs/api/` is generated, so Git
+ignores it. `docs/api-introduction.md` is the reference's start page.
+
+- `npm run docs:build` generates `docs/api/` only.
+- `npm run site:build` generates the API pages, then builds the site into
+  `site/dist`.
 - `npm run site:preview` runs the full build, then serves the site.
-- `npm run site:dev` live-reloads the VitePress pages, including the demo. The
-  API link shows a 404 there.
+- `npm run site:dev` generates the API pages, then live-reloads the site,
+  including the demo. Run `npm run docs:build` again after you change API
+  comments.
 
 Set the Pages
 source to **GitHub Actions**. The maintainer creates and pushes release tags.

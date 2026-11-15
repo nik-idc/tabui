@@ -3,20 +3,17 @@
 TabUI is a guitar tablature editor for the browser. This reference describes
 the public API exported by `@atikincode/tabui`.
 
-The version shown in the page heading is the package version used to build this
-reference. The hosted reference is updated with each release deployment. If you
-use an older version, check your installed package's declarations and comments.
+This reference is updated with each release. If you use an older version,
+check your installed package's declarations and comments.
 
 ## Start here
 
-- [Embedding guide](https://github.com/nik-idc/tabui/blob/master/docs/embedding.md):
-  installation, configuration, lifecycle, events, and saving scores.
-- [Framework examples](https://github.com/nik-idc/tabui/blob/master/docs/embedding.md#framework-integration):
-  React, Angular, and Vue integration.
-- [Keyboard shortcuts](https://github.com/nik-idc/tabui/blob/master/docs/keyboard-shortcuts.md).
-- [Try the demo](/tabui/demo).
-
-The guides above follow the repository's current `master` branch.
+- [Embedding guide](/embedding): installation, configuration, lifecycle,
+  events, and saving scores.
+- [Framework examples](/embedding#framework-integration): React, Angular, and
+  Vue integration.
+- [Keyboard shortcuts](/keyboard-shortcuts).
+- [Try the demo](/demo).
 
 ## Main APIs
 
