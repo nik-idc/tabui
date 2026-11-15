@@ -159,9 +159,9 @@ export class TechniqueControlsTemplateRenderer {
       this.template.nhButton,
       this.assetsPath,
       "img/techniques/nh.svg",
-      "Nat. Harmonic"
+      "Natural Harmonic"
     );
-    setShortcutTooltip(this.template.nhButton, "Nat. Harmonic", "h");
+    setShortcutTooltip(this.template.nhButton, "Natural Harmonic", "h");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.NaturalHarmonic,
       this.template.nhButton

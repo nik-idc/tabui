@@ -1,42 +1,11 @@
-# Using TabUI
+# Embedding TabUI
 
-TabUI is a guitar tablature editing engine.
+This guide is for developers who embed the TabUI editor in a web app. For using
+the editor itself, see [Keyboard shortcuts and controls](keyboard-shortcuts.md). For every
+configuration option, see `TabUIConfig` in the
+[API reference](https://nik-idc.github.io/tabui/api/).
 
-For installation and a minimal example, see the [README](../README.md).
-
-## Contents
-
-- [Demo](#demo)
-- [Package usage](#package-usage)
-- [Creating a populated score](#creating-a-populated-score)
-- [Styles and icons](#styles-and-icons)
-  - [Bundled icons](#bundled-icons)
-  - [Custom and hosted icons](#custom-and-hosted-icons)
-- [Playback and audio samples](#playback-and-audio-samples)
-- [Editor lifecycle](#editor-lifecycle)
-- [Framework integration](#framework-integration)
-- [State and events](#state-and-events)
-- [Score ownership and host updates](#score-ownership-and-host-updates)
-- [Interaction](#interaction)
-  - [Editing and view-only modes](#editing-and-view-only-modes)
-  - [Mouse, touch, and pen input](#mouse-touch-and-pen-input)
-- [Ties and Let Ring](#ties-and-let-ring)
-- [Strokes](#strokes)
-- [Dynamics](#dynamics)
-- [Accessibility](#accessibility)
-  - [Keyboard navigation](#keyboard-navigation)
-  - [Screen-reader feedback](#screen-reader-feedback)
-  - [Visual accessibility](#visual-accessibility)
-- [Layout and panels](#layout-and-panels)
-  - [Responsive layout](#responsive-layout)
-  - [Wrapped and single-line layouts](#wrapped-and-single-line-layouts)
-  - [Panel placement and visibility](#panel-placement-and-visibility)
-- [Score persistence](#score-persistence)
-- [Compatibility](#compatibility)
-
-## Demo
-
-[GitHub Pages Demo](https://nik-idc.github.io/tabui/)
+Try the [demo](https://nik-idc.github.io/tabui/) to see the editor first.
 
 ## Package usage
 
@@ -190,12 +159,8 @@ Set `playback.preloadAudio` to `true` to prepare configured `playback.samples` i
 background during initialization. It does not block `init()` or resume audio;
 the first Play action still satisfies browser user-gesture requirements.
 
-Playback controls also provide a synthesized metronome and a live global pitch
-shift from -12 to +12 semitones. These settings affect audio only; they are not
-written to the score or its serialization. Use the inline numeric stepper to
-change pitch immediately, including during playback. Set it to zero for the
-original pitch. Pitch shifting changes sample playback
-rate as well as oscillator pitch; it does not time-stretch recordings.
+The metronome and playback pitch shift are editor controls. They change only
+the audio and are not saved with the score.
 
 ## Editor lifecycle
 
@@ -270,161 +235,16 @@ history. `refreshLayout()` refreshes geometry; it is not a general score-update
 method. For host-driven content changes, dispose the editor, update or replace
 the score, and mount a fresh editor. Prepare programmatic scores before mounting.
 
-## Interaction
-
-### Editing and view-only modes
+## Editing and view-only modes
 
 `interaction.mode` accepts `TabUIEditorMode.Edit` (the default) or
 `TabUIEditorMode.ViewOnly`. View-only mode permits playback, seeking, scrolling,
 copying, and active-track selection. It removes editing controls and prevents
 score mutations at the controller boundary.
 
-### Mouse, touch, and pen input
+## Themes and fonts
 
-Notation selection uses Pointer Events for mouse, touch, and pen input. Desktop
-drag selection remains a single-pointer interaction. Full phone editing and
-two-handle touch selection are not currently supported.
-
-## Ties and Let Ring
-
-Use **Tie** or **J** (for “join”) to tie the selection to the immediately previous
-beat. Use **Shift+J** to search as far back as possible. Either shortcut removes
-ties when all selected playable notes already have them. Read the [Tie rules](techniques.md#tie), especially
-[how applying Tie can replace selected content](techniques.md#applying-and-removing-ties).
-
-Use **Let Ring** or **Shift+L** to toggle Let Ring. Use **Palm Mute** or **P** to
-toggle Palm Mute. A cursor edits one string; a beat or range selection
-edits eligible slots in musical order. Compatibility is checked per note, so
-different strings in a beat can use different techniques.
-
-Select a note, beat, or beat range, then use the **Let Ring** or **Palm Mute**
-button, or its shortcut, to toggle the technique. See [Let Ring](techniques.md#let-ring)
-for passage support and editing effects, and [Palm Mute](techniques.md#palm-mute)
-for eligible note types.
-
-Use **Tap** or **K** to toggle Tap. Use **Accent** or **C** to toggle a normal
-accent, and **Heavy Accent** or **Shift+C** to toggle a heavy accent. Each
-button shows as pressed when the selected notes have that kind. They follow the
-same selection rules. See [Tap](techniques.md#tap) and
-[Accent](techniques.md#accent).
-
-These techniques have no options. For other techniques and their interpretation,
-see [Guitar techniques](techniques.md). For storage and editing responsibilities,
-see [the domain model](domain.md#technique-ownership-and-editing).
-
-## Strokes
-
-A stroke belongs to a beat. It applies to the cursor's beat or to every
-selected beat; rests are skipped. See [Stroke](techniques.md#stroke) for its
-meaning and playback.
-
-- **D** toggles a down stroke, and **U** toggles an up stroke. A toggle removes
-  the strokes when all selected beats already have a stroke in that direction.
-  Otherwise it sets that direction and keeps the duration and alignment of the
-  first existing stroke. A new stroke takes a 16th note and starts on time.
-- **Stroke** or **Shift+D** opens a dialog. The button shows as pressed when
-  a selected beat has a stroke. The dialog has:
-  - **Direction**: Down or Up.
-  - **Duration**: a slider from a 64th note (left) to a half note (right).
-    Marks show the 64th, 16th, 8th, quarter, and half notes. Each step to the
-    right makes the stroke a little slower.
-  - **Timing**: a slider that reads like a timeline. The left end is **Falls
-    on time** (the whole stroke plays before the beat). The right end is
-    **Starts on time** (the stroke starts on the beat).
-  - **Confirm**, **Remove**, and **Cancel**. Remove deletes the stroke from the
-    selected beats.
-
-The sliders work with the arrow keys, Page Up, Page Down, Home, and End. Screen
-readers hear the value as a note value or a timing, such as “16th note”.
-
-## Dynamics
-
-A dynamic tells how loud a beat is played, from `ppp` (very soft) to `fff`
-(very loud). Every beat has one, rests included. A new beat takes the dynamic
-of the beat before it in the same voice, also across bar lines. See
-[Beat dynamic](domain.md#beat-dynamic) for the rules.
-
-- The **Beat** section has eight dynamic buttons below the tuplet buttons.
-  A click sets that dynamic on the cursor's beat or on every selected beat.
-- A button shows as pressed when any selected beat has that dynamic. A
-  selection with mixed dynamics shows more than one pressed button.
-- **>** makes each selected beat one level louder, and **<** makes it one level
-  softer. Each beat changes from its own dynamic. The change stops at `fff`
-  and `ppp`.
-- After a button or shortcut, screen readers hear the new dynamic of the
-  active beat, such as “Dynamic forte”.
-
-Dynamics are not drawn in tab. They change playback loudness and are saved
-with the score.
-
-## Accessibility
-
-TabUI aims to make tablature navigation and editing usable by blind and
-visually impaired people, as well as people who use a keyboard instead of a
-mouse. It includes keyboard navigation, named controls, focus management, and
-screen-reader announcements, with support for NVDA and Orca (MacOS screen readers
-should work too - but hasn't been tested).
-
-### Keyboard navigation
-
-See the [full keyboard shortcut reference](keyboard-shortcuts.md) for all
-navigation, editing, technique, and dialog shortcuts and their requirements.
-
-Use Tab and Shift+Tab to move between editor controls and the notation area.
-Activate the **Skip to notation** link to move directly to the **Notation editor**
-area. Entering notation announces the current position, including the initial
-position in an empty score.
-
-While notation has focus, these keys provide basic navigation and editing:
-
-| Key                                | Action                                                                        |
-| ---------------------------------- | ----------------------------------------------------------------------------- |
-| Left / Right arrow                 | Move between beats.                                                           |
-| Up / Down arrow                    | Move between strings.                                                         |
-| Ctrl+Left / Ctrl+Right             | Move between bars.                                                            |
-| Shift+Left / Shift+Right           | Select the current beat first, then extend or shrink the selected beat range. |
-| Ctrl+Shift+Left / Ctrl+Shift+Right | Extend the range by bar.                                                      |
-| Shift+V                            | Cycle through the staff's four voices.                                        |
-| Number keys                        | Enter a fret number on the selected note slot.                                |
-| Space                              | Start or stop playback.                                                       |
-| Ctrl+Z / Ctrl+Y                    | Undo or redo an edit.                                                         |
-
-Editing shortcuts require edit mode; see [interaction modes](#editing-and-view-only-modes).
-Notation shortcuts apply while notation has focus, so typing in a host form or
-editor dialog does not edit the score.
-
-Buttons support normal keyboard activation. Open dialogs keep keyboard focus
-within their controls; Escape closes a dialog and returns focus to its opener.
-
-### Screen-reader feedback
-
-The notation area is exposed as an application region named **Notation editor**.
-If your screen reader intercepts navigation keys, use its focus or interaction
-mode while working in this area.
-
-TabUI publishes text announcements through live status regions. Depending on the
-action, these describe:
-
-- The active track, staff, voice, bar, time signature, and tempo.
-- The selected beat, duration, stroke, string, fret or rest, and techniques.
-- The beat's dynamic, on the beat where it changes. After you change a
-  dynamic, the new dynamic of the active beat.
-- Changes to a selected beat range.
-- Changes made through controls such as tempo, repeat count, and string tuning.
-
-Toolbar buttons have accessible names. Toggle controls expose their pressed
-state, and unavailable controls expose their disabled state. Dialogs have names
-and labeled fields, so their purpose does not depend on seeing an icon.
-
-Browser tests check focus, accessible names and states, and announcement text.
-Actual speech also depends on the browser and screen-reader settings. If you
-find an obstacle, [report it](https://github.com/nik-idc/tabui/issues) with the
-browser, screen reader, and steps used.
-
-### Visual accessibility
-
-Controls provide visible keyboard-focus indicators, and icon tooltips appear on
-both hover and keyboard focus. Applications can configure UI and notation colours
+You can configure UI and notation colours
 through `theme.ui.colors` and `theme.notation.colors`. Choose contrasting text,
 background, selection, and cursor colours, and pair dark backgrounds with
 `assets.variant: "dark"` so icons remain visible.
@@ -433,10 +253,6 @@ UI fonts use `theme.ui.fonts.default.family` and `.size` for the body and
 controls. `theme.ui.fonts.scoreName.family` falls back to the default family;
 its `.size` falls back to the default size, or `2.25rem` when no default size is
 set. The body defaults to Segoe UI at `1rem`.
-
-The [demo](#demo) includes light, dark, and **High Contrast** themes to try.
-Browser zoom can reduce the available notation width; the
-[responsive layout rules](#responsive-layout) still apply.
 
 ## Layout and panels
 
@@ -512,6 +328,6 @@ provided. To display the restored score, dispose the current editor and pass
 
 ## Compatibility
 
-TabUI is pre-`1.0.0`. Public APIs and serialized formats are documented where
-they exist, but breaking changes remain possible before the first stable major
-release.
+TabUI is pre-`1.0.0`. Public APIs can still change before the first stable
+major release. Saved scores stay readable: newer TabUI versions keep reading
+scores saved by older versions.

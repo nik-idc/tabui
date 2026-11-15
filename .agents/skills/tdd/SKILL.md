@@ -7,7 +7,7 @@ description: Test-driven development. Use when the user wants to build features 
 
 TDD is the red → green loop. This skill is the reference that makes that loop produce tests worth keeping: what a good test is, where tests go, the anti-patterns, and the rules of the loop. Every section applies on every cycle: consult them before and during the loop, not after.
 
-When exploring the codebase, read `docs/domain.md` so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
+When exploring the codebase, read `docs/domain.md` so test names and interface vocabulary match the project's domain language.
 
 ## What a good test is
 
@@ -36,3 +36,16 @@ When the shape of that interface is itself in question, settle what the module e
 - **Red before green.** Write the failing test first, then only enough code to pass it. Don't anticipate future tests or add speculative features.
 - **One slice at a time.** One seam, one test, one minimal implementation per cycle.
 - **Refactoring is not part of the loop.** It belongs to the review stage after implementation, not the red → green implementation cycle.
+
+## Is a test worth keeping?
+
+Use this when you write new tests or assess existing ones. A good test answers
+"yes" to all four:
+
+- Does this behavior deserve coverage?
+- Is the coverage itself good, by the rules above?
+- Is the test in the right file and folder?
+- Is it unique? Make sure the same assertion doesn't already exist elsewhere.
+
+Be critical of new tests, especially the "regression" tests that LLMs like to add
+after every change. Do not be afraid to remove existing tests.

@@ -7,9 +7,9 @@ Run `npx eslint .` to check them.
 
 ## Naming
 
-- Use `is**`/`*verb*ed`/similar structure for boolean variables.
-  The goal is to make it explicit that the variable is a boolean
-  or should be treated as such. Eg:
+- Name boolean variables so they read as yes/no, for example `isMixed`,
+  `hasNotes`, or `selected`. The name should make it clear that the value is a
+  boolean. For example:
 
 ```ts
 // Bad. Could technically mean a collection that is a result of a mix
@@ -49,7 +49,7 @@ type RemoveBarsBefore = {
 } | null;
 
 class RemoveBarsCommand {
-  private _before: RemoveBarsBefore;
+  private _before: RemoveBarsBefore = null;
 }
 ```
 
@@ -60,17 +60,20 @@ class RemoveBarsCommand {
 - Keep `for`, `if`, and similar control-flow headers on one line. If a header
   becomes too long, extract local variables before the statement.
 - `if`, `for` etc should always be a `{}` block - never use the short one-liner version
-- Prefer one-letter callback parameters for internal array operations.
-- Use early returns/guard clauses whenever possible to reduce indentation as much as possible.
+- Prefer one-letter callback parameters for internal array operations:
 
 ```ts
 array.find((v) => v.property === neededProp);
 ```
 
+- Use early returns and guard clauses to reduce indentation.
+
 ## Readability and Structure
 
-- Keep behavior changes small and verifiable with tests. During stabilization,
-  prefer correctness and clarity over broad refactors.
+- Keep behavior changes small and verifiable with tests.
+- Fix the root cause, not the symptom. If that needs a small or medium refactor,
+  include it in the change. If it needs a large refactor, discuss it first in an
+  issue.
 - Keep related behavior close together. Inline a one-use helper or getter that
   only wraps a simple property access, such as `return this._foo?.bar;`.
 - Extract logic when it is reused, needs a meaningful name, or is complex enough
@@ -87,31 +90,25 @@ element.setAttribute("x", labelX.toString());
 
 ```js
 // Don't
-const object = await fetch(someLink);
-const parser = new CustomObjectParser();
-const formatted = await parser.parse(object);
-const response = `some whole lotta text that really should probably be split but since I don't care for readability I will keep this 150+ characters string as is cause why not`;
-const responseObject = new CustomObject(response);
-const result = await fetch(someLink, {
+const response = await fetch(sourceUrl);
+const parser = new ScoreParser();
+const score = parser.parse(await response.json());
+const document = serializeScore(score);
+const result = await fetch(targetUrl, {
   method: "POST",
-  body: JSON.stringify(responseObject.toJSON()),
+  body: JSON.stringify(document),
 });
 
 // Do
-const object = await fetch(someLink);
+const response = await fetch(sourceUrl);
 
-const parser = new CustomObjectParser();
-const formatted = await parser.parse(object);
+const parser = new ScoreParser();
+const score = parser.parse(await response.json());
 
-const response =
-  `some whole lotta text that really should probably be split ` +
-  `but since I don't care for readability I will keep this 150+ characters ` +
-  `string as is cause why not`;
-const responseObject = new CustomObject(response);
-
-const result = await fetch(someLink, {
+const document = serializeScore(score);
+const result = await fetch(targetUrl, {
   method: "POST",
-  body: JSON.stringify(responseObject.toJSON()),
+  body: JSON.stringify(document),
 });
 ```
 

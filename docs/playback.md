@@ -178,8 +178,8 @@ final gain release at the scheduled end.
 
 Technique playback is currently implemented as Web Audio shaping over the same
 scheduled note source rather than articulation-specific samples. See
-[Guitar techniques](techniques.md) for musical meaning, applicability, and
-[Let Ring passage rules](techniques.md#let-ring).
+[Guitar techniques](features.md#guitar-techniques) for musical meaning, applicability, and
+[Let Ring passage rules](features.md#let-ring).
 
 - Bends automate the source pitch according to bend options.
 - Palm Mute keeps rhythmic accents but softens the peak, decays faster at higher
@@ -279,5 +279,3 @@ without requiring multisampling, velocity layers, or technique-specific samples.
   materialized only for that range and its overscan.
 - Downbeat notes receive a small gain accent and repeated same-string/same-pitch
   notes are softened slightly to reduce mechanical playback.
-- Current sample playback still uses one sample per configured tone. It does not
-  support multisampling, velocity layers, or articulation-specific samples yet.

@@ -112,6 +112,8 @@ in no particular order.
   them, as TabUI does now, this separate sample set could have a separate set of
   recordings of palm muted notes.
 
+- Comments. Basically just text, I imagine attached to bars.
+
 ## Unsure
 
 - Plugin system. Not really sure what this means in the context of TabUI, just
@@ -122,3 +124,5 @@ in no particular order.
   profiling shows that drawing, not layout, is the bottleneck. Canvas output
   must be as accessible as SVG output. If added, it would work **alongside** SVG
   rendering, not replace it.
+
+- Customizable keyboard shortcuts.

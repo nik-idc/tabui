@@ -71,10 +71,41 @@ Each framework demo uses the same app as its integration test.
 - `tests/`: unit, framework integration, and browser tests.
 - `tests/helpers/`: test-only utilities.
 - `fixtures/`: score builders and factories shared by demos, tests, and benchmarks.
-- `docs/`: usage, code style, and playback architecture.
+- `docs/`: user, embedding, and developer documentation.
 
 Add or remove SVG icons in `assets/img/` and `assets/img-dark/`.
 No registry or generation command is needed.
+
+## Architecture
+
+It helps to think about TabUI's code in layers. These are concepts, not strict
+definitions.
+
+- **Model**: the musical data, in `src/notation/model/`.
+- **Editor**: code that changes the model, such as `ScoreEditor`.
+- **Command**: undoable edits (execute, undo, redo), built on the editor layer.
+- **Element**: geometry calculated from the model, from `TrackElement` down the
+  tree. The name "Element" is a bit awkward, but it is deeply ingrained in
+  TabUI, so it stays.
+- **Player**: playback scheduling with the Web Audio API, based on the model.
+  See [Playback Architecture](docs/playback.md).
+- **Controller**: the editor state. It runs model edits through commands, and
+  handles selection and playback. For example, it tracks whether playback is
+  active and whether editing is allowed.
+- **Renderer**: turns element geometry into DOM output. Currently SVG only.
+- **UI**: the editor UI in `src/ui/`.
+
+See [Domain Model and Terms](docs/domain.md) for the musical concepts.
+
+### Model details
+
+- Voice slots are numbered 1 to 4. An unused slot is `null`.
+- `Beat.notes === null` means the beat is a rest. A rest has no beat techniques.
+- `VoiceBar.isEmpty()` means `beats.length === 0`.
+- Beat techniques (`BeatTechnique`, `BeatGuitarTechniqueType`) are a separate
+  family from note techniques, with their own types, options, and edit rules. Do
+  not merge the two families or their enums: both are numeric enums, so one
+  value would mean two techniques.
 
 ## Score format versions
 

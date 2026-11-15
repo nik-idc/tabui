@@ -20,8 +20,8 @@ and test code for:
 - Architectural flaws.
 - Adherence to code style documentation/skills the repo has and
   general coding principles.
-- (Tests) Adherence to the `/tests` skill, principles of TDD and the `/tdd` skill if the
-  repo has it. High scrutiny must be applied to new tests, especially new e2e tests.
+- (Tests) Adherence to principles of TDD and the `/tdd` skill if the repo has
+  it. High scrutiny must be applied to new tests, especially new e2e tests.
 
 Any time any of the setups below mention a review agent, it should perform the
 review according to the guidelines above.

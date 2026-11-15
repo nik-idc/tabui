@@ -9,9 +9,9 @@ use an older version, check your installed package's declarations and comments.
 
 ## Start here
 
-- [Usage guide](https://github.com/nik-idc/tabui/blob/master/docs/usage.md):
+- [Embedding guide](https://github.com/nik-idc/tabui/blob/master/docs/embedding.md):
   installation, configuration, lifecycle, events, and saving scores.
-- [Framework examples](https://github.com/nik-idc/tabui/blob/master/docs/usage.md#framework-integration):
+- [Framework examples](https://github.com/nik-idc/tabui/blob/master/docs/embedding.md#framework-integration):
   React, Angular, and Vue integration.
 - [Keyboard shortcuts](https://github.com/nik-idc/tabui/blob/master/docs/keyboard-shortcuts.md).
 - [Try the demo](https://nik-idc.github.io/tabui/).
@@ -28,5 +28,5 @@ The guides above follow the repository's current `master` branch.
 
 Use the editor's controls and shortcuts for interactive changes. Prepare scores
 with the public `ScoreEditor` before mounting when needed. Direct model changes
-do not automatically provide undo, redraw, or host events. See the usage guide
+do not automatically provide undo, redraw, or host events. See the embedding guide
 for lifecycle and editing rules.

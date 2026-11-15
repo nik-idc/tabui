@@ -5,8 +5,9 @@ TypeScript.
 
 [Try the demo](https://nik-idc.github.io/tabui/) ·
 [API reference](https://nik-idc.github.io/tabui/api/) ·
-[Usage guide](docs/usage.md) · [Keyboard shortcuts](docs/keyboard-shortcuts.md) ·
-[Guitar techniques](docs/techniques.md) ·
+[Embedding guide](docs/embedding.md) ·
+[Keyboard shortcuts](docs/keyboard-shortcuts.md) ·
+[Features](docs/features.md) ·
 [Roadmap](ROADMAP.md)
 
 ## Features
@@ -19,7 +20,11 @@ TypeScript.
 - Multi-track playback with dynamics, volume, pan, mute, solo, and looping.
 - Wrapped and single-line layouts, view-only mode, and configurable themes.
 - Screen reader compatibility (NVDA, Orca), with keyboard navigation and selection
-  announcements. See [accessibility](docs/usage.md#accessibility).
+  announcements. See [accessibility](docs/keyboard-shortcuts.md#accessibility).
+
+If you know Guitar Pro, you know most of TabUI: select notes, type frets, and
+set durations and techniques from the side panel or with
+[shortcuts](docs/keyboard-shortcuts.md).
 
 ## Why I built this
 
@@ -51,14 +56,13 @@ With that said, along the way it got a few things I haven't seen elsewhere:
 - Accessibility. I want anything a sighted user can do to also be possible for
   blind and low-vision users, and for users with limited mobility. I focus on two
   things:
-  - Equal input methods. The mouse and the keyboard are independent and equally
-    important. Every action you can do with one, you can also do with the other,
-    so you can use TabUI with only a keyboard, only a mouse, or both. Neither one
-    comes first.
-  - Announcements. Actions are announced, so a screen reader user gets the same
-    information a sighted user sees. I have tested this with NVDA on Windows (in
-    a VM) and Orca on Linux. macOS is not tested yet, mainly because I don't own
-    a Mac.
+  - Equal input methods. The mouse and the keyboard are meant to be equally
+    important, so you can use TabUI with only a keyboard, only a mouse, or both.
+    Most actions already work both ways. Some, such as undo and copy, still need
+    the keyboard. These gaps are tracked as issues.
+  - Announcements. Navigation, selection, and edits are announced for screen
+    readers. I have tested this with NVDA on Windows (in a VM) and Orca on Linux.
+    macOS is not tested yet, mainly because I don't own a Mac.
 
   I am not visually impaired myself, and my mobility is not limited, so I can't
   be 100% sure TabUI is as comfortable for these users as it is for me. But I

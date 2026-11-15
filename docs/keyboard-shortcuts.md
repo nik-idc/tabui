@@ -1,173 +1,148 @@
-# Keyboard shortcuts
+# Keyboard shortcuts and controls
 
-This is the full set of TabUI notation shortcuts. For setup and accessibility
-guidance, see the [usage guide](usage.md).
+This page lists every notation action with its keyboard shortcut and its mouse
+control. If you know Guitar Pro, most of TabUI works the same way.
+
+Letters do not need Shift unless it is shown. On macOS, use **Command** instead
+of **Ctrl** for select all, copy, cut, paste, undo, and redo. Bar navigation still
+uses **Ctrl**.
+
+A shortcut marked as unavailable does not mean it's impossible to engage the action
+via the keyboard. Rather it means that doing so requires multiple inputs. Which is not
+to say the 2 are equivalent: obviously it's better to have a shortcut for every action.
+Some are deferred for after the release of `0.5.0` but are straightforward, some others
+will require careful planning and execution.
 
 ## Contents
 
-- [Focus and availability](#focus-and-availability)
+- [Before you start](#before-you-start)
 - [Navigation and selection](#navigation-and-selection)
-- [Playback and clipboard](#playback-and-clipboard)
+- [Playback](#playback)
+- [Clipboard and history](#clipboard-and-history)
 - [Notes and rhythm](#notes-and-rhythm)
 - [Beats and bars](#beats-and-bars)
 - [Guitar techniques](#guitar-techniques)
-- [Dialogs and controls](#dialogs-and-controls)
+- [Dialogs](#dialogs)
+- [Accessibility](#accessibility)
 
-## Focus and availability
+## Before you start
 
-- Editing and navigation shortcuts apply only while the **Notation editor** area has focus.
-  Use Tab to reach it, or activate **Skip to notation**. They do not apply while
-  typing in a form field or using a dialog.
-- Clicking empty editor space lets you continue using notation shortcuts. Track
-  toggles and track-overlay controls keep focus for their own controls. Press Tab
-  to move to other controls. Text fields, sliders, and dialogs keep their normal
-  keyboard controls.
-- On macOS, use **Command+A/C/X/V/Z** for select all, copy, cut, paste, and undo.
-  Use **Command+Shift+Z** for redo. Bar navigation and range extension with arrows
-  still require **Ctrl**, including Ctrl+Shift+Left/Right. Ctrl+Y also works for redo;
-  Command+Y keeps its browser action. Other Command shortcuts, Alt shortcuts, and
-  text-composition events are ignored by TabUI.
-- Letters below do not require Shift unless it is shown. For example, `V` and
-  `Shift+V` are different actions. Keys follow the characters produced by your
-  keyboard layout.
-- Navigation, range selection, copying, and playback are available in view-only
-  mode. All other notation actions require editing to be enabled. Narrow layouts
-  can force view-only mode or block interaction; see [responsive layout](usage.md#responsive-layout).
-- While playback is active or preparing, only Space, Shift+Space, and copying remain available
-  as notation shortcuts. Stop playback before navigating or editing.
-- Editing actions need a suitable note cursor or beat range. Some require a
-  single note cursor, as described below.
+- Click the notation (or use Tab to reach it) before you use shortcuts.
+- In view-only mode, you can only navigate, select, copy, and play. During
+  playback, only Space, Shift+Space, and copying work.
+- To select a range without dragging, click **Set anchor**, then click the beat
+  where the range should end.
+- Two digits typed within 250 ms make one fret, such as 12. To enter a fret
+  without this time limit, use **Edit fret**.
+- Copy and paste work between TabUI editors, also in other browser tabs, but not
+  with text from other apps.
+- On a narrow screen, TabUI switches to view-only mode. On a very narrow screen,
+  it blocks interaction.
 
 ## Navigation and selection
 
-| Key                                | Action                                                                                          |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------- |
-| Left / Right arrow                 | Move the cursor between beats. From a beat range, return to a cursor at its corresponding edge. |
-| Up / Down arrow                    | Move the cursor between strings.                                                                |
-| Ctrl+Left / Ctrl+Right             | Move by bar boundary.                                                                           |
-| Shift+Left / Shift+Right           | Select the current beat on the first press, then extend or shrink the range by one beat.        |
-| Ctrl+Shift+Left / Ctrl+Shift+Right | Extend or shrink a beat range by bar.                                                           |
-| Ctrl+A                             | Select all beats in the current staff and active voice, including offscreen bars.               |
-| Escape                             | Cancel a beat range and restore its anchor cursor.                                              |
-| Shift+V                            | Cycle the active voice: 1 → 2 → 3 → 4 → 1. Requires edit mode.                                  |
+| Action                      | Shortcut                           | Mouse control                            |
+| --------------------------- | ---------------------------------- | ---------------------------------------- |
+| Move between beats          | Left / Right arrow                 | Click a beat                             |
+| Move between strings        | Up / Down arrow                    | Click a note slot                        |
+| Move by bar                 | Ctrl+Left / Ctrl+Right             | **Prev bar** / **Next bar**              |
+| Go to the first or last bar | —                                  | **First bar** / **Last bar**             |
+| Select or extend by beat    | Shift+Left / Shift+Right           | Drag, or **Set anchor** and click a beat |
+| Extend by bar               | Ctrl+Shift+Left / Ctrl+Shift+Right | Drag across bars                         |
+| Select all                  | Ctrl+A                             | —                                        |
+| Cancel a beat range         | Escape                             | Click a single note                      |
+| Change the active voice     | Shift+V (cycles 1 → 2 → 3 → 4)     | **Voice 1** to **Voice 4**               |
 
-## Playback and clipboard
+## Playback
 
-| Key                    | Action                                                                       |
-| ---------------------- | ---------------------------------------------------------------------------- |
-| Space                  | Start playback when idle; otherwise stop playback or cancel preparation.     |
-| Shift+Space            | Toggle playback from notation or an editor toolbar button.                   |
-| Ctrl+C                 | Copy the selected note or beat range.                                        |
-| Ctrl+X                 | Copy the selection, then remove its beats, keeping bars. Requires edit mode. |
-| Ctrl+V                 | Paste the copied note or beats. Requires edit mode.                          |
-| Ctrl+Z                 | Undo. Requires edit mode.                                                    |
-| Ctrl+Y or Ctrl+Shift+Z | Redo. Requires edit mode.                                                    |
+| Action                     | Shortcut    | Mouse control                                             |
+| -------------------------- | ----------- | --------------------------------------------------------- |
+| Play or stop               | Space       | **Play** / **Pause**                                      |
+| Play or stop from a button | Shift+Space | **Play** / **Pause**                                      |
+| Loop a range               | —           | **Set anchor**, then **Loop**                             |
+| Metronome                  | —           | **Metronome**                                             |
+| Playback pitch shift       | —           | **Increase playback pitch** / **Decrease playback pitch** |
 
-Copy or cut notes or passages and paste them into another TabUI editor, including in
-another browser tab. Pasting text from other apps is not supported. On macOS,
-use Command+C, Command+X, and Command+V.
+## Clipboard and history
 
-A single note copies only its fret, not its pitch, rhythm, or techniques. Beat
-ranges keep their frets on the same string numbers, even with different tuning.
-For beat ranges, the destination must have at least as many strings as the
-source. Extra strings stay empty.
-
-When a toolbar button has focus, Space or Enter activates that button. Use
-Shift+Space for playback instead. After Shift+Space, you can use Space to
-stop playback.
-Holding Space does not repeatedly start and stop playback.
-
-Playback shortcuts do not take over keys while you use a text field, dropdown,
-slider, or dialog.
+| Action | Shortcut               | Mouse control |
+| ------ | ---------------------- | ------------- |
+| Copy   | Ctrl+C                 | —             |
+| Cut    | Ctrl+X                 | —             |
+| Paste  | Ctrl+V                 | —             |
+| Undo   | Ctrl+Z                 | —             |
+| Redo   | Ctrl+Y or Ctrl+Shift+Z | —             |
 
 ## Notes and rhythm
 
-These actions require edit mode and stopped playback.
+| Action                   | Shortcut  | Mouse control                                    |
+| ------------------------ | --------- | ------------------------------------------------ |
+| Set a fret               | 0–9       | **Edit fret**                                    |
+| Clear a fret             | Backspace | **Edit fret**, then **Clear**                    |
+| Set a dead note          | X         | **Set dead note**                                |
+| Turn beats into rests    | Shift+X   | **Rest**                                         |
+| Raise or lower the pitch | —         | **Increase pitch** / **Decrease pitch**          |
+| Shorten the duration     | -         | Duration buttons (**1/1 note** to **1/64 note**) |
+| Lengthen the duration    | + or =    | Duration buttons                                 |
+| Cycle dots               | .         | **Dot** / **Double dot**                         |
+| Cycle tuplets            | T         | **Tuplet preset** / **Triplet preset**           |
+| Custom tuplet            | Shift+T   | **Custom tuplet**                                |
+| Louder dynamic           | >         | Dynamic buttons (`ppp` to `fff`)                 |
+| Softer dynamic           | <         | Dynamic buttons                                  |
 
-| Key       | Action                                                                                                                         |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| 0–9       | Set the fret on the selected note slot. Two digits entered less than 250 ms apart on the same note combine into a fret number. |
-| Backspace | Clear the selected note's fret, keeping its beat.                                                                              |
-| X         | Set the selected guitar note to a dead note.                                                                                   |
-| Shift+X   | Turn selected beats into rests.                                                                                                |
-| -         | Shorten the selected beats' base duration by one step.                                                                         |
-| + or =    | Lengthen the selected beats' base duration by one step.                                                                        |
-| .         | Cycle duration dots: none → one → two → none.                                                                                  |
-| T         | Cycle tuplets: none → duplet → triplet → none. A custom tuplet returns to none.                                                |
-| Shift+T   | Open tuplet settings.                                                                                                          |
-| >         | Make each selected beat's dynamic one level louder, up to `fff`.                                                               |
-| <         | Make each selected beat's dynamic one level softer, down to `ppp`.                                                             |
-
-Duration steps run from sixty-fourth to whole notes. For a range, duration, dots,
-and tuplet cycling use the active-end beat as the reference and apply the result
-to the selected beats. Fret entry, clearing a fret, and dead-note entry use a
-single note cursor.
-Backspace does not clear a beat range.
-
-The `+` shortcut accepts either Shift state because some keyboard layouts need
-Shift to produce it. The `=` shortcut is unshifted. The `<` and `>` shortcuts
-also accept either Shift state. Each selected beat, rests included, steps from
-its own dynamic. See [Dynamics](usage.md#dynamics).
+Two digits typed less than 250 ms apart on the same note make one fret number,
+such as 12.
 
 ## Beats and bars
 
-These actions require edit mode and stopped playback.
-
-| Key          | Action                                                        |
-| ------------ | ------------------------------------------------------------- |
-| A            | Insert a beat after the selection.                            |
-| Shift+A      | Insert a beat before the selection.                           |
-| Delete       | Remove selected beats, keeping bars.                          |
-| I            | Insert a bar after the selection.                             |
-| Shift+I      | Insert a bar before the selection.                            |
-| Shift+Delete | Remove selected bars.                                         |
-| R            | Toggle repeat start on the cursor's bar.                      |
-| Shift+R      | Open repeat-end count settings for the cursor's bar.          |
-| M            | Open tempo settings for the cursor or selected bars.          |
-| Shift+M      | Open time-signature settings for the cursor or selected bars. |
-
-Repeat shortcuts require a single note cursor. Tempo and time-signature edits
-apply to all bars touched by a beat range. With a cursor, they apply from that
-bar up to the next existing change in the relevant setting, or the score's end.
+| Action               | Shortcut     | Mouse control          |
+| -------------------- | ------------ | ---------------------- |
+| Insert a beat after  | A            | **Insert beat after**  |
+| Insert a beat before | Shift+A      | **Insert beat before** |
+| Remove beats         | Delete       | **Remove beat**        |
+| Insert a bar after   | I            | **Insert bar after**   |
+| Insert a bar before  | Shift+I      | **Insert bar before**  |
+| Remove bars          | Shift+Delete | **Remove bars**        |
+| Toggle repeat start  | R            | **Repeat Start**       |
+| Repeat end and count | Shift+R      | **Repeat end**         |
+| Tempo                | M            | **Tempo**              |
+| Time signature       | Shift+M      | **Time Signature**     |
 
 ## Guitar techniques
 
-These actions require edit mode and stopped playback. Toggle shortcuts apply to
-eligible notes in the selection; technique rules can prevent an action on an
-incompatible or empty note.
+| Action                      | Shortcut | Mouse control        |
+| --------------------------- | -------- | -------------------- |
+| Tie to the previous beat    | J        | **Tie**              |
+| Tie as far back as possible | Shift+J  | —                    |
+| Let Ring                    | Shift+L  | **Let Ring**         |
+| Palm Mute                   | P        | **Palm Mute**        |
+| Vibrato                     | V        | **Vibrato**          |
+| Legato                      | L        | **Legato**           |
+| Slide                       | S        | **Slide**            |
+| Natural harmonic            | H        | **Natural Harmonic** |
+| Pinch harmonic              | Shift+H  | **Pinch Harmonic**   |
+| Tap                         | K        | **Tap**              |
+| Accent                      | C        | **Accent**           |
+| Heavy accent                | Shift+C  | **Heavy Accent**     |
+| Bend settings               | B        | **Bend**             |
+| Down stroke                 | D        | **Stroke** dialog    |
+| Up stroke                   | U        | **Stroke** dialog    |
+| Stroke settings             | Shift+D  | **Stroke**           |
 
-| Key     | Action                                                  |
-| ------- | ------------------------------------------------------- |
-| V       | Toggle vibrato.                                         |
-| P       | Toggle palm mute.                                       |
-| L       | Toggle legato.                                          |
-| J       | Tie to the previous beat, or remove selected ties.      |
-| Shift+J | Tie to the earliest source, or remove selected ties.    |
-| Shift+L | Toggle let ring.                                        |
-| S       | Toggle slide.                                           |
-| H       | Toggle natural harmonic.                                |
-| Shift+H | Toggle pinch harmonic.                                  |
-| K       | Toggle tap.                                             |
-| C       | Toggle a normal accent, or switch a heavy one to it.    |
-| Shift+C | Toggle a heavy accent, or switch a normal one to it.    |
-| B       | Open bend settings for a single eligible selected note. |
-| D       | Toggle a down stroke.                                   |
-| U       | Toggle an up stroke.                                    |
-| Shift+D | Open stroke settings.                                   |
+See [Features](features.md#guitar-techniques) for what each technique does.
 
-Stroke shortcuts apply to the cursor's beat or to every selected beat. They
-apply to whole beats, not single notes, and skip rests. See
-[Strokes](usage.md#strokes) for toggle and settings rules.
+## Dialogs
 
-See [Ties and Let Ring](usage.md#ties-and-let-ring) for selection and controls,
-and [Guitar techniques](techniques.md) for musical meaning and applicability.
+Tab and Shift+Tab move between controls. Enter or Space activates a button.
+Escape closes a dialog and returns focus to the control that opened it.
 
-## Dialogs and controls
+## Accessibility
 
-Tab and Shift+Tab move between controls. Buttons support normal keyboard
-activation with Enter or Space. Open dialogs keep focus within their controls;
-Escape closes a dialog and returns focus to its opener. Notation editing
-shortcuts do not run inside dialogs.
-
-For screen-reader interaction modes and announcements, see
-[accessibility](usage.md#accessibility).
+- Activate **Skip to notation** to jump to the notation.
+- The notation is an application region named **Notation editor**. If your
+  screen reader intercepts arrow keys, use its focus or interaction mode there.
+- TabUI announces the current position, the selected beat and its techniques,
+  dynamic changes, range changes, and changes made in dialogs.
+- TabUI is tested with NVDA on Windows and Orca on Linux. macOS is not tested
+  yet. Please [report problems](https://github.com/nik-idc/tabui/issues) with
+  your browser, screen reader, and steps.

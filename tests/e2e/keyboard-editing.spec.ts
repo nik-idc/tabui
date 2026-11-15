@@ -60,7 +60,7 @@ for (const [key, name] of [
   ["v", "Vibrato"],
   ["p", "Palm Mute"],
   ["Shift+L", "Let Ring"],
-  ["h", "Nat. Harmonic"],
+  ["h", "Natural Harmonic"],
   ["Shift+H", "Pinch Harmonic"],
   ["Shift+X", "Quarter rest"],
   ["r", "Repeat Start"],
@@ -792,7 +792,7 @@ test("disabled techniques and range-only restrictions ignore shortcuts", async (
     ["b", "Bend"],
     ["Shift+L", "Let Ring"],
     ["Shift+H", "Pinch Harmonic"],
-    ["h", "Nat. Harmonic"],
+    ["h", "Natural Harmonic"],
     ["l", "Legato"],
     ["s", "Slide"],
   ]) {
