@@ -4,7 +4,7 @@ A framework-agnostic guitar tablature editor for the browser, written in
 TypeScript.
 
 [Website](https://nik-idc.github.io/tabui/) ·
-[Try the demo](https://nik-idc.github.io/tabui/demo/) ·
+[Try the demo](https://nik-idc.github.io/tabui/demo) ·
 [API reference](https://nik-idc.github.io/tabui/api/) ·
 [Embedding guide](docs/embedding.md) ·
 [Keyboard shortcuts](docs/keyboard-shortcuts.md) ·
@@ -111,7 +111,7 @@ TabUI is licensed under the [MIT License](LICENSE).
 
 ### Third-party assets
 
-The [demo](https://nik-idc.github.io/tabui/demo/) uses two sets of audio samples. They
+The [demo](https://nik-idc.github.io/tabui/demo) uses two sets of audio samples. They
 are demo resources only: they are not covered by TabUI's MIT license and are not
 included in the npm package.
 

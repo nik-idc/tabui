@@ -24,7 +24,10 @@ async function checkShowcase(page, origin) {
   ).toBeVisible();
   await expect(root.locator(".tu-root-svg")).toBeVisible();
   await expect(page.locator("#fixture-select")).toHaveValue("feature_showcase");
-  await expect(page.locator("#theme-select")).toHaveValue("obsidian");
+  await expect(page.locator("#theme-select")).toHaveValue("auto");
+  // Auto follows the system setting, which is light in this browser.
+  await expect(root).toHaveCSS("background-color", "rgb(255, 255, 255)");
+  await page.locator("#theme-select").selectOption("obsidian");
   await expect(root).toHaveCSS("background-color", "rgb(26, 26, 26)");
   await expect(page.locator("body")).toHaveCSS(
     "background-color",
@@ -71,12 +74,12 @@ async function checkShowcase(page, origin) {
     "Mounted score from showcase.tabui.json."
   );
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
-  await page.locator("#layout-mode-select").selectOption("single-line");
+  await page.getByRole("radio", { name: "Single line" }).check();
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
   await expect(page).toHaveURL(/layoutMode=single-line/);
   await page.locator("#reset-demo-settings").click();
   await expect(page.locator("#fixture-select")).toHaveValue("feature_showcase");
-  await expect(page.locator("#theme-select")).toHaveValue("obsidian");
+  await expect(page.locator("#theme-select")).toHaveValue("auto");
 
   // Samples remain demo-owned files, outside the npm package. Check all six real
   // WAVs at the same base URL used by the unchanged playback configuration.

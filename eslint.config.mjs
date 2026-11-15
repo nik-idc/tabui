@@ -55,7 +55,14 @@ const namingConventions = [
 ];
 
 export default defineConfig(
-  globalIgnores(["dist/**", "demo/dist/**", "docs/api/**", ".agents/**"]),
+  globalIgnores([
+    "dist/**",
+    "demo/dist/**",
+    "docs/api/**",
+    "docs/.vitepress/cache/**",
+    "site/dist/**",
+    ".agents/**",
+  ]),
   {
     files: ["**/*.{js,ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommended],

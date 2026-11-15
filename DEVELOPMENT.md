@@ -63,7 +63,7 @@ Each framework demo uses the same app as its integration test.
 ## Repository layout
 
 - `src/`: TabUI source code.
-- `demo/raw/`: main showcase; deployed to GitHub Pages.
+- `demo/raw/`: main showcase. The website's demo page runs the same code.
 - `demo/react/`: React consumer demo, also used by its integration test.
 - `demo/angular/`: Angular consumer demo, also used by its integration test.
 - `demo/vue/`: Vue consumer demo, also used by its integration test.
@@ -124,15 +124,18 @@ TabUI package version. Each version lives in its own folder, such as
 
 Pull requests and pushes to `master` run `npm run verify` in CI. Tags matching
 `v*` run the same checks and deploy the site to GitHub Pages: the VitePress site
-from `docs/` at the root, the demo under `demo/`, and the API reference under
-`api/`. `TABUI_SITE_BASE` sets the base path, so another host can use a
-different one. The API reference's links in `typedoc.json` use the same path.
+from `docs/` at the root, and the API reference under `api/`. The demo page
+(`docs/demo.md`) mounts the raw demo from `demo/raw/` and uses TabUI from source.
+The VitePress config serves the demo's audio samples from `assets/samples`
+and copies them into the build. `TABUI_SITE_BASE` sets the
+base path, so another host can use a different one. The API reference's links
+in `typedoc.json` use the same path.
 
-- `npm run site:build` builds all three into `site/dist`. A plain
+- `npm run site:build` builds both into `site/dist`. A plain
   `vitepress build` empties that folder, so always use this command.
 - `npm run site:preview` runs the full build, then serves the site.
-- `npm run site:dev` live-reloads the VitePress pages only. The demo and API
-  links show a 404 there.
+- `npm run site:dev` live-reloads the VitePress pages, including the demo. The
+  API link shows a 404 there.
 
 Set the Pages
 source to **GitHub Actions**. The maintainer creates and pushes release tags.

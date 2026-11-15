@@ -648,7 +648,7 @@ test("view-only mode rejects editing shortcuts but permits navigation", async ({
   page,
 }) => {
   const editor = await openEditor(page, "feature_showcase");
-  await page.locator("#interaction-mode-select").selectOption("view-only");
+  await page.getByRole("radio", { name: "View only" }).check();
   await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   const before = await editingState(editor);
   for (const key of [

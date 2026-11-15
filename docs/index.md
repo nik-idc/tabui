@@ -16,7 +16,7 @@ import { withBase } from "vitepress";
 A guitar tablature editor that runs in the browser. You can embed it in any web
 app, with any framework or none.
 
-<a :href="withBase('/demo/')" target="_self">Try the demo</a> ·
+[Try the demo](/demo) ·
 [Embed it](/embedding) ·
 [Shortcuts](/keyboard-shortcuts) ·
 <a :href="withBase('/api/')" target="_self">API reference</a> ·
