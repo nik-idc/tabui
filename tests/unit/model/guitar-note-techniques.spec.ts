@@ -21,7 +21,8 @@ function createNote(): GuitarNote {
   if (!(note instanceof GuitarNote)) {
     throw Error("Expected guitar note in test beat");
   }
-  note.setFret(0);
+  // Fretted, because an open string cannot be bent.
+  note.setFret(5);
   return note;
 }
 

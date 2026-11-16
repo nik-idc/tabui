@@ -44,6 +44,7 @@ import {
 import { EditPosition } from "./edit-position";
 import type { BeatPosition, NotePosition } from "./edit-position";
 import { LetRingEditing } from "./let-ring-editing";
+import { NoteContentEditing } from "./note-content-editing";
 import { TechniqueEditing } from "./technique-editing";
 import type { TechniqueEditPlan, TieEditPlan } from "./technique-edit-plan";
 import { TieEditing } from "./tie-editing";
@@ -183,7 +184,7 @@ export class ScoreEditor {
     beats: Beat<I>[],
     stringNumber?: number
   ): Beat<I>[] {
-    return LetRingEditing.getNoteEditBeats(beats, stringNumber);
+    return NoteContentEditing.getEditBeats(beats, stringNumber);
   }
 
   /** Finds existing boundary content at a normalized insertion index before clipboard beats shift it. */
@@ -804,7 +805,7 @@ export class ScoreEditor {
 
   /** Removes unsupported empty markers after edits; playable marked notes start independent passages. */
   public static normalizeNoteContent(beats: Beat[]): void {
-    LetRingEditing.normalizeNoteContent(beats);
+    NoteContentEditing.normalize(beats);
   }
 
   // Beat structure
@@ -902,16 +903,32 @@ export class ScoreEditor {
     voiceBar: VoiceBar,
     index: number
   ): BeatArrayOperationOutput {
+    const previous = this.getBeatBefore(voiceBar, index);
     const result = voiceBar.insertBeat(index);
     LetRingEditing.inheritBlankMarkers(result.beats);
+    this.normalizeNoteContent(previous === null ? [] : [previous]);
     return result;
   }
 
   /** Appends the usual rest, or a blank slot when both cross-bar neighbors mark an existing passage. */
   public static appendBeat(voiceBar: VoiceBar): BeatArrayOperationOutput {
+    const previous = this.getBeatBefore(voiceBar, voiceBar.beats.length);
     const result = voiceBar.appendBeats();
     LetRingEditing.inheritAppendMarkers(result.beats);
+    this.normalizeNoteContent(previous === null ? [] : [previous]);
     return result;
+  }
+
+  /**
+   * Finds the beat that will come before a beat inserted at an index, also
+   * across a bar line. Its slide or legato can lose its target.
+   */
+  public static getBeatBefore(voiceBar: VoiceBar, index: number): Beat | null {
+    if (index > 0) {
+      return voiceBar.beats[index - 1] ?? null;
+    }
+    const first = voiceBar.beats[0];
+    return first === undefined ? null : voiceBar.bar.staff.getPrevBeat(first);
   }
 
   /** Copies content from the changed voice bars and keeps the original voice bars and beats for undo. */

@@ -697,8 +697,9 @@ describe("PlaybackScheduler", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     const [slideSource] = soundStrings(beats[0], [3]);
-    slideSource.setTechnique(GuitarTechniqueType.Slide);
     soundStrings(beats[1], [5, 0, 0]);
+    // A slide needs its target note first.
+    slideSource.setTechnique(GuitarTechniqueType.Slide);
     addStroke(beats[1], StrokeDirection.Down);
     const scheduler = createScheduler(score);
     scheduler.setScheduleBase(10);

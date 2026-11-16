@@ -5,7 +5,7 @@ import { Note } from "../note";
 import { GuitarTechniqueType } from "../technique-type";
 import { EditPosition } from "./edit-position";
 import type { BeatPosition, NotePosition } from "./edit-position";
-import { LetRingEditing } from "./let-ring-editing";
+import { NoteContentEditing } from "./note-content-editing";
 import { TechniqueEditKind } from "./technique-edit-plan";
 import type { TieChain, TieEditPlan } from "./technique-edit-plan";
 
@@ -115,17 +115,9 @@ export class TieEditing {
       }
     }
 
-    const affectedBeats = new Set(
-      LetRingEditing.getNoteEditBeats([...stateBeats])
-    );
-    for (const beat of stateBeats) {
-      const previous = beat.voiceBar.bar.staff.getPrevBeat(beat);
-      if (previous !== null) {
-        affectedBeats.add(previous);
-      }
-    }
-    plan.affectedBeats = [...affectedBeats];
-    plan.stateBeats = LetRingEditing.getNoteEditBeats([...stateBeats]);
+    // The edit scope includes the previous beats, so they are saved for undo.
+    plan.stateBeats = NoteContentEditing.getEditBeats([...stateBeats]);
+    plan.affectedBeats = [...plan.stateBeats];
     return plan;
   }
 
@@ -172,7 +164,7 @@ export class TieEditing {
         }
       }
     }
-    LetRingEditing.normalizeNoteContent(plan.stateBeats);
+    NoteContentEditing.normalize(plan.stateBeats);
     return plan.affectedBeats;
   }
 

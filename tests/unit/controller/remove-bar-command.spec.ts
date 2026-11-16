@@ -136,7 +136,9 @@ describe("RemoveBarsCommand", () => {
 
     command.execute();
 
+    // Bar 0 is saved too: its last note gets a new next note.
     expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: score.masterBars[0].uuid },
       { masterBarIndex: 1, modelUUID: score.masterBars[1].uuid },
       { masterBarIndex: 1, modelUUID: removedUUIDs[0] },
       { masterBarIndex: 2, modelUUID: removedUUIDs[1] },
