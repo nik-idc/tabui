@@ -121,6 +121,11 @@ export class EditorSVGRenderer implements EditorRenderer {
   private _lastRenderedViewportEnd?: number;
   private _lastRenderedMasterBarStart?: number;
   private _lastRenderedMasterBarEnd?: number;
+  /**
+   * Active voice of the last full notation render. Note hit areas depend on
+   * it, so a change forces a redraw even when no element changed.
+   */
+  private _lastRenderedActiveVoice?: VoiceNumber;
   /** Viewport scroll listener. */
   private _viewportScrollListener?: EventListener;
   /** Viewport rectangle inside notation scroll container. */
@@ -999,6 +1004,13 @@ export class EditorSVGRenderer implements EditorRenderer {
   private renderNotation(options: EditorRenderOptions): void {
     this.setViewportRect();
 
+    // Some edits change the active voice as a side effect, for example
+    // removing the last beat of a voice. Redraw as for a voice switch.
+    const activeVoice = this.trackController.activeVoiceNumber;
+    if (activeVoice !== this._lastRenderedActiveVoice) {
+      options = { ...options, forceNotation: true };
+    }
+
     const { start, end } = this.getLinesInViewport();
     const singleLine =
       this.trackController.trackElement.layoutMode ===
@@ -1072,6 +1084,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._lastRenderedViewportEnd = end;
     this._lastRenderedMasterBarStart = masterBarRange.start;
     this._lastRenderedMasterBarEnd = masterBarRange.end;
+    this._lastRenderedActiveVoice = activeVoice;
 
     this._beatInteractionRenderer.render(visibleElements);
 
@@ -1120,6 +1133,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._lastRenderedViewportEnd = undefined;
     this._lastRenderedMasterBarStart = undefined;
     this._lastRenderedMasterBarEnd = undefined;
+    this._lastRenderedActiveVoice = undefined;
     this._playerOverlayRenderer.unrender();
     this._selectionOverlayRenderer.unrender();
     this._beatInteractionRenderer.unrender();
