@@ -535,3 +535,30 @@ test("starts and pauses playback with Space", async ({ page }) => {
   ).toHaveAttribute("aria-pressed", "false");
   await expect(cursor).toHaveAttribute("width", "0");
 });
+
+test("removing a voice's only beat makes every voice 1 slot selectable again", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  const slots = editor.locator('.tu-root-svg [id^="note-rect-"]');
+  const status = editor.locator(".tu-announcement-host");
+  await slots.first().click();
+  await page.keyboard.press("5");
+
+  // Voice 2 owns the empty slots; voice 1 keeps only its played note.
+  await page.keyboard.press("Shift+V");
+  await expect(status).toContainText("voice 2");
+
+  // Removing voice 2's only beat switches back to voice 1 as a side effect.
+  await page.keyboard.press("Delete");
+  await expect(status).toContainText("voice 1");
+  await expect(slots).toHaveCount(6);
+  await slots.nth(2).click();
+  await expect(status).toContainText("String 3, empty");
+
+  // Undo brings voice 2 back, and its slots are selectable too.
+  await page.keyboard.press("Control+z");
+  await expect(status).toContainText("voice 2");
+  await expect(slots).toHaveCount(6);
+});
