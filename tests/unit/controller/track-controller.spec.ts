@@ -153,6 +153,15 @@ function copyPassage(
 }
 
 /** Places the public cursor after a beat and pastes explicit clipboard text. */
+/**
+ * Gives a paste anchor a played note. Pasting at an empty beat or rest
+ * replaces it, so tests of insert-after need a played anchor.
+ */
+function playAnchor(beat: Beat): void {
+  beat.makeBeatWithNotes();
+  (required(beat.notes)[0] as GuitarNote).setFret(1);
+}
+
 function pasteAfter(
   controller: TrackController,
   beat: Beat,
@@ -551,6 +560,7 @@ describe("TrackController", () => {
     });
 
     const clipboard = copyPassage(controller, beats[0]);
+    playAnchor(beats[1]);
     pasteAfter(controller, beats[1], clipboard);
 
     const pasted = required(track.staves[0].bars[0].getVoiceBar(1)).beats[2];
@@ -597,6 +607,7 @@ describe("TrackController", () => {
     beats[1].dynamic = Dynamic.Fortissimo;
 
     const clipboard = copyPassage(controller, beats[0]);
+    playAnchor(beats[1]);
     pasteAfter(controller, beats[1], clipboard);
 
     const pasted = required(track.staves[0].bars[0].getVoiceBar(1)).beats[2];
@@ -3465,6 +3476,7 @@ describe("TrackController", () => {
           beat.makeRest();
         }
       }
+      playAnchor(track.staves[0].bars[0].ensureVoiceBar(1).beats[3]);
       const before = serializeScore(score);
       controller.trackElement.update();
       const elements = getBeatElements(controller);
@@ -3506,6 +3518,7 @@ describe("TrackController", () => {
     const target = track.staves[0].bars[1].ensureVoiceBar(1);
     const following = track.staves[0].bars[2].ensureVoiceBar(1);
     (required(following.beats[0].notes)[0] as GuitarNote).setFret(6);
+    playAnchor(target.beats[0]);
     const originalMasters = [...score.masterBars];
     controller.trackElement.update();
     const clipboard = copyPassage(controller, source);
@@ -3794,6 +3807,7 @@ describe("TrackController", () => {
     controller.selectBeat(beatElements[1]);
     const clipboard = required(controller.copy());
     controller.clearSelection();
+    playAnchor(beatElements[3].beat);
     controller.selectNoteElement(beatElements[3].noteElements[0]);
     controller.paste(clipboard);
 
@@ -4442,5 +4456,56 @@ describe("TrackController", () => {
     controller.redo();
     expect(masterBar.tempo).toBe(160);
     expect(tempoText()).toBe("160");
+  });
+});
+
+describe("paste at an empty beat or rest", () => {
+  /** Frets on string 1; null leaves the beat empty, "rest" makes a rest. */
+  function setupBar(content: Array<number | null | "rest">) {
+    const { track, beats } = createBarWithBeats(
+      content.map(() => ({ baseDuration: NoteDuration.Eighth }))
+    );
+    content.forEach((value, i) => {
+      if (value === "rest") {
+        beats[i].makeRest();
+      } else if (value !== null) {
+        playAnchor(beats[i]);
+        (required(beats[i].notes)[0] as GuitarNote).setFret(value);
+      }
+    });
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const voiceBar = required(track.staves[0].bars[0].getVoiceBar(1));
+    const frets = () =>
+      voiceBar.beats.map((b) =>
+        b.notes === null ? "rest" : ((b.notes[0] as GuitarNote).fret ?? null)
+      );
+    return { controller, beats, frets };
+  }
+
+  test.each([null, "rest"] as const)(
+    "a %s beat after played beats is replaced, and undo brings it back",
+    (kind) => {
+      const { controller, beats, frets } = setupBar([3, 5, kind]);
+      const clipboard = copyPassage(controller, beats[0]);
+      pasteAfter(controller, beats[2], clipboard);
+      expect(frets()).toEqual([3, 5, 3]);
+
+      controller.undo();
+      expect(frets()).toEqual([3, 5, kind]);
+    }
+  );
+
+  test("several clipboard beats replace an empty beat in the middle", () => {
+    const { controller, beats, frets } = setupBar([3, null, 7]);
+    const clipboard = copyPassage(controller, beats[0], beats[2]);
+    pasteAfter(controller, beats[1], clipboard);
+    expect(frets()).toEqual([3, 3, null, 7, 7]);
+  });
+
+  test("a played beat keeps insert-after", () => {
+    const { controller, beats, frets } = setupBar([3, 5]);
+    const clipboard = copyPassage(controller, beats[0]);
+    pasteAfter(controller, beats[1], clipboard);
+    expect(frets()).toEqual([3, 5, 3]);
   });
 });

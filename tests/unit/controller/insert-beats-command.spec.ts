@@ -1,6 +1,8 @@
 import { InsertBeatsCommand } from "../../../src/notation/controller/editor/command/insert-beats-command";
 import {
+  Beat,
   BeatGuitarTechniqueType,
+  GuitarNote,
   NoteDuration,
   ScoreEditor,
   StrokeDirection,
@@ -9,6 +11,12 @@ import {
 } from "../../../src/notation/model";
 import { createBarWithBeats, createBeat } from "../model/helpers";
 import { required } from "../required";
+
+/** Pasting at an empty beat replaces it, so insert-after needs a played anchor. */
+function playAnchor(beat: Beat): void {
+  beat.makeBeatWithNotes();
+  (required(beat.notes)[0] as GuitarNote).setFret(1);
+}
 
 describe("InsertBeatsCommand", () => {
   test("pasted beats keep their strokes", () => {
@@ -25,6 +33,7 @@ describe("InsertBeatsCommand", () => {
       }),
     });
 
+    playAnchor(beats[0]);
     new InsertBeatsCommand(bar, beats[0], [source]).execute();
 
     const pasted = voiceBar.beats[1];
@@ -41,6 +50,7 @@ describe("InsertBeatsCommand", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     const voiceBar = required(bar.getVoiceBar(1));
+    playAnchor(beats[0]);
     const command = new InsertBeatsCommand(bar, beats[0], [
       createBeat(voiceBar, NoteDuration.Eighth),
       createBeat(voiceBar, NoteDuration.Sixteenth),
