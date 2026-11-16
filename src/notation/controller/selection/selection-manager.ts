@@ -348,6 +348,67 @@ export class SelectionManager {
       : targetBeats[targetBeats.length - 1];
   }
 
+  /**
+   * Moves the cursor to the same moment in the staff above or below. Keeps the
+   * string, and uses the same voice when the target bar has it.
+   * @param offset -1 for the staff above, 1 for the staff below.
+   * @returns False when there is no cursor or no staff in that direction.
+   */
+  public moveToStaff(offset: HorizontalOffset): boolean {
+    const currentBeat = this._selectionEndBeat ?? this._selectionCursor?.beat;
+    if (currentBeat === undefined) {
+      return false;
+    }
+
+    const currentBar = currentBeat.voiceBar.bar;
+    const staves = this.track.staves;
+    const targetStaff = staves[staves.indexOf(currentBar.staff) + offset];
+    if (targetStaff === undefined) {
+      return false;
+    }
+
+    return this.selectInStaff(
+      targetStaff,
+      currentBar.staff.bars.indexOf(currentBar),
+      currentBeat,
+      this._selectionCursor?.noteIndex ?? 0
+    );
+  }
+
+  /**
+   * Places the cursor on the beat of a staff bar that is playing when the
+   * given beat starts.
+   * @param staff Staff to select in.
+   * @param barIndex Zero-based bar position in that staff.
+   * @param moment Beat whose voice and start tick to match.
+   * @param noteIndex String to keep.
+   * @returns False when the bar has no beats.
+   */
+  public selectInStaff(
+    staff: Staff,
+    barIndex: number,
+    moment: Beat,
+    noteIndex: number
+  ): boolean {
+    const bar = staff.bars[barIndex];
+    if (bar === undefined) {
+      return false;
+    }
+
+    const sameVoice = bar.getVoiceBar(moment.voiceBar.voiceNumber);
+    const beats = sameVoice?.beats.length
+      ? sameVoice.beats
+      : (bar.voiceBarsAsArray.find((v) => v.beats.length > 0)?.beats ?? []);
+    const target =
+      beats.findLast((beat) => beat.startTick <= moment.startTick) ?? beats[0];
+    if (target === undefined) {
+      return false;
+    }
+
+    this.selectBeatCursor(target, noteIndex);
+    return true;
+  }
+
   /** Selects every model beat in the current staff and active voice as a range. */
   public selectAllBeats(): boolean {
     const beats = this._staff.getBeatsSeq(this._activeVoiceNumber);

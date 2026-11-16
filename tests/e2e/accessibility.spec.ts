@@ -499,7 +499,7 @@ test("new track string-count actions update per-string tuning labels", async ({
   ]) {
     await dialog.getByRole("button", { name: action, exact: true }).click();
   }
-  await expect(value).toHaveText("7");
+  await expect(value).toHaveText("Strings: 7");
   await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(7);
   await dialog
     .getByRole("button", {

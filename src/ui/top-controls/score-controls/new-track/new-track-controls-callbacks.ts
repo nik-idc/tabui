@@ -116,7 +116,8 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     const track = this._notationComponent.trackController.addTrack(
       this._notationComponent.score,
       this._newTrackComponent.makeInstrument(),
-      this._newTrackComponent.trackName
+      this._newTrackComponent.trackName,
+      this._newTrackComponent.staffCount
     );
     if (track === undefined) {
       this._newTrackComponent.dialog.close();
@@ -179,6 +180,16 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
           .stringCountUpButton as HTMLElement,
         event: "click",
         handler: () => this.onStringCountStep(1),
+      },
+      {
+        element: this._newTrackComponent.template.staffCountDownButton,
+        event: "click",
+        handler: () => this._newTrackComponent.shiftStaffCount(-1),
+      },
+      {
+        element: this._newTrackComponent.template.staffCountUpButton,
+        event: "click",
+        handler: () => this._newTrackComponent.shiftStaffCount(1),
       },
       {
         element: this._newTrackComponent.template

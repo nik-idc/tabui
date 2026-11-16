@@ -68,6 +68,7 @@ for (const [key, name] of [
   ["Shift+A", "Insert beat before"],
   ["i", "Insert bar after"],
   ["Shift+I", "Insert bar before"],
+  ["Alt+n", "Add staff below"],
 ]) {
   test(`${key} matches ${name} and is undoable`, async ({ page }) => {
     const editor = await openEditor(page);

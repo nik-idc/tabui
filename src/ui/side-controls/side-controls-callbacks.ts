@@ -9,6 +9,10 @@ import {
   MeasureControlsDefaultCallbacks,
 } from "./measure-controls/measure-controls-callbacks";
 import {
+  StaffControlsCallbacks,
+  StaffControlsDefaultCallbacks,
+} from "./staff-controls/staff-controls-callbacks";
+import {
   NoteControlsCallbacks,
   NoteControlsDefaultCallbacks,
 } from "./note-controls/note-controls-callbacks";
@@ -17,6 +21,7 @@ export class SideControlsCallbacks {
   private _noteCallbacks: NoteControlsCallbacks;
   private _techniqueCallbacks: TechniqueControlsCallbacks;
   private _measureCallbacks: MeasureControlsCallbacks;
+  private _staffCallbacks: StaffControlsCallbacks;
 
   private _sideComponent: SideControlsComponent;
   private _notationComponent: NotationComponent;
@@ -51,6 +56,11 @@ export class SideControlsCallbacks {
       this._notationComponent,
       this._renderFunc
     );
+    this._staffCallbacks = new StaffControlsDefaultCallbacks(
+      this._sideComponent.staffControlsComponent,
+      this._notationComponent,
+      this._renderFunc
+    );
   }
 
   public bind(): void {
@@ -61,6 +71,7 @@ export class SideControlsCallbacks {
     this._noteCallbacks.bind();
     this._techniqueCallbacks.bind();
     this._measureCallbacks.bind();
+    this._staffCallbacks.bind();
     this._bound = true;
   }
 
@@ -72,6 +83,7 @@ export class SideControlsCallbacks {
     this._noteCallbacks.unbind();
     this._techniqueCallbacks.unbind();
     this._measureCallbacks.unbind();
+    this._staffCallbacks.unbind();
     this._bound = false;
   }
 }
