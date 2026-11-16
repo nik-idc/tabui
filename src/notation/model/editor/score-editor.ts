@@ -1276,7 +1276,7 @@ export class ScoreEditor {
     this.normalizeNoteContent(cleanup);
   }
 
-  /** Inserts clipboard beats, moving the original remaining beats after them. Returns saved content for undo and redo. */
+  /** Inserts clipboard beats after the index, moving later beats after them. An empty beat or rest just before the index is replaced instead. Returns saved content for undo and redo. */
   public static insertBeats<I extends MusicInstrument>(
     voiceBar: VoiceBar<I>,
     index: number,
@@ -1301,13 +1301,19 @@ export class ScoreEditor {
       throw Error(`${index} is invalid beat index`);
     }
 
-    const replacePlaceholder =
-      selected.length === 0 &&
-      voiceBar.beats.length === 1 &&
-      voiceBar.beats[0].isEmpty();
-    const pasteSelection = replacePlaceholder ? [...voiceBar.beats] : selected;
+    // Pasting at an empty beat or rest replaces it: the cursor beat, or the
+    // only beat of a bar that has no cursor beat in this voice.
+    const target =
+      voiceBar.beats.length === 1
+        ? voiceBar.beats[0]
+        : voiceBar.beats[index - 1];
+    const replaceTarget =
+      selected.length === 0 && target !== undefined && target.isEmpty();
+    const pasteSelection = replaceTarget ? [target] : selected;
 
-    const insertionIndex = replacePlaceholder ? 0 : index;
+    const insertionIndex = replaceTarget
+      ? voiceBar.beats.indexOf(target)
+      : index;
     let changes = this.getPasteChanges(voiceBar, pasteSelection);
     let before = this.getPasteSnapshot(changes, changes.neighborBeats);
     // Remove selected beats from other bars, keeping those bars and their unselected beats.

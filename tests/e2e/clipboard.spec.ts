@@ -66,3 +66,30 @@ test("@clipboard native copy, cut and paste transfer a note between pages", asyn
     destinationEditor.locator('[id^="note-text-"]').first()
   ).toHaveText("8");
 });
+
+test("@clipboard pasting a beat at an empty beat replaces it", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  const slots = editor.locator('.tu-root-svg [id^="note-rect-"]');
+  const frets = editor.locator('[id^="note-text-"]');
+  await slots.first().click();
+  for (const key of ["1", "ArrowDown", "3", "ArrowDown", "3"]) {
+    await page.keyboard.press(key);
+  }
+  await page.keyboard.press("Control+a");
+  await page.keyboard.press("Control+c");
+  await page.keyboard.press("Escape");
+
+  // Moving right adds an empty beat; paste fills it instead of adding a third.
+  await page.keyboard.press("ArrowRight");
+  await expect(slots).toHaveCount(12);
+  await page.keyboard.press("Control+v");
+  await expect(frets).toHaveText(["1", "3", "3", "1", "3", "3"]);
+  await expect(slots).toHaveCount(12);
+
+  await page.keyboard.press("Control+z");
+  await expect(frets).toHaveText(["1", "3", "3"]);
+  await expect(slots).toHaveCount(12);
+});

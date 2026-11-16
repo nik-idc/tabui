@@ -34,6 +34,8 @@ will require careful planning and execution.
   where the range should end.
 - Two digits typed within 250 ms make one fret, such as 12. To enter a fret
   without this time limit, use **Edit fret**.
+- Paste puts copied beats after the cursor beat. If the cursor beat is empty or
+  a rest, the copied beats replace it.
 - Copy and paste work between TabUI editors, also in other browser tabs, but not
   with text from other apps.
 - On a narrow screen, TabUI switches to view-only mode. On a very narrow screen,
