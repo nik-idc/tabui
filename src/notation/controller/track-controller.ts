@@ -403,15 +403,25 @@ export class TrackController {
     return changed;
   }
 
+  /**
+   * Adds a track at the end of the score.
+   * @param staffCount Number of staves, from 1 through MAX_TRACK_STAVES.
+   */
   public addTrack(
     score: Score,
     instrument: MusicInstrument,
-    name: string
+    name: string,
+    staffCount: number = 1
   ): Track | undefined {
     if (this.playbackState !== PlaybackState.Idle) {
       return undefined;
     }
-    return this._trackControllerEditor.addTrack(score, instrument, name);
+    return this._trackControllerEditor.addTrack(
+      score,
+      instrument,
+      name,
+      staffCount
+    );
   }
 
   public removeTrack(score: Score, track: Track): Track | undefined {
@@ -936,6 +946,49 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.appendBar();
+  }
+
+  /** True when a staff can be added below the selected one. */
+  public get canAddStaff(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canAddStaff
+    );
+  }
+
+  /** True when the selected staff can be removed. */
+  public get canRemoveStaff(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canRemoveStaff
+    );
+  }
+
+  /** Adds an empty staff below the selected one; false when nothing changed. */
+  public addStaffBelowSelected(): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.addStaffBelowSelected();
+  }
+
+  /** Removes the selected staff; false when nothing changed. */
+  public removeSelectedStaff(): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.removeSelectedStaff();
+  }
+
+  /**
+   * Moves the cursor to the same moment in the staff above or below.
+   * @param offset -1 for the staff above, 1 for the staff below.
+   */
+  public moveSelectionToStaff(offset: -1 | 1): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.selectionManager.moveToStaff(offset);
   }
 
   public removeSelectedBar(): void {

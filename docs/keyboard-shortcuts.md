@@ -5,7 +5,7 @@ control. If you know Guitar Pro, most of TabUI works the same way.
 
 Letters do not need Shift unless it is shown. On macOS, use **Command** instead
 of **Ctrl** for select all, copy, cut, paste, undo, and redo. Bar navigation still
-uses **Ctrl**.
+uses **Ctrl**. **Alt** is **Option** on macOS.
 
 A shortcut marked as unavailable does not mean it's impossible to engage the action
 via the keyboard. Rather it means that doing so requires multiple inputs. Which is not
@@ -20,7 +20,7 @@ will require careful planning and execution.
 - [Playback](#playback)
 - [Clipboard and history](#clipboard-and-history)
 - [Notes and rhythm](#notes-and-rhythm)
-- [Beats and bars](#beats-and-bars)
+- [Beats, bars, and staves](#beats-bars-and-staves)
 - [Guitar techniques](#guitar-techniques)
 - [Dialogs](#dialogs)
 - [Accessibility](#accessibility)
@@ -45,6 +45,7 @@ will require careful planning and execution.
 | --------------------------- | ---------------------------------- | ---------------------------------------- |
 | Move between beats          | Left / Right arrow                 | Click a beat                             |
 | Move between strings        | Up / Down arrow                    | Click a note slot                        |
+| Move between staves         | Alt+Up / Alt+Down                  | Click a note slot in the other staff     |
 | Move by bar                 | Ctrl+Left / Ctrl+Right             | **Prev bar** / **Next bar**              |
 | Go to the first or last bar | —                                  | **First bar** / **Last bar**             |
 | Select or extend by beat    | Shift+Left / Shift+Right           | Drag, or **Set anchor** and click a beat |
@@ -93,7 +94,7 @@ will require careful planning and execution.
 Two digits typed less than 250 ms apart on the same note make one fret number,
 such as 12.
 
-## Beats and bars
+## Beats, bars, and staves
 
 | Action               | Shortcut     | Mouse control          |
 | -------------------- | ------------ | ---------------------- |
@@ -107,6 +108,8 @@ such as 12.
 | Repeat end and count | Shift+R      | **Repeat end**         |
 | Tempo                | M            | **Tempo**              |
 | Time signature       | Shift+M      | **Time Signature**     |
+| Add a staff below    | Alt+N        | **Add staff below**    |
+| Remove the staff     | Alt+Delete   | **Remove staff**       |
 
 ## Guitar techniques
 

@@ -21,6 +21,7 @@ import {
   MusicInstrument,
   GuitarTechniqueType,
   TrackInstrumentChangeMode,
+  MAX_TRACK_STAVES,
 } from "../../model";
 import type { SetTechniqueOptions } from "../../model/editor/set-technique-options";
 import { TrackElement } from "../element";
@@ -57,6 +58,8 @@ import {
   PrependBarCommand,
   InsertBarCommand,
   RemoveBarsCommand,
+  AddStaffCommand,
+  RemoveStaffCommand,
   ShiftPitchCommand,
   Command,
   AffectedModel,
@@ -191,15 +194,31 @@ export class TrackControllerEditor {
     return true;
   }
 
+  /**
+   * Adds a track at the end of the score.
+   * @param staffCount Number of staves, from 1 through MAX_TRACK_STAVES.
+   */
   public addTrack(
     score: Score,
     instrument: MusicInstrument,
-    name: string
+    name: string,
+    staffCount: number = 1
   ): Track | undefined {
     if (!this.editingEnabled) {
       return undefined;
     }
-    return score.addTrack(instrument, name).tracks[0];
+    if (
+      !Number.isInteger(staffCount) ||
+      staffCount < 1 ||
+      staffCount > MAX_TRACK_STAVES
+    ) {
+      throw Error(`${staffCount} is invalid staff count`);
+    }
+    const track = score.addTrack(instrument, name).tracks[0];
+    while (track.staves.length < staffCount) {
+      track.insertStaff(track.staves.length);
+    }
+    return track;
   }
 
   public removeTrack(score: Score, track: Track): Track | undefined {
@@ -1501,6 +1520,92 @@ export class TrackControllerEditor {
       ),
       () => this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1])
     );
+  }
+
+  /** The beat that staff actions start from: the cursor beat, or the range start. */
+  private getStaffActionBeat(): Beat | undefined {
+    return (
+      this._selectionManager.selectionCursor?.beat ??
+      this._selectionManager.selectionAsBeats[0]
+    );
+  }
+
+  /** True when a staff can be added below the selected one. */
+  public get canAddStaff(): boolean {
+    return (
+      this.editingEnabled &&
+      this._trackElement.track.staves.length < MAX_TRACK_STAVES &&
+      this.getStaffActionBeat() !== undefined
+    );
+  }
+
+  /** True when the selected staff can be removed; a track keeps at least one. */
+  public get canRemoveStaff(): boolean {
+    return (
+      this.editingEnabled &&
+      this._trackElement.track.staves.length > 1 &&
+      this.getStaffActionBeat() !== undefined
+    );
+  }
+
+  /**
+   * Adds an empty staff below the selected one and moves the cursor into it.
+   * @returns False when no staff was added.
+   */
+  public addStaffBelowSelected(): boolean {
+    const beat = this.getStaffActionBeat();
+    if (!this.canAddStaff || beat === undefined) {
+      return false;
+    }
+
+    const track = this._trackElement.track;
+    const bar = beat.voiceBar.bar;
+    const barIndex = bar.staff.bars.indexOf(bar);
+    const noteIndex = this._selectionManager.selectionCursor?.noteIndex ?? 0;
+    const command = new AddStaffCommand(
+      track,
+      track.staves.indexOf(bar.staff) + 1,
+      track.score.masterBars.indexOf(bar.masterBar)
+    );
+    this.executeCommand(command, () => {
+      if (command.staff !== null) {
+        this._selectionManager.selectInStaff(
+          command.staff,
+          barIndex,
+          beat,
+          noteIndex
+        );
+      }
+    });
+    return true;
+  }
+
+  /**
+   * Removes the selected staff and moves the cursor to the nearest staff.
+   * @returns False when no staff was removed.
+   */
+  public removeSelectedStaff(): boolean {
+    const beat = this.getStaffActionBeat();
+    if (!this.canRemoveStaff || beat === undefined) {
+      return false;
+    }
+
+    const track = this._trackElement.track;
+    const bar = beat.voiceBar.bar;
+    const staffIndex = track.staves.indexOf(bar.staff);
+    const barIndex = bar.staff.bars.indexOf(bar);
+    const noteIndex = this._selectionManager.selectionCursor?.noteIndex ?? 0;
+    const command = new RemoveStaffCommand(
+      track,
+      bar.staff,
+      track.score.masterBars.indexOf(bar.masterBar)
+    );
+    this.executeCommand(command, () => {
+      const nearest =
+        track.staves[Math.min(staffIndex, track.staves.length - 1)];
+      this._selectionManager.selectInStaff(nearest, barIndex, beat, noteIndex);
+    });
+    return command.executed;
   }
 
   public removeSelectedBar(): void {

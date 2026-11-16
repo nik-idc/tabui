@@ -1,6 +1,6 @@
 # Features
 
-This guide explains how TabUI's notation features behave: repeats, dynamics, and
+This guide explains how TabUI's notation features behave: repeats, staves, dynamics, and
 guitar techniques. These are TabUI's rules, not a claim about how other
 tablature editors interpret the same marks. For what each term means, see
 [Domain Model and Terms](domain.md).
@@ -43,6 +43,20 @@ Examples:
 
 With nested repeats, the first example would have an outer section from
 **Bar 1 to Bar 5** and an inner section from **Bar 2 to Bar 4**.
+
+## Staves
+
+A track has one to four staves. Each staff has its own bars and voices, and all
+staves play together. See [Domain model and terms](domain.md#staff).
+
+- Set the number of staves when you create a track: use **Staves** in the
+  **New track** dialog.
+- **Add staff below** (Alt+N) adds an empty staff below the selected one and
+  moves the cursor into it.
+- **Remove staff** (Alt+Delete) removes the selected staff and its content. A
+  track always keeps one staff. Undo brings the staff back.
+- Alt+Up and Alt+Down move the cursor to the same moment in the staff above or
+  below.
 
 ## Dynamics
 

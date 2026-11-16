@@ -1,3 +1,4 @@
+export * from "./add-staff-command";
 export * from "./append-bar-command";
 export * from "./append-beat-command";
 export * from "./command";
@@ -9,6 +10,7 @@ export * from "./insert-beats-command";
 export * from "./prepend-bar-command";
 export * from "./remove-bars-command";
 export * from "./remove-beats-command";
+export * from "./remove-staff-command";
 export * from "./replace-beats-command";
 export * from "./set-beat-technique-command";
 export * from "./set-dots-command";

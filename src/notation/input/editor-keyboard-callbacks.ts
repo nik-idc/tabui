@@ -53,6 +53,13 @@ export enum EditorKey {
   StrokeSettings = "d",
   HeavyAccent = "c",
 
+  // Alt (Option on macOS) only. Matched on event.code, because Option changes
+  // event.key on macOS.
+  AddStaffBelow = "KeyN",
+  RemoveStaff = "Delete",
+  StaffUp = "ArrowUp",
+  StaffDown = "ArrowDown",
+
   // Space or Shift+Space.
   TogglePlayback = " ",
 
@@ -547,6 +554,49 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     return true;
   }
 
+  /** True for Alt+key with no other modifier on one of the staff keys. */
+  private isStaffShortcut(event: KeyboardEvent): boolean {
+    const staffCodes: readonly string[] = [
+      EditorKey.AddStaffBelow,
+      EditorKey.RemoveStaff,
+      EditorKey.StaffUp,
+      EditorKey.StaffDown,
+    ];
+    return (
+      event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.shiftKey &&
+      staffCodes.includes(event.code)
+    );
+  }
+
+  /** Moves between, adds, or removes staves; true means consume the key. */
+  private staffShortcutEvent(code: string): boolean {
+    const controller = this._notationComponent.trackController;
+    const previous = captureSelectionCursor(controller.selectionCursor);
+    let changed: boolean;
+    if (code === EditorKey.StaffUp || code === EditorKey.StaffDown) {
+      changed = controller.moveSelectionToStaff(
+        code === EditorKey.StaffUp ? -1 : 1
+      );
+    } else if (!controller.editingEnabled) {
+      return false;
+    } else if (code === EditorKey.AddStaffBelow) {
+      changed = controller.addStaffBelowSelected();
+    } else {
+      changed = controller.removeSelectedStaff();
+    }
+    if (!changed) {
+      return false;
+    }
+
+    this._notationComponent.ensureSelectedNoteVisible();
+    this._renderFunc();
+    this._announce(previous);
+    return true;
+  }
+
   /** Routes shared actions before editing; true means consume the key. */
   private dispatchShortcut(event: KeyboardEvent): boolean {
     const key = event.key.toLowerCase();
@@ -556,6 +606,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
     if (controller.playbackState !== PlaybackState.Idle) {
       return false;
+    }
+
+    if (this.isStaffShortcut(event)) {
+      return this.staffShortcutEvent(event.code);
     }
 
     if (key === EditorKey.SelectAll && ctrlKey && !shiftKey) {
@@ -672,7 +726,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         (key !== EditorKey.SelectAll && key !== EditorKey.Undo));
     if (
       event.defaultPrevented ||
-      event.altKey ||
+      (event.altKey && !this.isStaffShortcut(event)) ||
       unsupportedMeta ||
       event.isComposing ||
       event.keyCode === 229 // Fallback for legacy browsers

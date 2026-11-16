@@ -12,6 +12,7 @@ import {
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   InstrumentType,
+  MAX_TRACK_STAVES,
   StringInstrumentType,
 } from "../../../../notation/model";
 
@@ -27,6 +28,7 @@ export class NewTrackControlsTemplateRenderer {
   private _currentTrackName: string = "New track";
   private _currentStringCount: number = 6;
   private _currentTuning: string = "E A D G B E";
+  private _currentStaffCount: number = 1;
 
   private _assembled: boolean;
 
@@ -89,11 +91,17 @@ export class NewTrackControlsTemplateRenderer {
     this.template.trackInfoContainer.append(
       this.template.trackNameInput,
       this.template.trackNameError,
+      this.template.staffCountContainer,
       this.template.stringCountContainer,
       this.template.stringCountError,
       this.template.tuningContainer,
       this.template.wholeTuningContainer,
       this.template.tuningError
+    );
+    this.template.staffCountContainer.append(
+      this.template.staffCountDownButton,
+      this.template.staffCountValue,
+      this.template.staffCountUpButton
     );
     this.template.stringCountContainer.append(
       this.template.stringCountDownButton,
@@ -169,7 +177,7 @@ export class NewTrackControlsTemplateRenderer {
     this.template.stringCountDownButton.disabled =
       this._currentStringCount <= 1;
     this.template.stringCountValue.classList.add("tu-nt-string-count-value");
-    this.template.stringCountValue.textContent = `${this._currentStringCount}`;
+    this.template.stringCountValue.textContent = `Strings: ${this._currentStringCount}`;
     this.template.stringCountUpButton.textContent = "+";
     this.template.stringCountUpButton.ariaLabel = "Increase string count by 1";
     this.template.stringCountUpButton.disabled = this._currentStringCount >= 12;
@@ -177,6 +185,23 @@ export class NewTrackControlsTemplateRenderer {
 
     this.renderTuningControls();
     this.template.tuningError.classList.add(newTrackErrorCSSClass);
+
+    this.renderStaffCount();
+  }
+
+  private renderStaffCount(): void {
+    const count = this._currentStaffCount;
+    this.template.staffCountContainer.classList.add(
+      "tu-nt-staff-count-container"
+    );
+    this.template.staffCountDownButton.textContent = "-";
+    this.template.staffCountDownButton.ariaLabel = "Decrease staff count by 1";
+    this.template.staffCountDownButton.disabled = count <= 1;
+    this.template.staffCountValue.classList.add("tu-nt-staff-count-value");
+    this.template.staffCountValue.textContent = `Staves: ${count}`;
+    this.template.staffCountUpButton.textContent = "+";
+    this.template.staffCountUpButton.ariaLabel = "Increase staff count by 1";
+    this.template.staffCountUpButton.disabled = count >= MAX_TRACK_STAVES;
   }
 
   private renderTuningControls(): void {
@@ -269,7 +294,8 @@ export class NewTrackControlsTemplateRenderer {
     currentTone: string,
     currentTrackName: string,
     currentStringCount: number,
-    currentTuning: string
+    currentTuning: string,
+    currentStaffCount: number = 1
   ): void {
     if (this._currentFamily !== currentFamily) {
       this.template.instrTypesContainer.replaceChildren();
@@ -285,6 +311,7 @@ export class NewTrackControlsTemplateRenderer {
     this._currentTrackName = currentTrackName;
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
+    this._currentStaffCount = currentStaffCount;
 
     this.renderInstrumentTypesButtons();
     this.renderInstrumentTonesButtons();

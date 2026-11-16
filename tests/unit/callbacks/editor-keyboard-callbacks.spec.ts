@@ -1551,6 +1551,46 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(score.masterBars).toEqual([originalBars[2]]);
   });
 
+  test("Alt staff shortcuts match the physical key and leave other Alt keys alone", () => {
+    const { callbacks, notationComponent, rootElement } = createHarness();
+    const { track } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    notationComponent.trackController = controller;
+    rootElement.focus();
+    const press = (key: string, options: KeyboardEventInit) => {
+      const event = createKeyboardEvent(key, options);
+      callbacks.onKeyDown(event);
+      return event.preventDefault.mock.calls.length > 0;
+    };
+
+    // AltGr arrives as Ctrl+Alt, and Option changes event.key on macOS.
+    expect(press("v", { altKey: true, code: "KeyV" })).toBe(false);
+    expect(press("N", { altKey: true, shiftKey: true, code: "KeyN" })).toBe(
+      false
+    );
+    expect(press("n", { altKey: true, ctrlKey: true, code: "KeyN" })).toBe(
+      false
+    );
+    expect(track.staves).toHaveLength(1);
+    expect(press("Delete", { altKey: true, code: "Delete" })).toBe(false);
+
+    expect(press("˜", { altKey: true, code: "KeyN" })).toBe(true);
+    expect(track.staves).toHaveLength(2);
+    expect(controller.selectionCursor?.bar.staff).toBe(track.staves[1]);
+    expect(press("ArrowUp", { altKey: true, code: "ArrowUp" })).toBe(true);
+    expect(controller.selectionCursor?.bar.staff).toBe(track.staves[0]);
+    expect(press("ArrowUp", { altKey: true, code: "ArrowUp" })).toBe(false);
+
+    controller.setEditingEnabled(false);
+    expect(press("n", { altKey: true, code: "KeyN" })).toBe(false);
+    expect(press("Delete", { altKey: true, code: "Delete" })).toBe(false);
+    expect(track.staves).toHaveLength(2);
+    expect(press("ArrowDown", { altKey: true, code: "ArrowDown" })).toBe(true);
+    expect(controller.selectionCursor?.bar.staff).toBe(track.staves[1]);
+  });
+
   test("dead notes and rests use undoable controller operations", () => {
     const { callbacks, notationComponent, rootElement } = createHarness();
     const { track, beats } = createBarWithBeats([

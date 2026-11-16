@@ -17,6 +17,7 @@ import {
   StringInstrumentType,
   ElectricGuitarTone,
   getDefaultTuningStrSimple,
+  MAX_TRACK_STAVES,
 } from "../../../../notation/model";
 
 export class NewTrackControlsComponent {
@@ -33,6 +34,7 @@ export class NewTrackControlsComponent {
   private _trackName: string = "New track";
   private _stringCount: number = 6;
   private _tuning: string = "E A D G B E";
+  private _staffCount: number = 1;
 
   constructor(
     parentDiv: HTMLDivElement,
@@ -56,6 +58,9 @@ export class NewTrackControlsComponent {
     this.template.stringCountContainer.addEventListener("focusin", () =>
       this._announce(`String count ${this._stringCount}`)
     );
+    this.template.staffCountContainer.addEventListener("focusin", () =>
+      this._announce(`Staff count ${this._staffCount}`)
+    );
     this.template.wholeTuningContainer.addEventListener("focusin", () =>
       this._announce(getTuningValueText(this._tuning))
     );
@@ -76,7 +81,8 @@ export class NewTrackControlsComponent {
       this._instrumentTone,
       this._trackName,
       this._stringCount,
-      this._tuning
+      this._tuning,
+      this._staffCount
     );
   }
 
@@ -122,6 +128,21 @@ export class NewTrackControlsComponent {
     this._announce(
       `String count ${this._stringCount}. ${getTuningValueText(this._tuning)}`
     );
+  }
+
+  /** Changes the staff count by delta, within 1 through MAX_TRACK_STAVES. */
+  public shiftStaffCount(delta: number): void {
+    const next = Math.min(
+      MAX_TRACK_STAVES,
+      Math.max(1, this._staffCount + delta)
+    );
+    if (next === this._staffCount) {
+      return;
+    }
+
+    this._staffCount = next;
+    this.render();
+    this._announce(`Staff count ${this._staffCount}`);
   }
 
   public setTuning(tuning: string): void {
@@ -178,6 +199,10 @@ export class NewTrackControlsComponent {
 
   public get stringCount(): number {
     return this._stringCount;
+  }
+
+  public get staffCount(): number {
+    return this._staffCount;
   }
 
   public get tuning(): string {

@@ -11,6 +11,9 @@ export enum TrackInstrumentChangeMode {
   Transpose = "transpose",
 }
 
+/** Most staves the editor lets a user create in one track. */
+export const MAX_TRACK_STAVES = 4;
+
 /** Staff-array edit metadata containing live inserted or removed staves. */
 export type StaffArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
