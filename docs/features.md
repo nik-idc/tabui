@@ -157,6 +157,7 @@ continues with dashes. The text starts again after a gap or a line break.
 ### Bends
 
 A bend raises the pitch by pushing the string. The written fret does not change.
+An open string cannot be bent.
 
 - Amounts are in whole tones: `½` is one semitone, and `1` is two semitones.
 - The shapes are **Bend**, **Bend and Release**, **Prebend** (starts already
@@ -168,7 +169,8 @@ A bend raises the pitch by pushing the string. The written fret does not change.
 ### Legato (hammer-on and pull-off)
 
 Legato connects a note to the next beat's note on the same string and voice. The
-frets must differ.
+next note must be played (not empty or dead), and the frets must differ. Open
+strings work on both sides.
 
 Playback plays the marked note with a softer, slower attack. This is an
 approximation: a real legato note is not picked.
@@ -176,10 +178,10 @@ approximation: a real legato note is not picked.
 ### Slide
 
 A slide moves from a note to the next beat's note on the same string and voice.
-The frets must differ, and the first note cannot be an open string.
+The next note must be played (not empty or dead), the frets must differ, and
+neither note can be an open string.
 
-The second note is not attacked again. If it is empty or a dead note, the pitch
-does not move.
+The second note is not attacked again.
 
 ### Vibrato
 

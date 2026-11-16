@@ -51,7 +51,11 @@ describe("InsertBarCommand", () => {
     const expectedBars = originalBars.map((v, i) => [v[0], addedBars[i], v[1]]);
     expectStaffBars(score, expectedBars);
     expect(command.insertResult?.index).toBe(1);
+    // The bar before the insertion is saved too: its last note gets a new
+    // next note, which can make a slide or legato invalid.
     expect(command.affectedModels).toEqual([
+      { masterBarIndex: 1, modelUUID: addedMasterBar.uuid },
+      { masterBarIndex: 0, modelUUID: originalMasterBars[0].uuid },
       { masterBarIndex: 1, modelUUID: addedMasterBar.uuid },
       { masterBarIndex: 2, modelUUID: originalMasterBars[1].uuid },
     ]);

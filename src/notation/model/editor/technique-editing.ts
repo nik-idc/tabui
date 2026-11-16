@@ -7,6 +7,7 @@ import { GuitarTechniqueType, TechniqueType } from "../technique-type";
 import { EditPosition } from "./edit-position";
 import type { BeatPosition, NotePosition } from "./edit-position";
 import { LetRingEditing } from "./let-ring-editing";
+import { NoteContentEditing } from "./note-content-editing";
 import { TechniqueEditKind } from "./technique-edit-plan";
 import type { TechniqueEditPlan } from "./technique-edit-plan";
 import { TieEditing } from "./tie-editing";
@@ -105,7 +106,7 @@ export class TechniqueEditing {
       }
     }
 
-    LetRingEditing.normalizeNoteContent(plan.stateBeats);
+    NoteContentEditing.normalize(plan.stateBeats);
     return changesMade;
   }
 

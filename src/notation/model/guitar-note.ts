@@ -469,18 +469,57 @@ export class GuitarNote implements Note<Guitar> {
       return TECHNIQUE_ALLOWED_ON_DEAD_NOTES[type] && !someIncompatible;
     }
 
-    if (type === GuitarTechniqueType.Slide && this._fret === 0) {
+    if (type === GuitarTechniqueType.Bend && this._fret === 0) {
       return false;
     }
 
-    if (TRANSITIONAL_TECHNIQUES.has(type)) {
-      const nextNote = this.beat.voiceBar.bar.staff.getNextNote(this);
-      if (!(nextNote instanceof GuitarNote) || nextNote._fret === this._fret) {
-        return false;
-      }
+    if (TRANSITIONAL_TECHNIQUES.has(type) && !this.hasValidTransition(type)) {
+      return false;
     }
 
     return !someIncompatible;
+  }
+
+  /**
+   * Checks a slide or legato against the same string in the next beat. The
+   * target must be played (not empty or dead) with a different fret. A slide
+   * also cannot start or end on an open string.
+   */
+  private hasValidTransition(type: GuitarTechniqueType): boolean {
+    if (type === GuitarTechniqueType.Slide && this._fret === 0) {
+      return false;
+    }
+    const next = this.beat.voiceBar.bar.staff.getNextNote(this);
+    if (
+      !(next instanceof GuitarNote) ||
+      next._fret === null ||
+      next._fret < 0 ||
+      next._fret === this._fret
+    ) {
+      return false;
+    }
+    return type !== GuitarTechniqueType.Slide || next._fret > 0;
+  }
+
+  /**
+   * Removes techniques that an edit made invalid: a slide or legato without a
+   * valid target, or a bend on an open string.
+   * @returns True if a technique was removed.
+   */
+  public removeInvalidTechniques(): boolean {
+    if (this._fret === null || this._fret < 0) {
+      return false;
+    }
+    let removed = false;
+    for (const type of TRANSITIONAL_TECHNIQUES) {
+      if (this.hasTechnique(type) && !this.hasValidTransition(type)) {
+        removed = this.removeTechnique(type) || removed;
+      }
+    }
+    if (this._fret === 0) {
+      removed = this.removeTechnique(GuitarTechniqueType.Bend) || removed;
+    }
+    return removed;
   }
 
   /**
