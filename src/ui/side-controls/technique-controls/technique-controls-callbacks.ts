@@ -16,6 +16,7 @@ export interface TechniqueControlsCallbacks {
   onPalmMuteClicked(): void;
   onLetRingClicked(): void;
   onTieClicked(): void;
+  onTieBackClicked(): void;
   onNHClicked(): void;
   onPHClicked(): void;
   onLegatoClicked(): void;
@@ -88,6 +89,14 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
     this._renderFunc();
   }
 
+  public onTieBackClicked(): void {
+    this._notationComponent.trackController.setTechnique(
+      GuitarTechniqueType.Tie,
+      { tieToEarliest: true }
+    );
+    this._renderFunc();
+  }
+
   public onNHClicked(): void {
     this._notationComponent.trackController.setTechnique(
       GuitarTechniqueType.NaturalHarmonic
@@ -150,6 +159,11 @@ export class TechniqueControlsDefaultCallbacks implements TechniqueControlsCallb
         element: this._techniquesComponent.template.tieButton,
         event: "click",
         handler: () => this.onTieClicked(),
+      },
+      {
+        element: this._techniquesComponent.template.tieBackButton,
+        event: "click",
+        handler: () => this.onTieBackClicked(),
       },
       {
         element: this._techniquesComponent.template.vibratoButton,

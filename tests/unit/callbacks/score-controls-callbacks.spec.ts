@@ -19,6 +19,7 @@ describe("Score controls", () => {
   let callbacks: ScoreControlsDefaultCallbacks;
   let root: HTMLDivElement;
   let audio: ReturnType<typeof installTransportAudio>;
+  let announce: jest.Mock;
 
   beforeEach(() => {
     jest.useFakeTimers();
@@ -38,12 +39,13 @@ describe("Score controls", () => {
       resolveTabUIConfig(),
       createTestLayoutDimensions()
     );
+    announce = jest.fn();
     controls = new ScoreControlsComponent(
       host,
       root,
       new DialogEnforcer(dialogs, () => {}),
       notation,
-      () => {}
+      announce
     );
     controls.render();
     callbacks = new ScoreControlsDefaultCallbacks(
@@ -72,6 +74,90 @@ describe("Score controls", () => {
     element.dispatchEvent(new Event("input", { bubbles: true }));
   }
 
+  describe("clipboard buttons", () => {
+    const blocked = new DOMException("Denied", "NotAllowedError");
+
+    function mockClipboard(clipboard: Partial<Clipboard>) {
+      Object.defineProperty(navigator, "clipboard", {
+        configurable: true,
+        value: clipboard,
+      });
+    }
+
+    afterEach(() => {
+      Reflect.deleteProperty(navigator, "clipboard");
+    });
+
+    test("Cut keeps the beats and announces it when the browser blocks the write", async () => {
+      const controller = notation.trackController;
+      jest.spyOn(controller, "copy").mockReturnValue("passage");
+      const remove = jest.spyOn(controller, "removeSelectedBeat");
+      mockClipboard({ writeText: jest.fn().mockRejectedValue(blocked) });
+
+      await callbacks.onCutClicked();
+
+      expect(remove).not.toHaveBeenCalled();
+      expect(announce).toHaveBeenCalledWith(
+        "The browser blocked clipboard access. Use Ctrl+X."
+      );
+    });
+
+    test("Cut removes the beats after the write succeeds", async () => {
+      const controller = notation.trackController;
+      jest.spyOn(controller, "copy").mockReturnValue("passage");
+      const remove = jest
+        .spyOn(controller, "removeSelectedBeat")
+        .mockReturnValue(undefined);
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      mockClipboard({ writeText });
+
+      await callbacks.onCutClicked();
+
+      expect(writeText).toHaveBeenCalledWith("passage");
+      expect(remove).toHaveBeenCalledTimes(1);
+      expect(announce).not.toHaveBeenCalled();
+    });
+
+    test("Copy and Paste announce it when there is no Clipboard API", async () => {
+      jest.spyOn(notation.trackController, "copy").mockReturnValue("passage");
+
+      await callbacks.onCopyClicked();
+      await callbacks.onPasteClicked();
+
+      expect(announce.mock.calls).toEqual([
+        ["The browser blocked clipboard access. Use Ctrl+C."],
+        ["The browser blocked clipboard access. Use Ctrl+V."],
+      ]);
+    });
+
+    test("errors other than a blocked clipboard are not hidden", async () => {
+      jest.spyOn(notation.trackController, "copy").mockReturnValue("passage");
+      mockClipboard({
+        writeText: jest.fn().mockRejectedValue(new TypeError("bug")),
+      });
+
+      await expect(callbacks.onCopyClicked()).rejects.toThrow("bug");
+      expect(announce).not.toHaveBeenCalled();
+    });
+  });
+
+  test("range button sets a selection anchor, then clears the range", () => {
+    const controller = notation.trackController;
+    const anchor = controller.selectionCursor?.beat;
+    const button = controls.template.rangeButton;
+    expect(button.getAttribute("aria-label")).toBe("Set selection anchor");
+
+    button.click();
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(controller.selectionBeats).toEqual([anchor]);
+    expect(button.getAttribute("aria-label")).toBe("Clear selection range");
+
+    button.click();
+    expect(controller.hasSelectionAnchor).toBe(false);
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(anchor);
+  });
+
   test("playback disables score editing and rejects changes while master mix remains available", async () => {
     notation.trackController.startPlayer();
     await settleTransport();
@@ -79,6 +165,18 @@ describe("Score controls", () => {
     controls.render();
     expect(controls.template.newTrackButton.disabled).toBe(true);
     expect(controls.template.scoreNameInput.disabled).toBe(true);
+    const t = controls.template;
+    for (const button of [
+      t.rangeButton,
+      t.selectAllButton,
+      t.copyButton,
+      t.cutButton,
+      t.pasteButton,
+    ]) {
+      expect(button.disabled).toBe(true);
+    }
+    callbacks.onRangeClicked();
+    expect(notation.trackController.hasSelectionAnchor).toBe(false);
     callbacks.onNewTrackButtonClicked();
     input(controls.template.scoreNameInput, "Blocked");
     expect(controls.newTrackComponent.dialog.open).toBe(false);
@@ -102,7 +200,7 @@ describe("Score controls", () => {
       "Tracks · Track 1 · 2 tracks"
     );
     expect(controls.template.showTracksButton.title).toBe("Track 1 · 2 tracks");
-    expect(controls.template.tracksContainer.children).toHaveLength(2);
+    expect(controls.template.trackList.children).toHaveLength(2);
     const lead = controls.trackComponents[1];
     lead.template.container.click();
     expect(notation.trackController.track).toBe(lead.track);

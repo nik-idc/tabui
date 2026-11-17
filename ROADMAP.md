@@ -116,6 +116,13 @@ in no particular order.
 
 - Hot config reloading & changing.
 
+- Visible error and status messages. Today, failures that the user should know
+  about are only spoken to screen readers, for example when the browser blocks
+  the clipboard buttons. Sighted users get no feedback. This needs a visible
+  message area, something like a snack bar or a subtle status bar string. Doing
+  it right means tracing every place where such a failure can happen, not just
+  the clipboard.
+
 ## Unsure
 
 - Plugin system. Not really sure what this means in the context of TabUI, just

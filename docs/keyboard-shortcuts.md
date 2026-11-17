@@ -29,9 +29,9 @@ will require careful planning and execution.
 
 - Click the notation (or use Tab to reach it) before you use shortcuts.
 - In view-only mode, you can only navigate, select, copy, and play. During
-  playback, only Space, Shift+Space, and copying work.
-- To select a range without dragging, click **Set anchor**, then click the beat
-  where the range should end.
+  playback, only Space and Shift+Space work.
+- To select a range without dragging, click **Set selection anchor**, then
+  click the beat where the range should end.
 - Two digits typed within 250 ms make one fret, such as 12. To enter a fret
   without this time limit, use **Edit fret**.
 - Paste puts copied beats after the cursor beat. If the cursor beat is empty or
@@ -43,18 +43,18 @@ will require careful planning and execution.
 
 ## Navigation and selection
 
-| Action                      | Shortcut                           | Mouse control                            |
-| --------------------------- | ---------------------------------- | ---------------------------------------- |
-| Move between beats          | Left / Right arrow                 | Click a beat                             |
-| Move between strings        | Up / Down arrow                    | Click a note slot                        |
-| Move between staves         | Alt+Up / Alt+Down                  | Click a note slot in the other staff     |
-| Move by bar                 | Ctrl+Left / Ctrl+Right             | **Prev bar** / **Next bar**              |
-| Go to the first or last bar | —                                  | **First bar** / **Last bar**             |
-| Select or extend by beat    | Shift+Left / Shift+Right           | Drag, or **Set anchor** and click a beat |
-| Extend by bar               | Ctrl+Shift+Left / Ctrl+Shift+Right | Drag across bars                         |
-| Select all                  | Ctrl+A                             | —                                        |
-| Cancel a beat range         | Escape                             | Click a single note                      |
-| Change the active voice     | Shift+V (cycles 1 → 2 → 3 → 4)     | **Voice 1** to **Voice 4**               |
+| Action                      | Shortcut                           | Mouse control                                      |
+| --------------------------- | ---------------------------------- | -------------------------------------------------- |
+| Move between beats          | Left / Right arrow                 | Click a beat                                       |
+| Move between strings        | Up / Down arrow                    | Click a note slot                                  |
+| Move between staves         | Alt+Up / Alt+Down                  | Click a note slot in the other staff               |
+| Move by bar                 | Ctrl+Left / Ctrl+Right             | **Prev bar** / **Next bar**                        |
+| Go to the first or last bar | —                                  | **First bar** / **Last bar**                       |
+| Select or extend by beat    | Shift+Left / Shift+Right           | Drag, or **Set selection anchor** and click a beat |
+| Extend by bar               | Ctrl+Shift+Left / Ctrl+Shift+Right | Drag across bars                                   |
+| Select all                  | Ctrl+A                             | **Select all**                                     |
+| Cancel a beat range         | Escape                             | Click a single note                                |
+| Change the active voice     | Shift+V (cycles 1 → 2 → 3 → 4)     | **Voice 1** to **Voice 4**                         |
 
 ## Playback
 
@@ -62,7 +62,7 @@ will require careful planning and execution.
 | -------------------------- | ----------- | --------------------------------------------------------- |
 | Play or stop               | Space       | **Play** / **Pause**                                      |
 | Play or stop from a button | Shift+Space | **Play** / **Pause**                                      |
-| Loop a range               | —           | **Set anchor**, then **Loop**                             |
+| Loop a range               | —           | **Set selection anchor**, then **Loop**                   |
 | Metronome                  | —           | **Metronome**                                             |
 | Playback pitch shift       | —           | **Increase playback pitch** / **Decrease playback pitch** |
 
@@ -70,11 +70,11 @@ will require careful planning and execution.
 
 | Action | Shortcut               | Mouse control |
 | ------ | ---------------------- | ------------- |
-| Copy   | Ctrl+C                 | —             |
-| Cut    | Ctrl+X                 | —             |
-| Paste  | Ctrl+V                 | —             |
-| Undo   | Ctrl+Z                 | —             |
-| Redo   | Ctrl+Y or Ctrl+Shift+Z | —             |
+| Copy   | Ctrl+C                 | **Copy**      |
+| Cut    | Ctrl+X                 | **Cut**       |
+| Paste  | Ctrl+V                 | **Paste**     |
+| Undo   | Ctrl+Z                 | **Undo**      |
+| Redo   | Ctrl+Y or Ctrl+Shift+Z | **Redo**      |
 
 ## Notes and rhythm
 
@@ -115,24 +115,24 @@ such as 12.
 
 ## Guitar techniques
 
-| Action                      | Shortcut | Mouse control        |
-| --------------------------- | -------- | -------------------- |
-| Tie to the previous beat    | J        | **Tie**              |
-| Tie as far back as possible | Shift+J  | —                    |
-| Let Ring                    | Shift+L  | **Let Ring**         |
-| Palm Mute                   | P        | **Palm Mute**        |
-| Vibrato                     | V        | **Vibrato**          |
-| Legato                      | L        | **Legato**           |
-| Slide                       | S        | **Slide**            |
-| Natural harmonic            | H        | **Natural Harmonic** |
-| Pinch harmonic              | Shift+H  | **Pinch Harmonic**   |
-| Tap                         | K        | **Tap**              |
-| Accent                      | C        | **Accent**           |
-| Heavy accent                | Shift+C  | **Heavy Accent**     |
-| Bend settings               | B        | **Bend**             |
-| Down stroke                 | D        | **Stroke** dialog    |
-| Up stroke                   | U        | **Stroke** dialog    |
-| Stroke settings             | Shift+D  | **Stroke**           |
+| Action                      | Shortcut | Mouse control                   |
+| --------------------------- | -------- | ------------------------------- |
+| Tie to the previous beat    | J        | **Tie**                         |
+| Tie as far back as possible | Shift+J  | **Tie as far back as possible** |
+| Let Ring                    | Shift+L  | **Let Ring**                    |
+| Palm Mute                   | P        | **Palm Mute**                   |
+| Vibrato                     | V        | **Vibrato**                     |
+| Legato                      | L        | **Legato**                      |
+| Slide                       | S        | **Slide**                       |
+| Natural harmonic            | H        | **Natural Harmonic**            |
+| Pinch harmonic              | Shift+H  | **Pinch Harmonic**              |
+| Tap                         | K        | **Tap**                         |
+| Accent                      | C        | **Accent**                      |
+| Heavy accent                | Shift+C  | **Heavy Accent**                |
+| Bend settings               | B        | **Bend**                        |
+| Down stroke                 | D        | **Stroke** dialog               |
+| Up stroke                   | U        | **Stroke** dialog               |
+| Stroke settings             | Shift+D  | **Stroke**                      |
 
 See [Features](features.md#guitar-techniques) for what each technique does.
 

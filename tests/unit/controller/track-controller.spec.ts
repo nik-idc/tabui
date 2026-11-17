@@ -811,6 +811,15 @@ describe("TrackController", () => {
     expect(score.masterBars).toHaveLength(2);
   });
 
+  test("copy returns nothing during playback", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    expect(controller.copy()).toBeDefined();
+    controller.startPlayer();
+    await settleTransport();
+    expect(controller.copy()).toBeUndefined();
+  });
+
   test("playback start does not disable an existing loop choice", async () => {
     const { track } = createScoreGraph();
     const { controller, player } = realTransport(track);

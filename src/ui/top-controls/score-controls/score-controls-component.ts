@@ -30,7 +30,8 @@ export class ScoreControlsComponent {
     overlayParent: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
-    announce: (text: string) => void
+    /** Speaks a message to screen readers. */
+    readonly announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.overlayParent = overlayParent;
@@ -96,7 +97,7 @@ export class ScoreControlsComponent {
 
   private reconcileTrackComponents(): void {
     if (!this._tracksAreDisplayed) {
-      this.template.tracksContainer.replaceChildren();
+      this.template.trackList.replaceChildren();
       this._trackComponents = [];
       return;
     }
@@ -110,7 +111,7 @@ export class ScoreControlsComponent {
       const trackComponent =
         remainingTrackComponents.get(track) ??
         new TrackControlsComponent(
-          this.template.tracksContainer,
+          this.template.trackList,
           this.notationComponent,
           track
         );
@@ -120,9 +121,9 @@ export class ScoreControlsComponent {
       const container = trackComponent.template.container;
       const nextContainerIndex = nextTrackComponents.length;
       const currentContainer =
-        this.template.tracksContainer.children[nextContainerIndex];
+        this.template.trackList.children[nextContainerIndex];
       if (currentContainer !== container) {
-        this.template.tracksContainer.insertBefore(
+        this.template.trackList.insertBefore(
           container,
           currentContainer ?? null
         );

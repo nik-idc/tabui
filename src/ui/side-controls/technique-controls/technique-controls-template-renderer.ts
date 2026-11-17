@@ -43,6 +43,7 @@ export class TechniqueControlsTemplateRenderer {
     );
     t.articulationGroup.append(
       t.tieButton,
+      t.tieBackButton,
       t.legatoButton,
       t.slideButton,
       t.bendButton,
@@ -83,6 +84,25 @@ export class TechniqueControlsTemplateRenderer {
     button.setAttribute("aria-pressed", `${isApplied}`);
   }
 
+  /** Tie back is an action, not a toggle, so it has no pressed state. */
+  private renderTieBackButton(): void {
+    const button = this.template.tieBackButton;
+    const label = "Tie as far back as possible";
+    setImageAsset(
+      button,
+      this.assetsPath,
+      "img/techniques/tie-back.svg",
+      label
+    );
+    setShortcutTooltip(button, label, "Shift+J");
+    const isDisabled = !this.notationComponent.trackController.canSetTechnique(
+      GuitarTechniqueType.Tie,
+      { tieToEarliest: true }
+    );
+    button.disabled = isDisabled;
+    button.classList.toggle("tu-disabled-img", isDisabled);
+  }
+
   /** Shows stroke state. The button opens the settings dialog, so it is pressed when any target beat has a stroke. */
   private renderStrokeButton(): void {
     const tc = this.notationComponent.trackController;
@@ -119,6 +139,7 @@ export class TechniqueControlsTemplateRenderer {
       GuitarTechniqueType.Tie,
       this.template.tieButton
     );
+    this.renderTieBackButton();
     setImageAsset(
       this.template.vibratoButton,
       this.assetsPath,

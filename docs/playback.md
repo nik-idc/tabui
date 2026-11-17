@@ -263,8 +263,9 @@ without requiring multisampling, velocity layers, or technique-specific samples.
 - Playback startup and rolling scheduling failures stop cleanly, invalidate stale
   async continuations, release partial audio resources, and preserve a retry
   anchor where possible.
-- Normal score edits are blocked while playback is active. Copy, transport,
-  active-track selection, and track volume/mute/solo/pan remain available.
+- Normal score edits and copying are blocked while playback is active.
+  Transport, active-track selection, and track volume/mute/solo/pan remain
+  available.
 - Fatal asynchronous playback startup or scheduling failures are projected to
   the owning `TabUIEditor` as structured `"error"` events. Error codes distinguish
   audio-context initialization/start, sample loading, and scheduling failures;

@@ -615,7 +615,9 @@ test("handles composition, prevented events, and unsupported modifiers while sel
   expect(await editingState(editor)).toEqual(before);
 
   await page.keyboard.press("Control+a");
-  const clearRangeButton = editor.getByRole("button", { name: "Clear range" });
+  const clearRangeButton = editor.getByRole("button", {
+    name: "Clear selection range",
+  });
   await expect(clearRangeButton).toHaveAttribute("aria-pressed", "true");
   await expect(editor.locator('[id^="selection-rect-"]')).toHaveCount(1);
   await page.keyboard.press("Escape");
@@ -694,7 +696,7 @@ test("view-only mode rejects editing shortcuts but permits navigation", async ({
 });
 
 for (const mode of ["starting", "playing"] as const) {
-  test(`@clipboard ${mode} blocks edits and navigation but permits copy and Space to stop`, async ({
+  test(`@clipboard ${mode} blocks edits, navigation, and copy but permits Space to stop`, async ({
     page,
   }) => {
     await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
@@ -709,6 +711,8 @@ for (const mode of ["starting", "playing"] as const) {
     await page.keyboard.press("a");
     await page.clock.fastForward(251);
     await page.keyboard.press("7");
+    // Seed the clipboard so a copy during playback would be visible.
+    await page.keyboard.press("Control+c");
     await page.keyboard.press("ArrowLeft");
     await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "7"]);
     await page.clock.pauseAt(new Date("2026-01-01T00:01:00Z"));
@@ -752,6 +756,7 @@ for (const mode of ["starting", "playing"] as const) {
       "Shift+I",
       "Delete",
       "Shift+Delete",
+      "Control+c",
       "Control+v",
       "Control+z",
       "Control+y",
@@ -771,14 +776,14 @@ for (const mode of ["starting", "playing"] as const) {
       );
       await expect(editor.getByRole("dialog")).toHaveCount(0);
     }
-    await page.keyboard.press("Control+c");
     await page.keyboard.press("Space");
     await expect(
       editor.getByRole("button", { name: "Play", exact: true })
     ).toHaveAttribute("aria-pressed", "false");
     await page.keyboard.press("ArrowRight");
     await page.keyboard.press("Control+v");
-    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "5"]);
+    // Pasting replaces beat 2. A copy during playback would have pasted "5".
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText(["5", "7"]);
   });
 }
 

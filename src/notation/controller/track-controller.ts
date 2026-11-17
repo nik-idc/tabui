@@ -485,6 +485,22 @@ export class TrackController {
     );
   }
 
+  /** True when undo would change the score now. */
+  public get canUndo(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canUndo
+    );
+  }
+
+  /** True when redo would change the score now. */
+  public get canRedo(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canRedo
+    );
+  }
+
   /** Undo previous action */
   public undo(): void {
     if (this.playbackState !== PlaybackState.Idle) {
@@ -873,8 +889,12 @@ export class TrackController {
     );
   }
 
-  /** Returns clipboard text for the current selection; browser events write it to the system clipboard. */
+  /** Returns clipboard text for the current selection, or undefined during playback; browser events write it to the system clipboard. */
   public copy(): string | undefined {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return undefined;
+    }
+
     return this._trackControllerEditor.copy();
   }
 

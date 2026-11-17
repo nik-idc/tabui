@@ -12,15 +12,14 @@ export class TechniqueControlsTemplate {
   /** Opens the stroke settings dialog. */
   readonly strokeButton: HTMLButtonElement = createButton();
 
-  /**
-   * First row links to the next note or changes pitch; second row sets how
-   * the note is struck.
-   */
+  /** Techniques that link to another note, change pitch, or set how the note is struck. */
   readonly articulationGroup: HTMLDivElement = createDiv();
   readonly tieButton: HTMLButtonElement = createButton();
   readonly legatoButton: HTMLButtonElement = createButton();
   readonly slideButton: HTMLButtonElement = createButton();
   readonly bendButton: HTMLButtonElement = createButton();
+  /** Ties as far back as possible; sits next to Tie. */
+  readonly tieBackButton: HTMLButtonElement = createButton();
   readonly tapButton: HTMLButtonElement = createButton();
   readonly nhButton: HTMLButtonElement = createButton();
   readonly phButton: HTMLButtonElement = createButton();
