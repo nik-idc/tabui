@@ -97,7 +97,7 @@ export interface TabUIConfig {
     width?: number;
     /** Minimum viewport width before an auto-width editor is blocked; finite and non-negative, default 500. */
     viewOnlyModeWidthThreshold?: number;
-    /** Minimum viewport width for editing in auto-width mode; finite and greater than the view-only threshold, default 1000. */
+    /** Minimum viewport width for editing in auto-width mode; finite and greater than the view-only threshold, default 560. */
     unrestrictedModeWidthThreshold?: number;
     /** Positive finite fret-text font size; defaults to 12. */
     noteTextSize?: number;
@@ -266,7 +266,9 @@ export interface ResolvedTabUIConfig {
 const DEFAULT_LAYOUT = {
   mode: TabUILayoutMode.Wrapped,
   viewOnlyModeWidthThreshold: 500,
-  unrestrictedModeWidthThreshold: 1000,
+  // Editing fits down to about 540px, so a 1280px screen zoomed to 200%
+  // (640 CSS px) can still edit, as WCAG 1.4.4 requires.
+  unrestrictedModeWidthThreshold: 560,
   noteTextSize: 12,
   timeSigTextSize: 48,
   tempoTextSize: 24,

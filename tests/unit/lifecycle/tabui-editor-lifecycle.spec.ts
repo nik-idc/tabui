@@ -358,8 +358,8 @@ describe("TabUIEditor responsive sizing with real components", () => {
     key();
     expect(frets()).toEqual([null, null, null, null, null, null]);
 
-    hostWidth = 700;
-    viewportWidth = 700;
+    hostWidth = 540;
+    viewportWidth = 540;
     flushResize();
     expect(root.classList.contains("tu-responsive-view-only")).toBe(true);
     expect(message.hidden).toBe(true);
@@ -379,7 +379,7 @@ describe("TabUIEditor responsive sizing with real components", () => {
     expectRenderedWidth(root, 1000);
 
     const dialog = required(root.querySelector(".tu-tempo-dialog"));
-    for (const width of [700, 490]) {
+    for (const width of [540, 490]) {
       hostWidth = 1000;
       viewportWidth = 1000;
       flushResize();

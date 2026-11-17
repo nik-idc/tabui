@@ -39,7 +39,7 @@ describe("tabui-config", () => {
       mode: TabUILayoutMode.Wrapped,
       width: undefined,
       viewOnlyModeWidthThreshold: 500,
-      unrestrictedModeWidthThreshold: 1000,
+      unrestrictedModeWidthThreshold: 560,
       noteTextSize: 12,
       timeSigTextSize: 48,
       tempoTextSize: 24,
@@ -242,12 +242,20 @@ describe("tabui-config", () => {
     );
     expect(() =>
       resolveTabUIConfig({
-        layout: { width: 599, viewOnlyModeWidthThreshold: 600 },
+        layout: {
+          width: 599,
+          viewOnlyModeWidthThreshold: 600,
+          unrestrictedModeWidthThreshold: 1000,
+        },
       })
     ).toThrow("layout width");
     expect(
       resolveTabUIConfig({
-        layout: { width: 600, viewOnlyModeWidthThreshold: 600 },
+        layout: {
+          width: 600,
+          viewOnlyModeWidthThreshold: 600,
+          unrestrictedModeWidthThreshold: 1000,
+        },
       }).layout.width
     ).toBe(600);
   });
