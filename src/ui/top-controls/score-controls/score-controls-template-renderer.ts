@@ -191,7 +191,7 @@ export class ScoreControlsTemplateRenderer {
 
   private renderEditButtons(): void {
     const tc = this.notationComponent.trackController;
-    const canEdit = !tc.isPlaybackActive && tc.editingEnabled;
+    const canEdit = tc.canEdit;
     const t = this.template;
     this.renderEditButton(
       t.undoButton,

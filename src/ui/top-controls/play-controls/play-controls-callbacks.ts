@@ -1,10 +1,6 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { PlayControlsComponent } from "../..";
 import { ListenerManager } from "../../../shared/misc";
-import {
-  MAX_PITCH_SHIFT_SEMITONES,
-  MIN_PITCH_SHIFT_SEMITONES,
-} from "../../../player/playback-constants";
 
 export interface PlayControlsCallbacks {
   onFirstClicked(): void;
@@ -75,15 +71,9 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     this._renderFunc();
   }
   onPitchShiftChanged(delta: number): boolean {
-    const controller = this._notationComponent.trackController;
-    const value = controller.pitchShiftSemitones + delta;
-    if (
-      value < MIN_PITCH_SHIFT_SEMITONES ||
-      value > MAX_PITCH_SHIFT_SEMITONES
-    ) {
+    if (!this._notationComponent.trackController.shiftPlaybackPitch(delta)) {
       return false;
     }
-    controller.setPitchShiftSemitones(value);
     this._renderFunc();
     return true;
   }

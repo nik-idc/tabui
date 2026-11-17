@@ -60,6 +60,11 @@ export enum EditorKey {
   StaffUp = "ArrowUp",
   StaffDown = "ArrowDown",
 
+  // No modifiers; also during playback. Matched on event.code, so the same
+  // physical keys work on layouts where [ and ] need AltGr.
+  PlaybackPitchDown = "BracketLeft",
+  PlaybackPitchUp = "BracketRight",
+
   // Space or Shift+Space.
   TogglePlayback = " ",
 
@@ -87,6 +92,13 @@ export enum EditorKey {
   TempoSettings = "m",
   InsertBeatAfter = "a",
   InsertBarAfter = "i",
+  // Also during playback.
+  Loop = "o",
+  Metronome = "n",
+
+  // Ctrl only.
+  FirstBar = "home",
+  LastBar = "end",
 
   /** No Ctrl; accepts either Shift state for keyboard-layout differences. */
   LengthenDuration = "+",
@@ -96,7 +108,8 @@ export enum EditorKey {
   SofterDynamic = "<",
 
   // No modifiers: move cursor. Horizontal arrows also accept Ctrl (by bar),
-  // Shift (extend by beat), or Ctrl+Shift (extend by bar).
+  // Shift (extend by beat), or Ctrl+Shift (extend by bar). Vertical arrows
+  // with Shift raise or lower the pitch.
   MoveLeft = "arrowleft",
   MoveRight = "arrowright",
   MoveUp = "arrowup",
@@ -526,6 +539,64 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     return true;
   }
 
+  /** Moves the cursor to the first or last bar, like the toolbar buttons. */
+  private jumpToBarEvent(first: boolean): void {
+    const controller = this._notationComponent.trackController;
+    if (first) {
+      controller.selectFirstBar();
+    } else {
+      controller.selectLastBar();
+    }
+    this._notationComponent.ensureSelectedNoteVisible();
+    this._renderFunc();
+  }
+
+  /** Raises or lowers the selected notes by one semitone. */
+  private shiftPitchEvent(semitones: number): boolean {
+    const controller = this._notationComponent.trackController;
+    if (!controller.canShiftSelectedPitch(semitones)) {
+      return false;
+    }
+    controller.shiftSelectedPitch(semitones);
+    this._renderFunc();
+    return true;
+  }
+
+  /**
+   * Handles loop, metronome, and playback pitch. Like their toolbar buttons,
+   * they also work during playback and in view-only mode.
+   */
+  private dispatchTransportShortcut(event: KeyboardEvent): boolean {
+    if (event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) {
+      return false;
+    }
+    const controller = this._notationComponent.trackController;
+    const key = event.key.toLowerCase();
+    let message: string;
+    if (key === EditorKey.Loop) {
+      controller.toggleLoop();
+      message = `Loop ${controller.isLooped ? "on" : "off"}`;
+    } else if (key === EditorKey.Metronome) {
+      controller.setMetronomeEnabled(!controller.metronomeEnabled);
+      message = `Metronome ${controller.metronomeEnabled ? "on" : "off"}`;
+    } else if (
+      event.code === EditorKey.PlaybackPitchDown ||
+      event.code === EditorKey.PlaybackPitchUp
+    ) {
+      // At the limit nothing changes; speaking the value still confirms the key.
+      controller.shiftPlaybackPitch(
+        event.code === EditorKey.PlaybackPitchUp ? 1 : -1
+      );
+      const value = controller.pitchShiftSemitones;
+      message = `Playback pitch ${value > 0 ? `+${value}` : value} semitones`;
+    } else {
+      return false;
+    }
+    this._renderFunc();
+    this._uiComponent.announce(message);
+    return true;
+  }
+
   /** Cancels an active beat range and restores its anchor cursor. */
   private cancelSelectionEvent(): boolean {
     if (!this._notationComponent.trackController.clearSelectionRange()) {
@@ -604,8 +675,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     const ctrlKey = event.ctrlKey || event.metaKey;
     const controller = this._notationComponent.trackController;
 
-    if (controller.playbackState !== PlaybackState.Idle) {
-      return false;
+    // Each action asks the controller whether it is allowed now, so keys work
+    // during playback exactly when their buttons do.
+    if (this.dispatchTransportShortcut(event)) {
+      return true;
     }
 
     if (this.isStaffShortcut(event)) {
@@ -624,6 +697,14 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return this.cancelSelectionEvent();
     }
 
+    if ((key === EditorKey.FirstBar || key === EditorKey.LastBar) && ctrlKey) {
+      if (shiftKey) {
+        return false;
+      }
+      this.jumpToBarEvent(key === EditorKey.FirstBar);
+      return true;
+    }
+
     if (KeyChecker.isArrow(key)) {
       const horizontal =
         key === EditorKey.MoveLeft || key === EditorKey.MoveRight;
@@ -639,10 +720,16 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
         this.moveSelectionEvent(key);
         return true;
       }
+      if (!horizontal && shiftKey && !ctrlKey) {
+        return (
+          controller.canEdit &&
+          this.shiftPitchEvent(key === EditorKey.MoveUp ? 1 : -1)
+        );
+      }
       return false;
     }
 
-    return controller.editingEnabled && this.dispatchEditingShortcut(event);
+    return controller.canEdit && this.dispatchEditingShortcut(event);
   }
 
   /** Handles notation shortcuts and toolbar playback shortcuts. */

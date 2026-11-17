@@ -29,7 +29,8 @@ will require careful planning and execution.
 
 - Click the notation (or use Tab to reach it) before you use shortcuts.
 - In view-only mode, you can only navigate, select, copy, and play. During
-  playback, only Space and Shift+Space work.
+  playback, only play or stop, bar navigation, loop, metronome, and playback
+  pitch work. Bar navigation then moves playback.
 - To select a range without dragging, click **Set selection anchor**, then
   click the beat where the range should end.
 - Two digits typed within 250 ms make one fret, such as 12. To enter a fret
@@ -49,7 +50,7 @@ will require careful planning and execution.
 | Move between strings        | Up / Down arrow                    | Click a note slot                                  |
 | Move between staves         | Alt+Up / Alt+Down                  | Click a note slot in the other staff               |
 | Move by bar                 | Ctrl+Left / Ctrl+Right             | **Prev bar** / **Next bar**                        |
-| Go to the first or last bar | —                                  | **First bar** / **Last bar**                       |
+| Go to the first or last bar | Ctrl+Home / Ctrl+End               | **First bar** / **Last bar**                       |
 | Select or extend by beat    | Shift+Left / Shift+Right           | Drag, or **Set selection anchor** and click a beat |
 | Extend by bar               | Ctrl+Shift+Left / Ctrl+Shift+Right | Drag across bars                                   |
 | Select all                  | Ctrl+A                             | **Select all**                                     |
@@ -62,9 +63,12 @@ will require careful planning and execution.
 | -------------------------- | ----------- | --------------------------------------------------------- |
 | Play or stop               | Space       | **Play** / **Pause**                                      |
 | Play or stop from a button | Shift+Space | **Play** / **Pause**                                      |
-| Loop a range               | —           | **Set selection anchor**, then **Loop**                   |
-| Metronome                  | —           | **Metronome**                                             |
-| Playback pitch shift       | —           | **Increase playback pitch** / **Decrease playback pitch** |
+| Loop a range               | O           | **Set selection anchor**, then **Loop**                   |
+| Metronome                  | N           | **Metronome**                                             |
+| Playback pitch shift       | ] / [       | **Increase playback pitch** / **Decrease playback pitch** |
+
+The playback pitch keys are the two keys to the right of P. TabUI uses these
+physical keys on every keyboard layout, even where they type other characters.
 
 ## Clipboard and history
 
@@ -78,20 +82,20 @@ will require careful planning and execution.
 
 ## Notes and rhythm
 
-| Action                   | Shortcut  | Mouse control                                    |
-| ------------------------ | --------- | ------------------------------------------------ |
-| Set a fret               | 0–9       | **Edit fret**                                    |
-| Clear a fret             | Backspace | **Edit fret**, then **Clear**                    |
-| Set a dead note          | X         | **Set dead note**                                |
-| Turn beats into rests    | Shift+X   | **Rest**                                         |
-| Raise or lower the pitch | —         | **Increase pitch** / **Decrease pitch**          |
-| Shorten the duration     | -         | Duration buttons (**1/1 note** to **1/64 note**) |
-| Lengthen the duration    | + or =    | Duration buttons                                 |
-| Cycle dots               | .         | **Dot** / **Double dot**                         |
-| Cycle tuplets            | T         | **Tuplet preset** / **Triplet preset**           |
-| Custom tuplet            | Shift+T   | **Custom tuplet**                                |
-| Louder dynamic           | >         | Dynamic buttons (`ppp` to `fff`)                 |
-| Softer dynamic           | <         | Dynamic buttons                                  |
+| Action                   | Shortcut              | Mouse control                                    |
+| ------------------------ | --------------------- | ------------------------------------------------ |
+| Set a fret               | 0–9                   | **Edit fret**                                    |
+| Clear a fret             | Backspace             | **Edit fret**, then **Clear**                    |
+| Set a dead note          | X                     | **Set dead note**                                |
+| Turn beats into rests    | Shift+X               | **Rest**                                         |
+| Raise or lower the pitch | Shift+Up / Shift+Down | **Increase pitch** / **Decrease pitch**          |
+| Shorten the duration     | -                     | Duration buttons (**1/1 note** to **1/64 note**) |
+| Lengthen the duration    | + or =                | Duration buttons                                 |
+| Cycle dots               | .                     | **Dot** / **Double dot**                         |
+| Cycle tuplets            | T                     | **Tuplet preset** / **Triplet preset**           |
+| Custom tuplet            | Shift+T               | **Custom tuplet**                                |
+| Louder dynamic           | >                     | Dynamic buttons (`ppp` to `fff`)                 |
+| Softer dynamic           | <                     | Dynamic buttons                                  |
 
 Two digits typed less than 250 ms apart on the same note make one fret number,
 such as 12.

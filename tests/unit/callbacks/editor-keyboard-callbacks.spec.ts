@@ -94,6 +94,9 @@ function createHarness(rootElement: HTMLElement = createRootElement()) {
         return this.isPlaying;
       },
       editingEnabled: true,
+      get canEdit() {
+        return this.editingEnabled && !this.isPlaying;
+      },
       copy: jest.fn(),
       paste: jest.fn(),
       deleteSelectedBeats: jest.fn(),
@@ -1706,6 +1709,117 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(press("d")).not.toHaveBeenCalled();
     expect(press("d", true)).not.toHaveBeenCalled();
     expect(direction()).toBeUndefined();
+  });
+
+  test("O, N, [ and ] work during playback and in view-only mode, then speak the state", () => {
+    const { callbacks, uiComponent, notationComponent, rootElement } =
+      createHarness();
+    const controller = notationComponent.trackController;
+    controller.isPlaying = true;
+    controller.editingEnabled = false;
+    controller.isLooped = false;
+    controller.metronomeEnabled = false;
+    controller.pitchShiftSemitones = 12;
+    controller.toggleLoop = jest.fn(() => {
+      controller.isLooped = !controller.isLooped;
+    });
+    controller.setMetronomeEnabled = jest.fn((enabled: boolean) => {
+      controller.metronomeEnabled = enabled;
+    });
+    controller.shiftPlaybackPitch = jest.fn((delta: number) => {
+      const value = controller.pitchShiftSemitones + delta;
+      if (value > 12) {
+        return false;
+      }
+      controller.pitchShiftSemitones = value;
+      return true;
+    });
+    uiComponent.announce = jest.fn();
+    rootElement.focus();
+    const press = (key: string, options: KeyboardEventInit = {}) => {
+      const event = createKeyboardEvent(key, options);
+      callbacks.onKeyDown(event);
+      return event.preventDefault;
+    };
+
+    expect(press("o")).toHaveBeenCalledTimes(1);
+    expect(press("n")).toHaveBeenCalledTimes(1);
+    expect(press("[", { code: "BracketLeft" })).toHaveBeenCalledTimes(1);
+    // Another layout types a different character on the same physical key.
+    expect(press("+", { code: "BracketRight" })).toHaveBeenCalledTimes(1);
+    // At the limit the value stays, but the key still speaks it.
+    expect(press("]", { code: "BracketRight" })).toHaveBeenCalledTimes(1);
+    expect(uiComponent.announce.mock.calls).toEqual([
+      ["Loop on"],
+      ["Metronome on"],
+      ["Playback pitch +11 semitones"],
+      ["Playback pitch +12 semitones"],
+      ["Playback pitch +12 semitones"],
+    ]);
+
+    expect(press("o", { ctrlKey: true })).not.toHaveBeenCalled();
+    expect(press("n", { shiftKey: true })).not.toHaveBeenCalled();
+    // Alt+N adds a staff; it must not toggle the metronome.
+    expect(press("n", { altKey: true, code: "KeyN" })).not.toHaveBeenCalled();
+    expect(controller.isLooped).toBe(true);
+    expect(controller.metronomeEnabled).toBe(true);
+  });
+
+  test("Ctrl+Home and Ctrl+End jump to the first and last bar, also during playback", () => {
+    const { callbacks, notationComponent, rootElement, renderFunc } =
+      createHarness();
+    const controller = notationComponent.trackController;
+    controller.selectFirstBar = jest.fn();
+    controller.selectLastBar = jest.fn();
+    rootElement.focus();
+    const press = (key: string, options: KeyboardEventInit = {}) => {
+      const event = createKeyboardEvent(key, options);
+      callbacks.onKeyDown(event);
+      return event.preventDefault;
+    };
+
+    expect(press("Home", { ctrlKey: true })).toHaveBeenCalledTimes(1);
+    expect(press("End", { ctrlKey: true })).toHaveBeenCalledTimes(1);
+    expect(controller.selectFirstBar).toHaveBeenCalledTimes(1);
+    expect(controller.selectLastBar).toHaveBeenCalledTimes(1);
+    expect(notationComponent.ensureSelectedNoteVisible).toHaveBeenCalledTimes(
+      2
+    );
+    expect(renderFunc).toHaveBeenCalledTimes(2);
+
+    expect(press("Home")).not.toHaveBeenCalled();
+    expect(
+      press("End", { ctrlKey: true, shiftKey: true })
+    ).not.toHaveBeenCalled();
+    // The controller seeks during playback, like the First bar button.
+    controller.isPlaying = true;
+    expect(press("Home", { ctrlKey: true })).toHaveBeenCalledTimes(1);
+    expect(controller.selectFirstBar).toHaveBeenCalledTimes(2);
+  });
+
+  test("Shift+Up and Shift+Down shift the pitch only when it is allowed", () => {
+    const { callbacks, notationComponent, rootElement, renderFunc } =
+      createHarness();
+    const controller = notationComponent.trackController;
+    controller.canShiftSelectedPitch = jest.fn(
+      (semitones: number) => semitones > 0
+    );
+    controller.shiftSelectedPitch = jest.fn();
+    rootElement.focus();
+    const press = (key: string, options: KeyboardEventInit = {}) => {
+      const event = createKeyboardEvent(key, options);
+      callbacks.onKeyDown(event);
+      return event.preventDefault;
+    };
+
+    expect(press("ArrowUp", { shiftKey: true })).toHaveBeenCalledTimes(1);
+    expect(controller.shiftSelectedPitch).toHaveBeenCalledWith(1);
+    expect(renderFunc).toHaveBeenCalledTimes(1);
+    expect(press("ArrowDown", { shiftKey: true })).not.toHaveBeenCalled();
+
+    controller.editingEnabled = false;
+    expect(press("ArrowUp", { shiftKey: true })).not.toHaveBeenCalled();
+    expect(controller.shiftSelectedPitch).toHaveBeenCalledTimes(1);
   });
 
   test("> and < shift the dynamic with either Shift state, then speak it", () => {

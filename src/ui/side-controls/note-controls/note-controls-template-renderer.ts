@@ -367,15 +367,22 @@ export class NoteControlsTemplateRenderer {
     );
     setShortcutTooltip(this.template.fretButton, "Edit fret", "0–9");
     const pitchButtons = [
-      [this.template.shiftPitchUpButton, "shift-up.svg", "Increase pitch", 1],
+      [
+        this.template.shiftPitchUpButton,
+        "shift-up.svg",
+        "Increase pitch",
+        1,
+        "Shift+Up",
+      ],
       [
         this.template.shiftPitchDownButton,
         "shift-down.svg",
         "Decrease pitch",
         -1,
+        "Shift+Down",
       ],
     ] as const;
-    for (const [button, icon, label, semitones] of pitchButtons) {
+    for (const [button, icon, label, semitones, shortcut] of pitchButtons) {
       try {
         setImageAsset(button, this.assetsPath, `img/ui/${icon}`, label, {
           "data-pitch-shift": `${semitones}`,
@@ -387,7 +394,7 @@ export class NoteControlsTemplateRenderer {
         button.dataset.tooltip = label;
         button.dataset.pitchShift = `${semitones}`;
       }
-      setShortcutTooltip(button, label, "");
+      setShortcutTooltip(button, label, shortcut);
       button.disabled =
         !this.notationComponent.trackController.canShiftSelectedPitch(
           semitones

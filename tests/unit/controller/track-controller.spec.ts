@@ -811,6 +811,29 @@ describe("TrackController", () => {
     expect(score.masterBars).toHaveLength(2);
   });
 
+  test("during playback, bar moves seek like the bar buttons and edits are off", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    const next = jest.spyOn(controller, "selectNextBar");
+    const previous = jest.spyOn(controller, "selectPreviousBar");
+    expect(controller.canEdit).toBe(true);
+    controller.startPlayer();
+    await settleTransport();
+    expect(controller.canEdit).toBe(false);
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Right)).toBe(
+      true
+    );
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Left)).toBe(
+      true
+    );
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Up)).toBe(false);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(previous).toHaveBeenCalledTimes(1);
+    controller.stopPlayer();
+    controller.setEditingEnabled(false);
+    expect(controller.canEdit).toBe(false);
+  });
+
   test("copy returns nothing during playback", async () => {
     const { track } = createScoreGraph();
     const { controller } = realTransport(track);
