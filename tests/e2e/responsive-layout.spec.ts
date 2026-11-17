@@ -117,7 +117,7 @@ test("adapts between unrestricted, view-only, and blocked widths", async ({
   };
 
   // This width is between the default responsive thresholds.
-  await page.setViewportSize({ width: 800, height: 900 });
+  await page.setViewportSize({ width: 580, height: 900 });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
 
   // Responsive view-only hides the editing side panel but keeps notation visible.
@@ -159,7 +159,7 @@ test("adapts between unrestricted, view-only, and blocked widths", async ({
 
   // A host-only resize must also apply the restriction, with no window resize.
   await editor.evaluate((root) => {
-    root.style.width = "800px";
+    root.style.width = "560px";
   });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
   await expect(svg).toBeVisible();
@@ -336,6 +336,41 @@ test("contains new-track tuning controls at desktop editing widths", async ({
     );
   }
   await compactDialog.getByRole("button", { name: "Cancel" }).click();
+});
+
+test("keeps editing at 200% zoom on a 1280px screen", async ({ page }) => {
+  // WCAG 1.4.4: a 1280px screen at 200% zoom leaves 640 CSS px.
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  await expect(editor).not.toHaveClass(/tu-responsive-(view-only|blocked)/);
+  await expect(editor.getByRole("button", { name: "Undo" })).toBeVisible();
+
+  // The master controls get their own line instead of overlapping the
+  // selection and editing buttons.
+  const selection = await requiredBoundingBox(
+    editor.locator(".tu-selection-controls")
+  );
+  const edit = await requiredBoundingBox(editor.locator(".tu-edit-controls"));
+  const master = await requiredBoundingBox(
+    editor.locator(".tu-score-controls .tu-settings")
+  );
+  expect(selection.x + selection.width).toBeLessThanOrEqual(edit.x);
+  expect(master.y).toBeGreaterThanOrEqual(selection.y + selection.height);
+
+  // Track rows still line up with the master controls.
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  const masterVolume = await requiredBoundingBox(
+    editor.getByRole("slider", { name: "Master volume" })
+  );
+  const trackVolume = await requiredBoundingBox(
+    editor.locator(".tu-tracks .tu-track-controls input[type=range]").first()
+  );
+  expect(Math.abs(trackVolume.x - masterVolume.x)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(trackVolume.width - masterVolume.width)).toBeLessThanOrEqual(
+    0.5
+  );
 });
 
 test("contains a long time-signature dialog at compact editing width", async ({

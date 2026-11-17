@@ -62,6 +62,38 @@
     grid-area: 1 / 1 / 2 / 3;
     min-width: 0;
     min-height: 0;
+    container: tu-top-bar / inline-size;
+  }
+
+  // Below this width, the score row can't fit both button groups beside the
+  // master controls, so the master controls get their own line. The width is
+  // the minimum of --tu-track-columns (30.45rem), plus two
+  // --tu-top-side-width (320px + 3rem), the two column gaps (0.7rem), and the
+  // top bar padding (2rem). Container queries can't read custom properties,
+  // so keep this value in sync with them. The track list uses the same value.
+  @container tu-top-bar (width < calc(320px + 36.15rem)) {
+    &:not(.tu-view-only, .tu-responsive-view-only) .tu-top-controls {
+      grid-template-columns: 1fr 1fr;
+
+      .tu-score-controls .tu-edit-controls {
+        grid-column: 2;
+      }
+
+      .tu-score-controls .tu-master-controls .tu-settings {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+    }
+  }
+
+  @container tu-track-overlay (width < calc(320px + 36.15rem)) {
+    &:not(.tu-view-only, .tu-responsive-view-only)
+      > .tu-tracks
+      .tu-track-controls {
+      // As wide as the master controls, so the columns line up with them.
+      width: max-content;
+      max-width: calc(100cqi - 2rem);
+    }
   }
 
   .tu-dialog-host {
@@ -399,7 +431,7 @@
         box-sizing: border-box;
         // The rows measure this box, not the scrolling list inside it. Its
         // width matches the top bar, and it has no scrollbar gutter.
-        container-type: inline-size;
+        container: tu-track-overlay / inline-size;
         border-radius: var(--tu-border-radius);
         background: var(--tu-primary-color);
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);

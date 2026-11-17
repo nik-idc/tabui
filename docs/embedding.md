@@ -35,7 +35,7 @@ const editor = new TabUIEditor(root, new Score(), {
   layout: {
     mode: TabUILayoutMode.SingleLine,
     viewOnlyModeWidthThreshold: 500,
-    unrestrictedModeWidthThreshold: 1000,
+    unrestrictedModeWidthThreshold: 560,
   },
 });
 
@@ -309,13 +309,14 @@ set. The body defaults to Segoe UI at `1rem`.
 ### Responsive layout
 
 Editors without `layout.width` observe their notation host and reflow when it
-changes. The responsive policy uses notation width without the editing panel:
+changes. The responsive policy uses the editor's width without its padding,
+including the side panel:
 
-| Width                                                                                             | Behavior                                           |
-| ------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
-| Below `viewOnlyModeWidthThreshold` (default `500`)                                                | TabUI shows a size message and blocks interaction. |
-| At or above `viewOnlyModeWidthThreshold`, below `unrestrictedModeWidthThreshold` (default `1000`) | TabUI forces compact view-only mode.               |
-| At or above `unrestrictedModeWidthThreshold`                                                      | TabUI uses the configured interaction mode.        |
+| Width                                                                                            | Behavior                                           |
+| ------------------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| Below `viewOnlyModeWidthThreshold` (default `500`)                                               | TabUI shows a size message and blocks interaction. |
+| At or above `viewOnlyModeWidthThreshold`, below `unrestrictedModeWidthThreshold` (default `560`) | TabUI forces compact view-only mode.               |
+| At or above `unrestrictedModeWidthThreshold`                                                     | TabUI uses the configured interaction mode.        |
 
 Override either threshold through `layout`. The resolved thresholds must be
 finite, non-negative, and ascending. `layout.width` is an opt-in fixed notation

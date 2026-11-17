@@ -245,7 +245,7 @@ test("view-only allows rhythm selection but blocks dot removal", async ({
   const firstNote = editor.locator('[id^="note-rect-"]').first();
   await page.keyboard.press("a");
   await page.keyboard.press("6");
-  await page.setViewportSize({ width: 800, height: 900 });
+  await page.setViewportSize({ width: 580, height: 900 });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
   const dots = editor.locator(".tu-beat-dots circle");
   await editor.locator(".tu-beat-dots path").click();

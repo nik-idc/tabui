@@ -115,7 +115,7 @@ test("repeat clicks are blocked during playback and in view-only mode", async ({
   await page.mouse.click(point.x, point.y);
   await expect(editor.getByRole("dialog")).toHaveCount(0);
   await editor.getByRole("button", { name: "Pause", exact: true }).click();
-  await page.setViewportSize({ width: 800, height: 900 });
+  await page.setViewportSize({ width: 580, height: 900 });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
   point = await repeatPoint(start);
   await page.mouse.click(point.x, point.y);

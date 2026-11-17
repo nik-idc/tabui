@@ -97,7 +97,7 @@ test("view-only mode keeps Select all and Copy and hides the editing buttons", a
   page,
 }) => {
   const editor = await openEditor(page);
-  await page.setViewportSize({ width: 800, height: 900 });
+  await page.setViewportSize({ width: 580, height: 900 });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
 
   for (const name of ["Set selection anchor", "Select all", "Copy"]) {
