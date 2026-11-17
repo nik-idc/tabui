@@ -227,6 +227,57 @@ test("native controls keep keyboard behavior and pitch output returns focus", as
   await expect(editor.locator('[id^="note-text-"]')).toContainText(["5"]);
 });
 
+test("shortcuts cover the pitch, bar jump, and transport buttons", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-01-01T00:00:00Z") });
+  const editor = await openEditor(page);
+  const notes = editor.locator('[id^="note-text-"]');
+  await page.keyboard.press("5");
+  await page.keyboard.press("Shift+ArrowUp");
+  await expect(notes).toHaveText(["6"]);
+  await page.keyboard.press("Shift+ArrowDown");
+  await page.keyboard.press("Shift+ArrowDown");
+  await expect(notes).toHaveText(["4"]);
+
+  await page.keyboard.press("i");
+  await page.keyboard.press("Control+End");
+  await expect(editor.locator(".tu-announcement-host")).toContainText("Bar 2");
+  await page.keyboard.press("Control+Home");
+  await expect(editor.locator(".tu-announcement-host")).toContainText("Bar 1");
+
+  // Transport shortcuts also work during playback.
+  await page.keyboard.press("Space");
+  await expect(
+    editor.getByRole("button", { name: "Pause", exact: true })
+  ).toBeVisible();
+  const loop = editor.getByRole("button", { name: "Loop", exact: true });
+  const metronome = editor.getByRole("button", {
+    name: "Metronome",
+    exact: true,
+  });
+  const pitch = editor.getByRole("spinbutton", {
+    name: "Pitch shift in semitones",
+  });
+  await expect(loop).toHaveAttribute("aria-pressed", "false");
+  await page.keyboard.press("o");
+  await expect(loop).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("n");
+  await expect(metronome).toHaveAttribute("aria-pressed", "true");
+  await page.keyboard.press("]");
+  await page.keyboard.press("]");
+  await expect(pitch).toHaveAttribute("aria-valuenow", "2");
+  await page.keyboard.press("[");
+  await expect(pitch).toHaveAttribute("aria-valuenow", "1");
+  await expect(editor.locator(".tu-announcement-host")).toContainText(
+    "Playback pitch +1 semitones"
+  );
+  await page.keyboard.press("Space");
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
+});
+
 test("custom tuplets cycle to none and undo restores the custom ratio", async ({
   page,
 }) => {
@@ -765,7 +816,6 @@ for (const mode of ["starting", "playing"] as const) {
       "ArrowDown",
       "ArrowLeft",
       "ArrowRight",
-      "Control+ArrowLeft",
       "Shift+ArrowRight",
       "Control+Shift+ArrowRight",
     ]) {

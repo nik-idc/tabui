@@ -13,6 +13,8 @@ export class UIComponent {
 
   readonly topComponent: TopControlsComponent;
   readonly sideComponent: SideControlsComponent;
+  /** Speaks text to screen readers. */
+  readonly announce: (text: string) => void;
 
   constructor(
     topHost: HTMLDivElement,
@@ -28,6 +30,7 @@ export class UIComponent {
     this.dialogEnforcer = dialogEnforcer;
     this.notationComponent = notationComponent;
     this.config = config;
+    this.announce = announce;
 
     this.topComponent = new TopControlsComponent(
       this.topHost,

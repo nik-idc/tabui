@@ -3,6 +3,7 @@ import {
   MAX_PITCH_SHIFT_SEMITONES,
   MIN_PITCH_SHIFT_SEMITONES,
 } from "../../../../player/playback-constants";
+import { setShortcutTooltip } from "../../../shared";
 import { PitchShiftControlTemplate } from "./pitch-shift-control-template";
 
 export class PitchShiftControlTemplateRenderer {
@@ -71,6 +72,7 @@ export class PitchShiftControlTemplateRenderer {
       "Increase playback pitch"
     );
     template.increaseButton.textContent = "+";
+    setShortcutTooltip(template.increaseButton, "Increase playback pitch", "]");
     template.increaseButton.disabled = value >= MAX_PITCH_SHIFT_SEMITONES;
 
     template.decreaseButton.type = "button";
@@ -80,6 +82,7 @@ export class PitchShiftControlTemplateRenderer {
       "Decrease playback pitch"
     );
     template.decreaseButton.textContent = "−";
+    setShortcutTooltip(template.decreaseButton, "Decrease playback pitch", "[");
     template.decreaseButton.disabled = value <= MIN_PITCH_SHIFT_SEMITONES;
   }
 }

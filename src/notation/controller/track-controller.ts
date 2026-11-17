@@ -1,4 +1,8 @@
 import { PlaybackState, ScorePlayer } from "../../player";
+import {
+  MAX_PITCH_SHIFT_SEMITONES,
+  MIN_PITCH_SHIFT_SEMITONES,
+} from "../../player/playback-constants";
 import type { PlaybackOptions } from "../../player";
 import {
   Track,
@@ -127,6 +131,19 @@ export class TrackController {
 
   public setPitchShiftSemitones(semitones: number): void {
     this._scorePlayer?.setPitchShiftSemitones(semitones);
+  }
+
+  /** Moves the playback pitch by `delta` semitones; false when it would leave the allowed range. */
+  public shiftPlaybackPitch(delta: number): boolean {
+    const value = this.pitchShiftSemitones + delta;
+    if (
+      value < MIN_PITCH_SHIFT_SEMITONES ||
+      value > MAX_PITCH_SHIFT_SEMITONES
+    ) {
+      return false;
+    }
+    this.setPitchShiftSemitones(value);
+    return true;
   }
 
   /** Seeks active playback and moves the edit cursor to the provided beat. */
@@ -536,6 +553,11 @@ export class TrackController {
     return this._trackControllerEditor.editingEnabled;
   }
 
+  /** True when score edits are allowed now: editing is on and playback is idle. */
+  public get canEdit(): boolean {
+    return this.editingEnabled && this.playbackState === PlaybackState.Idle;
+  }
+
   /** Enables or disables all score mutations for this active track. */
   public setEditingEnabled(editingEnabled: boolean): void {
     this._trackControllerEditor.editingEnabled = editingEnabled;
@@ -848,9 +870,17 @@ export class TrackController {
   }
 
   /** Moves the current cursor or range endpoint by one bar boundary. */
+  /** Moves the cursor by one bar; during playback, seeks like the Prev/Next bar buttons. */
   public moveSelectionByBar(direction: SelectedMoveDirection): boolean {
     if (this.playbackState !== PlaybackState.Idle) {
-      return false;
+      if (direction === SelectedMoveDirection.Left) {
+        this.selectPreviousBar();
+      } else if (direction === SelectedMoveDirection.Right) {
+        this.selectNextBar();
+      } else {
+        return false;
+      }
+      return true;
     }
 
     return this._trackControllerEditor.selectionManager.moveSelectionByBar(

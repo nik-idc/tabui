@@ -1,6 +1,6 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { createDiv } from "../../../shared";
-import { renderOnce, setImageAsset } from "../../shared";
+import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { PlayControlsTemplate } from "./play-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 import { PlaybackState } from "../../../player";
@@ -151,6 +151,13 @@ export class PlayControlsTemplateRenderer {
       "Metronome",
       { width: buttonSize, height: buttonSize }
     );
+    const t = this.template;
+    setShortcutTooltip(t.firstButton, "First bar", "Ctrl+Home");
+    setShortcutTooltip(t.prevButton, "Prev bar", "Ctrl+Left");
+    setShortcutTooltip(t.nextButton, "Next bar", "Ctrl+Right");
+    setShortcutTooltip(t.lastButton, "Last bar", "Ctrl+End");
+    setShortcutTooltip(t.loopButton, "Loop", "O");
+    setShortcutTooltip(t.metronomeButton, "Metronome", "N");
     const metronomeEnabled =
       this.notationComponent.trackController.metronomeEnabled;
     this.template.metronomeButton.classList.toggle(
