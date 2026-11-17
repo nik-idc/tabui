@@ -25,8 +25,29 @@ export interface ScoreControlsCallbacks {
   onMasterVolumeChanged(): void;
   onMasterPanningChanged(): void;
   onScoreNameChanged(): void;
+  onRangeClicked(): void;
+  onSelectAllClicked(): void;
+  onCopyClicked(): Promise<void>;
+  onUndoClicked(): void;
+  onRedoClicked(): void;
+  onCutClicked(): Promise<void>;
+  onPasteClicked(): Promise<void>;
   bind(): void;
   unbind(): void;
+}
+
+/** The Clipboard API exists only in secure contexts, such as HTTPS. */
+function clipboardAvailable(): boolean {
+  return "clipboard" in navigator;
+}
+
+/**
+ * True when the browser refused access, for example because the user denied
+ * it or the host iframe does not allow it. Other errors are bugs and are
+ * rethrown.
+ */
+function isClipboardBlocked(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "NotAllowedError";
 }
 
 export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
@@ -114,6 +135,111 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     );
   }
 
+  onRangeClicked(): void {
+    const controller = this._notationComponent.trackController;
+    if (controller.hasSelectionAnchor) {
+      controller.clearSelectionRange();
+    } else {
+      controller.setSelectionAnchor();
+    }
+    this._renderFunc();
+  }
+
+  onSelectAllClicked(): void {
+    if (this._notationComponent.trackController.selectAllBeats()) {
+      this._renderFunc();
+    }
+  }
+
+  /**
+   * The clipboard buttons use the browser's Clipboard API, which the browser
+   * can block. Ctrl+C, Ctrl+X, and Ctrl+V use clipboard events instead, which
+   * always work.
+   */
+  async onCopyClicked(): Promise<void> {
+    const text = this._notationComponent.trackController.copy();
+    if (text !== undefined && !(await this.writeClipboard(text))) {
+      this.announceClipboardBlocked("Ctrl+C");
+    }
+  }
+
+  onUndoClicked(): void {
+    this._notationComponent.trackController.undo();
+    this._renderFunc();
+  }
+
+  onRedoClicked(): void {
+    this._notationComponent.trackController.redo();
+    this._renderFunc();
+  }
+
+  async onCutClicked(): Promise<void> {
+    const controller = this._notationComponent.trackController;
+    if (controller.isPlaybackActive || !controller.editingEnabled) {
+      return;
+    }
+    const text = controller.copy();
+    if (text === undefined) {
+      return;
+    }
+    // Remove the beats only once they are on the clipboard.
+    if (!(await this.writeClipboard(text))) {
+      this.announceClipboardBlocked("Ctrl+X");
+      return;
+    }
+    controller.removeSelectedBeat();
+    this._renderFunc();
+  }
+
+  async onPasteClicked(): Promise<void> {
+    const text = await this.readClipboard();
+    if (text === undefined) {
+      this.announceClipboardBlocked("Ctrl+V");
+      return;
+    }
+    if (this._notationComponent.trackController.paste(text)) {
+      this._renderFunc();
+    }
+  }
+
+  /** Returns false when the browser blocks the write. */
+  private async writeClipboard(text: string): Promise<boolean> {
+    if (!clipboardAvailable()) {
+      return false;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (error) {
+      if (isClipboardBlocked(error)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  /** Returns undefined when the browser blocks the read. */
+  private async readClipboard(): Promise<string | undefined> {
+    if (!clipboardAvailable()) {
+      return undefined;
+    }
+    try {
+      return await navigator.clipboard.readText();
+    } catch (error) {
+      if (isClipboardBlocked(error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  // Screen readers only for now. Visible messages are planned in ROADMAP.md.
+  private announceClipboardBlocked(shortcut: string): void {
+    this._scoreComponent.announce(
+      `The browser blocked clipboard access. Use ${shortcut}.`
+    );
+  }
+
   private bindTracksCallbacks(): void {
     for (const trackCallbacks of this._trackCallbacks) {
       trackCallbacks.unbind();
@@ -164,6 +290,41 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         element: this._scoreComponent.template.scoreNameInput,
         event: "input",
         handler: () => this.onScoreNameChanged(),
+      },
+      {
+        element: this._scoreComponent.template.rangeButton,
+        event: "click",
+        handler: () => this.onRangeClicked(),
+      },
+      {
+        element: this._scoreComponent.template.selectAllButton,
+        event: "click",
+        handler: () => this.onSelectAllClicked(),
+      },
+      {
+        element: this._scoreComponent.template.copyButton,
+        event: "click",
+        handler: () => void this.onCopyClicked(),
+      },
+      {
+        element: this._scoreComponent.template.undoButton,
+        event: "click",
+        handler: () => this.onUndoClicked(),
+      },
+      {
+        element: this._scoreComponent.template.redoButton,
+        event: "click",
+        handler: () => this.onRedoClicked(),
+      },
+      {
+        element: this._scoreComponent.template.cutButton,
+        event: "click",
+        handler: () => void this.onCutClicked(),
+      },
+      {
+        element: this._scoreComponent.template.pasteButton,
+        event: "click",
+        handler: () => void this.onPasteClicked(),
       },
     ]);
 

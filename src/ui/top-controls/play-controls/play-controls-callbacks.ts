@@ -13,7 +13,6 @@ export interface PlayControlsCallbacks {
   onNextClicked(): void;
   onLastClicked(): void;
   onLoopClicked(): void;
-  onRangeClicked(): void;
   onMetronomeClicked(): void;
   onPitchShiftChanged(delta: number): boolean;
   bind(): void;
@@ -70,15 +69,6 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     this._notationComponent.trackController.toggleLoop();
     this._renderFunc();
   }
-  onRangeClicked(): void {
-    const controller = this._notationComponent.trackController;
-    if (controller.hasSelectionAnchor) {
-      controller.clearSelectionRange();
-    } else {
-      controller.setSelectionAnchor();
-    }
-    this._renderFunc();
-  }
   onMetronomeClicked(): void {
     const controller = this._notationComponent.trackController;
     controller.setMetronomeEnabled(!controller.metronomeEnabled);
@@ -129,11 +119,6 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
         element: this._playComponent.template.loopButton,
         event: "click",
         handler: () => this.onLoopClicked(),
-      },
-      {
-        element: this._playComponent.template.rangeButton,
-        event: "click",
-        handler: () => this.onRangeClicked(),
       },
       {
         element: this._playComponent.template.metronomeButton,

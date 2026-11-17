@@ -107,13 +107,15 @@ test("anchors, extends, and clears a range through shared transport controls", a
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
   const announcement = editor.locator(".tu-announcement-host");
-  const rangeButton = editor.getByRole("button", { name: "Set anchor" });
+  const rangeButton = editor.getByRole("button", {
+    name: "Set selection anchor",
+  });
   await expect(rangeButton).toBeVisible();
 
   // Set a one-beat anchor from the editor's current note cursor.
   await rangeButton.click();
   const clearRangeButton = editor.getByRole("button", {
-    name: "Clear range",
+    name: "Clear selection range",
   });
   await expect(clearRangeButton).toBeVisible();
   const selectionRect = editor.locator('[id^="selection-rect-"]');

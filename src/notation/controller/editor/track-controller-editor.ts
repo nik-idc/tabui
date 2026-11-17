@@ -154,6 +154,16 @@ export class TrackControllerEditor {
     return command;
   }
 
+  /** True when editing is allowed and there is an edit to undo. */
+  public get canUndo(): boolean {
+    return this.editingEnabled && this._commandManager.canUndo;
+  }
+
+  /** True when editing is allowed and there is an edit to redo. */
+  public get canRedo(): boolean {
+    return this.editingEnabled && this._commandManager.canRedo;
+  }
+
   public undoCommand(): void {
     if (!this.editingEnabled) {
       return;

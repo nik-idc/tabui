@@ -97,14 +97,14 @@ selected notes have that technique.
 A shortcut removes a technique when all selected notes already have it.
 Otherwise, it sets the technique on them.
 
-| Technique | Button and shortcut                                            |
-| --------- | -------------------------------------------------------------- |
-| Tie       | **Tie** or **J**; **Shift+J** searches as far back as possible |
-| Let Ring  | **Let Ring** or **Shift+L**                                    |
-| Palm Mute | **Palm Mute** or **P**                                         |
-| Tap       | **Tap** or **K**                                               |
-| Accent    | **Accent** or **C**; **Heavy Accent** or **Shift+C**           |
-| Stroke    | See [Stroke controls](#stroke-controls)                        |
+| Technique | Button and shortcut                                              |
+| --------- | ---------------------------------------------------------------- |
+| Tie       | **Tie** or **J**; **Tie as far back as possible** or **Shift+J** |
+| Let Ring  | **Let Ring** or **Shift+L**                                      |
+| Palm Mute | **Palm Mute** or **P**                                           |
+| Tap       | **Tap** or **K**                                                 |
+| Accent    | **Accent** or **C**; **Heavy Accent** or **Shift+C**             |
+| Stroke    | See [Stroke controls](#stroke-controls)                          |
 
 ### Tie
 

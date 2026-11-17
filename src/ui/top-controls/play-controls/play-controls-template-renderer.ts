@@ -36,7 +36,6 @@ export class PlayControlsTemplateRenderer {
     leftGroup.className = "tu-play-controls-left";
     leftGroup.append(
       this.template.loopButton,
-      this.template.rangeButton,
       this.template.firstButton,
       this.template.prevButton
     );
@@ -145,21 +144,6 @@ export class PlayControlsTemplateRenderer {
       String(this.notationComponent.trackController.isLooped)
     );
 
-    const hasSelectionAnchor =
-      this.notationComponent.trackController.hasSelectionAnchor;
-    const label = hasSelectionAnchor ? "Clear range" : "Set anchor";
-    setImageAsset(
-      this.template.rangeButton,
-      this.assetsPath,
-      `img/ui/${hasSelectionAnchor ? "clear-selection" : "start-selection"}.svg`,
-      label,
-      { width: buttonSize, height: buttonSize }
-    );
-    this.template.rangeButton.title = label;
-    this.template.rangeButton.setAttribute(
-      "aria-pressed",
-      `${hasSelectionAnchor}`
-    );
     setImageAsset(
       this.template.metronomeButton,
       this.assetsPath,

@@ -1,5 +1,5 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { renderOnce, setImageAsset } from "../../shared";
+import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { Score } from "../../../notation";
 import type { ResolvedAssetConfig } from "../../../assets";
@@ -10,6 +10,7 @@ const volumeStep = 5;
 const minPanning = -1;
 const maxPanning = 1;
 const panningStep = 0.05;
+const editButtonSize = "30px";
 
 export class ScoreControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -51,7 +52,22 @@ export class ScoreControlsTemplateRenderer {
       "tu-track-controls-overlay"
     );
 
-    this.template.container.append(this.template.masterContainer);
+    const t = this.template;
+    t.selectionContainer.classList.add("tu-selection-controls");
+    t.selectionContainer.append(t.rangeButton, t.selectAllButton, t.copyButton);
+    t.editContainer.classList.add("tu-edit-controls");
+    t.editContainer.append(
+      t.undoButton,
+      t.redoButton,
+      t.cutButton,
+      t.pasteButton
+    );
+    // DOM order is also the Tab key order.
+    this.template.container.append(
+      t.selectionContainer,
+      this.template.masterContainer,
+      t.editContainer
+    );
     this.template.masterContainer.append(this.template.settingsContainer);
     const titleContainer = document.createElement("div");
     titleContainer.classList.add("tu-score-title");
@@ -69,6 +85,8 @@ export class ScoreControlsTemplateRenderer {
     );
 
     this.parentDiv.appendChild(this.template.container);
+    this.template.trackList.classList.add("tu-track-list");
+    this.template.tracksContainer.append(this.template.trackList);
     this.overlayParent.appendChild(this.template.tracksContainer);
   }
 
@@ -112,6 +130,97 @@ export class ScoreControlsTemplateRenderer {
       `${editingDisabled}`
     );
     this.template.newTrackButton.disabled = editingDisabled;
+  }
+
+  private renderEditButton(
+    button: HTMLButtonElement,
+    assetPath: string,
+    label: string,
+    shortcut: string,
+    enabled: boolean
+  ): void {
+    setImageAsset(button, this.assetsPath, assetPath, label, {
+      width: editButtonSize,
+      height: editButtonSize,
+    });
+    setShortcutTooltip(button, label, shortcut);
+    button.disabled = !enabled;
+    button.classList.toggle("tu-disabled-img", !enabled);
+  }
+
+  private renderSelectionButtons(): void {
+    const tc = this.notationComponent.trackController;
+    const hasSelectionAnchor = tc.hasSelectionAnchor;
+    const playbackIdle = !tc.isPlaybackActive;
+    const label = hasSelectionAnchor
+      ? "Clear selection range"
+      : "Set selection anchor";
+    setImageAsset(
+      this.template.rangeButton,
+      this.assetsPath,
+      `img/ui/${hasSelectionAnchor ? "clear-selection" : "start-selection"}.svg`,
+      label,
+      { width: editButtonSize, height: editButtonSize }
+    );
+    this.template.rangeButton.title = label;
+    this.template.rangeButton.setAttribute(
+      "aria-pressed",
+      `${hasSelectionAnchor}`
+    );
+    this.template.rangeButton.disabled = !playbackIdle;
+    this.template.rangeButton.classList.toggle(
+      "tu-disabled-img",
+      !playbackIdle
+    );
+    this.renderEditButton(
+      this.template.selectAllButton,
+      "img/ui/select-all.svg",
+      "Select all",
+      "Ctrl+A",
+      playbackIdle
+    );
+    // Copying also works in view-only mode.
+    this.renderEditButton(
+      this.template.copyButton,
+      "img/ui/copy.svg",
+      "Copy",
+      "Ctrl+C",
+      playbackIdle
+    );
+  }
+
+  private renderEditButtons(): void {
+    const tc = this.notationComponent.trackController;
+    const canEdit = !tc.isPlaybackActive && tc.editingEnabled;
+    const t = this.template;
+    this.renderEditButton(
+      t.undoButton,
+      "img/ui/undo.svg",
+      "Undo",
+      "Ctrl+Z",
+      tc.canUndo
+    );
+    this.renderEditButton(
+      t.redoButton,
+      "img/ui/redo.svg",
+      "Redo",
+      "Ctrl+Y",
+      tc.canRedo
+    );
+    this.renderEditButton(
+      t.cutButton,
+      "img/ui/cut.svg",
+      "Cut",
+      "Ctrl+X",
+      canEdit
+    );
+    this.renderEditButton(
+      t.pasteButton,
+      "img/ui/paste.svg",
+      "Paste",
+      "Ctrl+V",
+      canEdit
+    );
   }
 
   private renderMasterVolumeInput(score: Score): void {
@@ -169,6 +278,8 @@ export class ScoreControlsTemplateRenderer {
   public render(score: Score, tracksAreDisplayed: boolean): void {
     this._currentScoreName = score.name;
 
+    this.renderSelectionButtons();
+    this.renderEditButtons();
     this.renderShowButton(score, tracksAreDisplayed);
     this.renderNewTrackButton();
     this.renderMasterVolumeInput(score);

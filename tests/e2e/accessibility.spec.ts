@@ -297,9 +297,7 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   await page.keyboard.press("Shift+Tab");
   await expect(newTrack).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(
-    editor.getByRole("button", { name: "Decrease playback pitch", exact: true })
-  ).toBeFocused();
+  await expect(editor.getByRole("button", { name: "Copy" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(newTrack).toBeFocused();
 

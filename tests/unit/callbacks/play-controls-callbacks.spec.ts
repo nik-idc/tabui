@@ -184,7 +184,6 @@ describe("PlayControlsDefaultCallbacks", () => {
           nextButton: {},
           lastButton: {},
           loopButton: {},
-          rangeButton: {},
           metronomeButton: {},
         },
       } as any,
@@ -202,39 +201,6 @@ describe("PlayControlsDefaultCallbacks", () => {
     expect(trackController.selectionCursor?.bar).toBe(bars[0]);
 
     expect(renderFunc).toHaveBeenCalledTimes(4);
-  });
-
-  test("range button anchors or clears the current range", () => {
-    const { track } = createScoreGraph();
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    const anchor = controller.selectionCursor?.beat;
-    const renderFunc = jest.fn();
-    const callbacks = new PlayControlsDefaultCallbacks(
-      {
-        template: {
-          firstButton: {},
-          prevButton: {},
-          playButton: {},
-          nextButton: {},
-          lastButton: {},
-          loopButton: {},
-          rangeButton: {},
-          metronomeButton: {},
-        },
-      } as any,
-      { trackController: controller } as any,
-      renderFunc
-    );
-
-    callbacks.onRangeClicked();
-    expect(controller.hasSelectionAnchor).toBe(true);
-    expect(controller.selectionBeats).toEqual([anchor]);
-    callbacks.onRangeClicked();
-
-    expect(controller.hasSelectionAnchor).toBe(false);
-    expect(controller.selectionBeats).toEqual([]);
-    expect(controller.selectionCursor?.beat).toBe(anchor);
-    expect(renderFunc).toHaveBeenCalledTimes(2);
   });
 
   test("render marks loop button active when loop is enabled", () => {

@@ -23,8 +23,16 @@
     var(--tu-track-mix-width) var(--tu-track-mix-width)
     repeat(4, var(--tu-track-reorder-width));
   --tu-track-reorder-width: 2.4rem;
-  --tu-track-name-width: 16rem;
-  --tu-track-mix-width: 10rem;
+  // Name and mix columns shrink toward their minimum when space is short.
+  --tu-track-name-width: minmax(6rem, 16rem);
+  --tu-track-mix-width: minmax(5rem, 10rem);
+  --tu-top-button-size: 40px;
+  --tu-top-button-gap: 0.5rem;
+  // Both ends of the score row get the width of the larger button group
+  // (four buttons), so the middle stays centered.
+  --tu-top-side-width: calc(
+    4 * var(--tu-top-button-size) + 3 * var(--tu-top-button-gap)
+  );
   --tu-track-row-height: calc(2 * 1.6rem);
 }
 
@@ -84,7 +92,7 @@
 
   .tu-side-controls-host,
   .tu-notation-viewport,
-  .tu-track-controls-overlay {
+  .tu-track-list {
     scrollbar-width: thin;
   }
 
@@ -218,7 +226,9 @@
     top: 1rem;
     z-index: 20;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns:
+      minmax(var(--tu-top-side-width), 1fr) minmax(0, max-content)
+      minmax(var(--tu-top-side-width), 1fr);
     grid-template-rows: auto auto;
     align-items: center;
     gap: 0.35rem;
@@ -255,12 +265,31 @@
     .tu-score-controls {
       display: contents;
 
+      // Row 2 ends: selection on the left, editing on the right.
+      .tu-selection-controls,
+      .tu-edit-controls {
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        gap: var(--tu-top-button-gap);
+      }
+
+      .tu-selection-controls {
+        grid-column: 1;
+        justify-self: start;
+      }
+
+      .tu-edit-controls {
+        grid-column: 3;
+        justify-self: end;
+      }
+
       .tu-master-controls {
         display: contents;
 
         .tu-settings {
           display: grid;
-          grid-column: 1 / -1;
+          grid-column: 2;
           grid-row: 2;
           grid-template-columns: var(--tu-track-columns);
           justify-content: center;
@@ -345,6 +374,17 @@
         }
       }
 
+      @at-root .tu-editor > .tu-tracks > .tu-track-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 0.5rem 1rem;
+        scrollbar-gutter: stable both-edges;
+      }
+
       @at-root .tu-editor > .tu-tracks {
         position: absolute;
         grid-area: 2 / 1 / 3 / -1;
@@ -353,18 +393,16 @@
         z-index: 20;
         display: flex;
         flex-direction: column;
-        gap: 0.35rem;
         right: 0;
         width: auto;
         max-width: none;
-        overflow-y: auto;
-        overscroll-behavior: contain;
         box-sizing: border-box;
-        padding: 0.5rem 1rem;
+        // The rows measure this box, not the scrolling list inside it. Its
+        // width matches the top bar, and it has no scrollbar gutter.
+        container-type: inline-size;
         border-radius: var(--tu-border-radius);
         background: var(--tu-primary-color);
         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
-        scrollbar-gutter: stable both-edges;
         max-block-size: min(
           calc(5 * var(--tu-track-row-height) + 4 * 0.35rem + 1rem),
           calc(100% + var(--tu-root-grid-gap))
@@ -379,7 +417,11 @@
           grid-template-rows: repeat(2, 1.6rem);
           align-items: center;
           column-gap: 0.35rem;
-          width: max-content;
+          width: fit-content;
+          // The score row's middle width, so the columns line up with it.
+          max-width: calc(
+            100cqi - 2 * (1rem + var(--tu-top-side-width) + 0.35rem)
+          );
           align-self: center;
           box-sizing: border-box;
           padding: 0;
@@ -638,8 +680,8 @@
     }
 
     img {
-      width: 40px;
-      height: 40px;
+      width: var(--tu-top-button-size);
+      height: var(--tu-top-button-size);
       transition: all var(--tu-transition-speed) ease;
       border-radius: 50%;
 
@@ -880,10 +922,11 @@
     grid-template-columns: 1fr;
 
     .tu-top-controls {
-      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      grid-template-columns: max-content minmax(0, 1fr);
     }
 
-    .tu-side-controls-host {
+    .tu-side-controls-host,
+    .tu-top-controls .tu-score-controls .tu-edit-controls {
       display: none;
     }
 
@@ -914,6 +957,7 @@
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: 2.6rem;
       width: 100%;
+      max-width: none;
 
       > :not(.tu-track-name-input):not(.tu-track-name-label) {
         display: none;
@@ -2250,7 +2294,7 @@
   display: none;
 }
 
-.tu-editor > .tu-track-controls-overlay:empty {
+.tu-editor > .tu-track-controls-overlay:not(:has(.tu-track-controls)) {
   display: none;
 }
 

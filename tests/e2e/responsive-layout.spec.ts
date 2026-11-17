@@ -568,21 +568,19 @@ test("caps a long track list at five rows and keeps it scrollable", async ({
     await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
   }
   await editor.getByRole("button", { name: /^Tracks ·/ }).click();
-  const overlay = editor.locator(".tu-track-controls-overlay");
-  const metrics = await editor
-    .locator(".tu-track-controls-overlay")
-    .evaluate((panel) => {
-      const row = panel.querySelector<HTMLElement>(".tu-track-controls");
-      if (row === null) throw new Error("Expected track row");
-      const style = getComputedStyle(panel);
-      return {
-        clientHeight: panel.clientHeight,
-        scrollHeight: panel.scrollHeight,
-        rowHeight: row.getBoundingClientRect().height,
-        gap: parseFloat(style.gap),
-        padding: parseFloat(style.paddingTop) + parseFloat(style.paddingBottom),
-      };
-    });
+  const overlay = editor.locator(".tu-track-list");
+  const metrics = await overlay.evaluate((panel) => {
+    const row = panel.querySelector<HTMLElement>(".tu-track-controls");
+    if (row === null) throw new Error("Expected track row");
+    const style = getComputedStyle(panel);
+    return {
+      clientHeight: panel.clientHeight,
+      scrollHeight: panel.scrollHeight,
+      rowHeight: row.getBoundingClientRect().height,
+      gap: parseFloat(style.gap),
+      padding: parseFloat(style.paddingTop) + parseFloat(style.paddingBottom),
+    };
+  });
   expect(metrics.clientHeight).toBeGreaterThan(0);
   expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
   expect(metrics.clientHeight).toBeLessThanOrEqual(
