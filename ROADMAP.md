@@ -98,6 +98,9 @@ in no particular order.
   seconds or more. It would be ideal if **no** editing path is longer than
   100ms.
 
+- Visualize bend duration. As in, if a bend ramps up quickly - the curve ramps
+  up quickly too. If the bend ramps up slowly - the curve ramps up slowly too.
+
 ## Long term work
 
 - Sheet and drum notation. Arguably one of the most crucial pieces of work
