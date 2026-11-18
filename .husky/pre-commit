@@ -1,11 +1,4 @@
 #!/bin/sh
 
-files=$(mktemp)
-trap 'rm -f "$files"' EXIT
-
-git diff --cached --name-only --diff-filter=ACMR -z > "$files"
-
-if [ -s "$files" ]; then
-  xargs -0 npx prettier --write --ignore-unknown < "$files"
-  xargs -0 git add < "$files"
-fi
+# Formats only the staged changes; unstaged changes stay out of the commit.
+npx lint-staged
