@@ -344,3 +344,39 @@ test("moves a bend handle through a touch gesture", async ({
   // The touch gesture updates the snapped graph point through Pointer Events.
   await expect(handle).not.toHaveAttribute("cy", handleYBefore ?? "");
 });
+
+test("scales the bend graph down when the dialog is narrow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto("/tabui/?fixture=empty");
+  // A larger default font size makes the graph's preferred width
+  // (26.25rem = 630px) wider than the space beside the bend type list.
+  await page.addStyleTag({ content: "html { font-size: 24px; }" });
+  const { dialog } = await openBendDialog(page);
+  const graph = dialog.locator(".tu-bend-controls-svg");
+  const box = await requiredBoundingBox(graph);
+  // It grows with the font size but shrinks to fit the dialog.
+  expect(box.width).toBeGreaterThan(420);
+  expect(box.width).toBeLessThan(630);
+  // The graph keeps its 420:300 shape.
+  expect(box.height / box.width).toBeCloseTo(300 / 420, 2);
+
+  // A drag on the scaled graph snaps the point to the row under the pointer.
+  const handle = graph.locator('circle[aria-label="Bend point"]');
+  const handleBox = await requiredBoundingBox(handle);
+  const x = handleBox.x + handleBox.width / 2;
+  const y = handleBox.y + handleBox.height / 2;
+  const rowHeight = box.height / 12;
+  const targetY = y - 3 * rowHeight;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, targetY, { steps: 5 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => {
+      const moved = await requiredBoundingBox(handle);
+      return Math.abs(moved.y + moved.height / 2 - targetY);
+    })
+    .toBeLessThan(rowHeight / 2);
+});

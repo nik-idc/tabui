@@ -80,3 +80,10 @@ body {
 .angular-demo > dl > dd {
   margin: 0;
 }
+
+/* TabUI fills its parent's height, and the parent here has none, so the demo
+   sets the editor's height. TabUI adds .tu-editor to the host. */
+#tabui-editor.tu-editor {
+  height: calc(100dvh - 2rem);
+  min-height: 560px;
+}

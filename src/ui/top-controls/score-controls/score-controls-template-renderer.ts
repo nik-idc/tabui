@@ -10,7 +10,7 @@ const volumeStep = 5;
 const minPanning = -1;
 const maxPanning = 1;
 const panningStep = 0.05;
-const editButtonSize = "30px";
+const editButtonSize = "1.875rem";
 
 export class ScoreControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

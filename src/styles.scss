@@ -26,7 +26,7 @@
   // Name and mix columns shrink toward their minimum when space is short.
   --tu-track-name-width: minmax(6rem, 16rem);
   --tu-track-mix-width: minmax(5rem, 10rem);
-  --tu-top-button-size: 40px;
+  --tu-top-button-size: 2.5rem;
   --tu-top-button-gap: 0.5rem;
   // Both ends of the score row get the width of the larger button group
   // (four buttons), so the middle stays centered.
@@ -45,7 +45,7 @@
   grid-template-columns: max-content minmax(0, 1fr);
   gap: var(--tu-root-grid-gap);
   padding: 1rem;
-  height: 100vh;
+  height: 100%;
   background-color: var(--tu-background-color);
   color: var(--tu-font-color);
   scrollbar-color: color-mix(
@@ -68,10 +68,10 @@
   // Below this width, the score row can't fit both button groups beside the
   // master controls, so the master controls get their own line. The width is
   // the minimum of --tu-track-columns (30.45rem), plus two
-  // --tu-top-side-width (320px + 3rem), the two column gaps (0.7rem), and the
+  // --tu-top-side-width (20rem + 3rem), the two column gaps (0.7rem), and the
   // top bar padding (2rem). Container queries can't read custom properties,
   // so keep this value in sync with them. The track list uses the same value.
-  @container tu-top-bar (width < calc(320px + 36.15rem)) {
+  @container tu-top-bar (width < 56.15rem) {
     &:not(.tu-view-only, .tu-responsive-view-only) .tu-top-controls {
       grid-template-columns: 1fr 1fr;
 
@@ -86,7 +86,7 @@
     }
   }
 
-  @container tu-track-overlay (width < calc(320px + 36.15rem)) {
+  @container tu-track-overlay (width < 56.15rem) {
     &:not(.tu-view-only, .tu-responsive-view-only)
       > .tu-tracks
       .tu-track-controls {
@@ -1102,9 +1102,9 @@
         flex-direction: column;
 
         .tu-tuplet-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-tuplet-input {
@@ -1120,7 +1120,7 @@
         display: flex;
         justify-content: space-between;
         gap: 0.5rem;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-tuplet-confirm-button {
         }
@@ -1149,9 +1149,9 @@
         flex-direction: column;
 
         .tu-fret-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-fret-value-control {
@@ -1178,7 +1178,7 @@
         display: flex;
         justify-content: space-between;
         gap: 0.5rem;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         button {
           @extend %tu-button-style;
@@ -1221,6 +1221,11 @@
   }
 
   .tu-bend-controls-svg {
+    flex: 0 1 auto;
+    width: 26.25rem;
+    max-width: 100%;
+    min-width: 0;
+    height: auto;
     touch-action: none;
   }
 
@@ -1260,12 +1265,12 @@
         // The dot is the background seen through an inset shadow, not a child
         // element, so pixel rounding cannot move it off center.
         input[type="radio"] {
-          --tu-radio-gap: 7px;
+          --tu-radio-gap: 0.4375rem;
           --tu-radio-halo: 0 0 0 transparent;
           appearance: none;
           box-sizing: border-box;
-          width: 18px;
-          height: 18px;
+          width: 1.125rem;
+          height: 1.125rem;
           margin: 0;
           border: 2px solid var(--tu-font-color);
           border-radius: 50%;
@@ -1277,7 +1282,7 @@
           transition: box-shadow 120ms ease;
 
           &:checked {
-            --tu-radio-gap: 3px;
+            --tu-radio-gap: 0.1875rem;
           }
 
           &:hover:not(:disabled) {
@@ -1379,7 +1384,7 @@
   }
 
   .tu-time-sig-dialog .tu-number-stepper-value {
-    width: min(200px, 100%);
+    width: min(12.5rem, 100%);
     box-sizing: border-box;
     justify-self: center;
   }
@@ -1392,7 +1397,7 @@
     }
 
     .tu-number-stepper {
-      grid-template-columns: auto minmax(0, 200px) auto;
+      grid-template-columns: auto minmax(0, 12.5rem) auto;
       justify-content: center;
     }
 
@@ -1403,7 +1408,7 @@
   }
 
   .tu-time-sig-dialog .tu-time-sig-duration-input {
-    width: min(200px, 100%);
+    width: min(12.5rem, 100%);
     align-self: center;
     box-sizing: border-box;
   }
@@ -1422,9 +1427,9 @@
         flex-direction: column;
 
         .tu-repeat-count-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-repeat-count-value-control {
@@ -1455,7 +1460,7 @@
         display: flex;
         justify-content: space-between;
         gap: 0.5rem;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         button {
           @extend %tu-button-style;
@@ -1478,9 +1483,9 @@
         flex-direction: column;
 
         .tu-time-sig-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
 
           .tu-time-sig-scope {
             white-space: nowrap;
@@ -1511,7 +1516,7 @@
       .tu-time-sig-actions {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-time-sig-confirm-button {
         }
@@ -1539,9 +1544,9 @@
         flex-direction: column;
 
         .tu-tempo-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-tempo-input {
@@ -1569,7 +1574,7 @@
       .tu-tempo-actions {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-tempo-confirm-button {
         }
@@ -1590,7 +1595,7 @@
     .tu-nt-content {
       @extend %tu-modal-dialog-content;
       width: max-content;
-      min-width: min(400px, 100%);
+      min-width: min(25rem, 100%);
       max-width: 100%;
       box-sizing: border-box;
 
@@ -1601,11 +1606,11 @@
         .tu-nt-kinds-container {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 10px;
+          margin-bottom: 0.625rem;
 
           img {
-            width: 75px;
-            height: 75px;
+            width: 4.6875rem;
+            height: 4.6875rem;
             border-radius: 20px;
           }
         }
@@ -1618,16 +1623,16 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-right: 3px;
+            gap: 0.3125rem;
+            margin-right: 0.1875rem;
           }
 
           .tu-nt-tones-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-left: 3px;
+            gap: 0.3125rem;
+            margin-left: 0.1875rem;
           }
 
           margin-bottom: 1rem;
@@ -1649,9 +1654,9 @@
           .tu-nt-staff-count-container {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 0.375rem;
             justify-content: center;
-            margin-top: 6px;
+            margin-top: 0.375rem;
 
             button {
               width: auto;
@@ -1677,8 +1682,8 @@
 
           .tu-nt-tuning-container {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            margin-top: 0.375rem;
           }
 
           .tu-nt-tuning-string {
@@ -1686,17 +1691,17 @@
             flex: 1;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 0.125rem;
           }
 
           .tu-nt-tuning-string-label {
-            font-size: 11px;
+            font-size: 0.6875rem;
             opacity: 0.75;
           }
 
           .tu-nt-tuning-note {
-            min-width: 34px;
-            padding: 4px 0;
+            min-width: 2.125rem;
+            padding: 0.25rem 0;
             text-align: center;
             font-weight: 700;
           }
@@ -1704,7 +1709,7 @@
           .tu-nt-tuning-step {
             width: 2rem;
             max-width: 100%;
-            padding: 2px 0;
+            padding: 0.125rem 0;
             line-height: 1;
           }
 
@@ -1712,8 +1717,8 @@
           // controls: an error line plus 6px.
           .tu-nt-whole-tuning-container {
             display: flex;
-            gap: 6px;
-            margin-top: calc(1em + 6px);
+            gap: 0.375rem;
+            margin-top: calc(1em + 0.375rem);
           }
         }
       }
@@ -1724,11 +1729,11 @@
         justify-content: space-between;
 
         .tu-nt-confirm-button {
-          margin-right: 3px;
+          margin-right: 0.1875rem;
         }
 
         .tu-nt-cancel-button {
-          margin-left: 3px;
+          margin-left: 0.1875rem;
         }
       }
 
@@ -1754,16 +1759,16 @@
         flex-direction: column;
 
         .tu-yes-no-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
       }
 
       .tu-yes-no-actions-container {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-yes-no-confirm-button {
         }
@@ -1783,8 +1788,7 @@
 
     .tu-ts-content {
       @extend %tu-modal-dialog-content;
-      width: 400px;
-      max-width: 100%;
+      width: min(25rem, 100%);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
@@ -1796,11 +1800,11 @@
         .tu-ts-kinds-container {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 10px;
+          margin-bottom: 0.625rem;
 
           img {
-            width: 75px;
-            height: 75px;
+            width: 4.6875rem;
+            height: 4.6875rem;
             border-radius: 20px;
           }
         }
@@ -1808,22 +1812,22 @@
         .tu-ts-instr-settings-container {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 5px;
+          margin-bottom: 0.3125rem;
 
           .tu-ts-types-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-right: 3px;
+            gap: 0.3125rem;
+            margin-right: 0.1875rem;
           }
 
           .tu-ts-tones-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-left: 3px;
+            gap: 0.3125rem;
+            margin-left: 0.1875rem;
           }
         }
 
@@ -1841,8 +1845,8 @@
 
           .tu-ts-tuning-container {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            margin-top: 0.375rem;
           }
 
           .tu-ts-tuning-string {
@@ -1850,17 +1854,17 @@
             flex: 1;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 0.125rem;
           }
 
           .tu-ts-tuning-string-label {
-            font-size: 11px;
+            font-size: 0.6875rem;
             opacity: 0.75;
           }
 
           .tu-ts-tuning-note {
-            min-width: 34px;
-            padding: 4px 0;
+            min-width: 2.125rem;
+            padding: 0.25rem 0;
             text-align: center;
             font-weight: 700;
           }
@@ -1868,15 +1872,15 @@
           .tu-ts-tuning-step {
             width: 2rem;
             max-width: 100%;
-            padding: 2px 0;
+            padding: 0.125rem 0;
             line-height: 1;
           }
 
           .tu-ts-whole-tuning-container,
           .tu-ts-tuning-mode-container {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            margin-top: 0.375rem;
           }
         }
       }
@@ -1885,7 +1889,7 @@
         display: flex;
         justify-content: space-between;
         gap: 0.5rem;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-ts-confirm-button {
         }
@@ -1953,7 +1957,7 @@
 .tu-playback-pitch-shift {
   display: inline-flex;
   align-items: center;
-  height: 30px;
+  height: 1.875rem;
   overflow: visible;
   border: 1px solid var(--tu-border-color);
   border-radius: 0.35rem;
@@ -1978,7 +1982,7 @@
   }
 
   .tu-playback-pitch-shift-buttons button {
-    width: 22px;
+    width: 1.375rem;
     flex: 1;
     padding: 0;
     border: 0;
@@ -2034,7 +2038,7 @@
 }
 
 %tu-input-number-style {
-  padding: 5px;
+  padding: 0.3125rem;
   border: 2px solid var(--tu-border-color);
   border-radius: 5px;
   background-color: var(--tu-primary-color);
@@ -2119,17 +2123,17 @@
   border: 0;
   border-radius: 999px;
   background: linear-gradient(var(--tu-range-rail), var(--tu-range-rail))
-    center / 100% 6px no-repeat;
+    center / 100% 0.375rem no-repeat;
   cursor: pointer;
 
   &::-webkit-slider-runnable-track {
-    height: 6px;
+    height: 0.375rem;
     border-radius: 999px;
     background: transparent;
   }
 
   &::-moz-range-track {
-    height: 6px;
+    height: 0.375rem;
     border-radius: 999px;
     background: transparent;
   }
@@ -2142,9 +2146,9 @@
   &::-webkit-slider-thumb {
     appearance: none;
     box-sizing: border-box;
-    width: 16px;
-    height: 16px;
-    margin-top: -5px;
+    width: 1rem;
+    height: 1rem;
+    margin-top: -0.3125rem;
     border: 0;
     border-radius: 50%;
     background: var(--tu-range-fill);
@@ -2156,8 +2160,8 @@
 
   &::-moz-range-thumb {
     box-sizing: border-box;
-    width: 16px;
-    height: 16px;
+    width: 1rem;
+    height: 1rem;
     border: 0;
     border-radius: 50%;
     background: var(--tu-range-fill);
@@ -2200,17 +2204,17 @@
     linear-gradient(var(--tu-range-rail), var(--tu-range-rail)),
     linear-gradient(var(--tu-range-rail), var(--tu-range-rail));
   background-size:
-    2px 12px,
-    100% 6px;
+    0.125rem 0.75rem,
+    100% 0.375rem;
 }
 
 .tu-editor .tu-icon-button {
   appearance: none;
   display: grid;
   place-items: center;
-  flex: 0 0 40px;
-  width: 32px;
-  height: 32px;
+  flex: 0 0 2.5rem;
+  width: 2rem;
+  height: 2rem;
   // min-width: 40px;
   // min-height: 40px;
   padding: 0;
@@ -2233,8 +2237,8 @@
   }
 
   > img {
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
     border-radius: inherit;
     pointer-events: none;
     transform: none;

@@ -176,6 +176,21 @@ for larger examples.
 The package is framework-agnostic. Import its styles from
 `@atikincode/tabui/styles.css`.
 
+### Editor size
+
+The editor fills its parent's height, and the notation scrolls inside it. Give
+the parent a height, or set one on the host element. TabUI adds the
+`.tu-editor` class to the host, so a host rule needs both selectors:
+
+```css
+#tabui-editor.tu-editor {
+  height: 80vh;
+}
+```
+
+If neither has a height, the editor grows to fit the score and the page
+scrolls.
+
 ### Bundled icons
 
 Default SVG icons are bundled as data URLs, so no public asset folder or external
