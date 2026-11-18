@@ -79,6 +79,8 @@ export class TabUIHost implements AfterViewInit, OnChanges, OnDestroy {
   @Input() variant: "light" | "dark" = "light";
   @Output() readonly ready = new EventEmitter<TabUIEditor | null>();
   @Output() readonly stateChange = new EventEmitter<TabUIEditorStateSnapshot>();
+  /** Emits after each user edit to the saved score, for example to autosave. */
+  @Output() readonly edit = new EventEmitter<TabUIEditorStateSnapshot>();
   @Output() readonly failure = new EventEmitter<string>();
   @ViewChild("host") private _host?: ElementRef<HTMLDivElement>;
   private _editor: TabUIEditor | null = null;
@@ -110,6 +112,7 @@ export class TabUIHost implements AfterViewInit, OnChanges, OnDestroy {
     editor.init();
     this._unsubscribe = editor.subscribe((event) => {
       if (event.type === "change") this.stateChange.emit(event.state);
+      else if (event.type === "edit") this.edit.emit(event.state);
       else this.failure.emit(event.error.message);
     });
     this.ready.emit(editor);

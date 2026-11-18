@@ -22,7 +22,8 @@ and remove the temporary installation. The example source stays in `demo/react/`
 Use the editor to select tracks and edit notation. The React controls resize,
 unmount, remount, and switch the complete light/dark theme. Each theme pairs
 matching icons with UI backgrounds, text, controls, and notation colours. The
-status fields show public change events and React effect setup/cleanup counts.
+status fields show public change and edit events and React effect setup/cleanup
+counts.
 
 The practice planner is a controlled React form with a live preview, validation,
 a pace selector, optional notes, and a saved-session list. Try these interactions:

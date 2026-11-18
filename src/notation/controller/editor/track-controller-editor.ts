@@ -83,6 +83,8 @@ import type { Guitar } from "../../model/instrument/guitar/guitar";
  */
 export class TrackControllerEditor {
   editingEnabled: boolean;
+  /** Called after every change to the saved score, including undo and redo. */
+  onScoreEdited: () => void = () => {};
   /** Command manager for model edits wrapped with selection history. */
   private readonly _commandManager: CommandManager;
 
@@ -134,6 +136,7 @@ export class TrackControllerEditor {
   private completeCommand(command: Command, completion?: () => void): void {
     this.applyCommandUpdate(command);
     completion?.();
+    this.onScoreEdited();
   }
 
   public executeCommand<T extends Command>(
@@ -170,6 +173,9 @@ export class TrackControllerEditor {
     }
     const command = this._commandManager.undo();
     this.applyCommandUpdate(command);
+    if (command !== undefined) {
+      this.onScoreEdited();
+    }
   }
 
   public redoCommand(): void {
@@ -178,13 +184,20 @@ export class TrackControllerEditor {
     }
     const command = this._commandManager.redo();
     this.applyCommandUpdate(command);
+    if (command !== undefined) {
+      this.onScoreEdited();
+    }
   }
 
   public setScoreName(score: Score, name: string): boolean {
     if (!this.editingEnabled) {
       return false;
     }
+    if (score.name === name) {
+      return true;
+    }
     score.name = name;
+    this.onScoreEdited();
     return true;
   }
 
@@ -192,7 +205,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (score.masterVolume === volume) {
+      return true;
+    }
     score.masterVolume = volume;
+    this.onScoreEdited();
     return true;
   }
 
@@ -200,7 +217,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (score.masterPan === pan) {
+      return true;
+    }
     score.masterPan = pan;
+    this.onScoreEdited();
     return true;
   }
 
@@ -228,6 +249,7 @@ export class TrackControllerEditor {
     while (track.staves.length < staffCount) {
       track.insertStaff(track.staves.length);
     }
+    this.onScoreEdited();
     return track;
   }
 
@@ -235,14 +257,20 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return undefined;
     }
-    return score.removeTrack(score.tracks.indexOf(track));
+    const nextTrack = score.removeTrack(score.tracks.indexOf(track));
+    this.onScoreEdited();
+    return nextTrack;
   }
 
   public moveTrack(track: Track, targetIndex: number): boolean {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.score.tracks.indexOf(track) === targetIndex) {
+      return true;
+    }
     track.score.moveTrack(track, targetIndex);
+    this.onScoreEdited();
     return true;
   }
 
@@ -250,7 +278,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.name === name) {
+      return true;
+    }
     track.name = name;
+    this.onScoreEdited();
     return true;
   }
 
@@ -258,7 +290,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.volume === volume) {
+      return true;
+    }
     track.volume = volume;
+    this.onScoreEdited();
     return true;
   }
 
@@ -266,7 +302,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.pan === pan) {
+      return true;
+    }
     track.pan = pan;
+    this.onScoreEdited();
     return true;
   }
 
@@ -275,6 +315,7 @@ export class TrackControllerEditor {
       return false;
     }
     track.muted = !track.muted;
+    this.onScoreEdited();
     return true;
   }
 
@@ -283,6 +324,7 @@ export class TrackControllerEditor {
       return false;
     }
     track.soloed = !track.soloed;
+    this.onScoreEdited();
     return true;
   }
 
@@ -295,6 +337,7 @@ export class TrackControllerEditor {
       return false;
     }
     track.setInstrument(instrument, mode);
+    this.onScoreEdited();
     return true;
   }
 

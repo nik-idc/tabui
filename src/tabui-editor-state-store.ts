@@ -67,6 +67,11 @@ export class TabUIEditorStateStore {
     });
   }
 
+  /** Sends an edit event with the latest state snapshot. */
+  public emitEdit(): void {
+    this._events.emit("event", { type: "edit", state: this.getState() });
+  }
+
   public emitPlaybackError(error: PlaybackError): void {
     this._events.emit("event", {
       type: "error",

@@ -27,6 +27,7 @@ export function ReactDemo() {
   const [activeTrack, setActiveTrack] = useState("Unmounted");
   const [width, setWidth] = useState(1200);
   const [events, setEvents] = useState(0);
+  const [edits, setEdits] = useState(0);
   const [setups, setSetups] = useState(0);
   const [cleanups, setCleanups] = useState(0);
   const [title, setTitle] = useState("");
@@ -53,6 +54,7 @@ export function ReactDemo() {
     setWidth(state.layout.width);
     setEvents((v) => v + 1);
   }, []);
+  const onEdit = useCallback(() => setEdits((v) => v + 1), []);
   const onError = useCallback((message: string) => setError(message), []);
 
   return (
@@ -190,6 +192,10 @@ export function ReactDemo() {
         <dd>
           <output aria-label="Change events">{events}</output>
         </dd>
+        <dt>Edit events</dt>
+        <dd>
+          <output aria-label="Edit events">{edits}</output>
+        </dd>
         <dt>Effect setups</dt>
         <dd>
           <output aria-label="Effect setups">{setups}</output>
@@ -207,6 +213,7 @@ export function ReactDemo() {
           variant={variant}
           onReady={onReady}
           onChange={onChange}
+          onEdit={onEdit}
           onError={onError}
         />
       )}

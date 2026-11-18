@@ -216,6 +216,12 @@ async function checkReact(page, development) {
   await selectTrack("Second track");
   await expect(output("Active track")).toHaveText("Second track");
   await expect(output("Change events")).toHaveText("4");
+  // Switching tracks is not an edit, but changing the mix is.
+  await expect(output("Edit events")).toHaveText("0");
+  await root
+    .getByRole("button", { name: "Second track solo", exact: true })
+    .click();
+  await expect(output("Edit events")).toHaveText("1");
 
   await page
     .getByRole("button", { name: "Use dark theme", exact: true })

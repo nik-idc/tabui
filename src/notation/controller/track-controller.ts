@@ -82,6 +82,11 @@ export class TrackController {
     this._trackControllerEditor.selectFirstNote();
   }
 
+  /** Called after every change to the saved score, including undo and redo. */
+  public set onScoreEdited(listener: () => void) {
+    this._trackControllerEditor.onScoreEdited = listener;
+  }
+
   /**
    * Starts player
    */
