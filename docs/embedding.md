@@ -44,6 +44,8 @@ editor.init();
 const unsubscribe = editor.subscribe((event) => {
   if (event.type === "change") {
     console.log(event.state.activeTrack, event.state.playback);
+  } else if (event.type === "edit") {
+    console.log("The score changed");
   } else if (event.type === "error") {
     console.error(event.error.code, event.error.message);
   }
@@ -112,9 +114,22 @@ The document keeps tracks, instruments and mix state, master bars, voices,
 rests, tuplets, notes, and techniques. Runtime UUIDs and timing are rebuilt when
 the score is loaded.
 
-Not every `"change"` event is an unsaved edit. For autosave or an unsaved-changes
-indicator, compare the serialized score with the last saved one, for example in
-a debounced change handler.
+For autosave or an unsaved-changes indicator, listen for `"edit"` events, not
+`"change"` events. Dragging a volume or pan slider sends one edit event per
+step, so debounce autosave:
+
+```ts
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+editor.subscribe((event) => {
+  if (event.type !== "edit") {
+    return;
+  }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    localStorage.setItem("score", JSON.stringify(serializeScore(editor.score)));
+  }, 500);
+});
+```
 
 ### Build a score in code
 
@@ -268,7 +283,13 @@ editor-instance scoped and returns an idempotent unsubscribe function. Playback
 failures arrive as structured `"error"` events.
 
 A `"change"` event is a broad editor-state notification: selection, playback,
-layout, or score edits can trigger it. It is not a document-dirty event. Read
+layout, or score edits can trigger it. It is not a document-dirty event.
+
+An `"edit"` event follows the `"change"` event of each user action that changed
+the saved score: notes and bars, techniques, the score name, tracks and their
+instruments, and mix settings such as volume, pan, mute, and solo. Undo and redo
+are edits too. One action sends one event, even when it changes many beats.
+Changes that the host makes directly to the model do not send edit events. Read
 `editor.getState()` after initialization for the initial state; subscribing does
 not immediately call the listener. State snapshots describe the editor and refer
 to model objects; they are not serialized score documents or deep score copies.

@@ -1106,6 +1106,59 @@ describe("TrackController", () => {
     expect(serializeScore(score)).toEqual(before);
   });
 
+  test("reports each score edit once and skips unchanged values", () => {
+    const { score, track } = createScoreGraph();
+    const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);
+    let edits = 0;
+    controller.onScoreEdited = () => edits++;
+    const expectEdits = (action: () => unknown, count: number) => {
+      edits = 0;
+      action();
+      expect(edits).toBe(count);
+    };
+
+    expectEdits(() => controller.setSelectedNoteFret(3), 1);
+    expectEdits(() => controller.undo(), 1);
+    expectEdits(() => controller.redo(), 1);
+    expectEdits(() => controller.redo(), 0);
+
+    expectEdits(() => controller.setScoreName(score, "Song"), 1);
+    expectEdits(() => controller.setScoreName(score, "Song"), 0);
+    expectEdits(() => controller.setMasterVolume(score, 0.25), 1);
+    expectEdits(() => controller.setMasterVolume(score, 0.25), 0);
+    expectEdits(() => controller.setMasterPan(score, -0.5), 1);
+    expectEdits(() => controller.setMasterPan(score, -0.5), 0);
+
+    let second = track;
+    expectEdits(() => {
+      second = required(controller.addTrack(score, new Guitar(), "Second"));
+    }, 1);
+    expectEdits(() => controller.moveTrack(second, 0), 1);
+    expectEdits(() => controller.moveTrack(second, 0), 0);
+    expectEdits(() => controller.setTrackName(second, "Lead"), 1);
+    expectEdits(() => controller.setTrackName(second, "Lead"), 0);
+    expectEdits(() => controller.setTrackVolume(second, 0.8), 1);
+    expectEdits(() => controller.setTrackVolume(second, 0.8), 0);
+    expectEdits(() => controller.setTrackPan(second, 0.5), 1);
+    expectEdits(() => controller.setTrackPan(second, 0.5), 0);
+    expectEdits(() => controller.toggleTrackMuted(second), 1);
+    expectEdits(() => controller.toggleTrackSoloed(second), 1);
+    expectEdits(
+      () =>
+        controller.setTrackInstrument(
+          second,
+          new Guitar(),
+          TrackInstrumentChangeMode.KeepFrets
+        ),
+      1
+    );
+    expectEdits(() => controller.removeTrack(score, second), 1);
+
+    controller.setEditingEnabled(false);
+    expectEdits(() => controller.setScoreName(score, "Blocked"), 0);
+    expectEdits(() => controller.setSelectedNoteFret(4), 0);
+  });
+
   test("playback seek selects the first slot in the target beat", async () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);

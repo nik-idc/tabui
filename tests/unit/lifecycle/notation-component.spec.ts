@@ -2,6 +2,7 @@
 
 import { NotationComponent } from "../../../src/notation/notation-component";
 import {
+  Guitar,
   GuitarNote,
   NoteDuration,
   Score,
@@ -196,6 +197,21 @@ describe("NotationComponent", () => {
       noteRectPosition.y + Number(required(targetRect.getAttribute("height")));
     expect(cursorPosition.y).toBeLessThanOrEqual(noteRectPosition.y);
     expect(cursorBottom).toBeGreaterThanOrEqual(noteBottom);
+  });
+
+  test("keeps the score edit listener after a track switch", () => {
+    const { score } = populatedScore();
+    const second = score.addTrack(new Guitar(), "Second").tracks[0];
+    const { notation } = viewFor(score);
+    const listener = jest.fn();
+    notation.onScoreEdited = listener;
+
+    notation.trackController.setSelectedNoteFret(7);
+    expect(listener).toHaveBeenCalledTimes(1);
+
+    notation.loadTrack(second);
+    notation.trackController.setSelectedNoteFret(5);
+    expect(listener).toHaveBeenCalledTimes(2);
   });
 
   test("follows the active range endpoint when no cursor is selected", () => {

@@ -13,6 +13,7 @@ const props = defineProps<{ score: Score; variant: "light" | "dark" }>();
 const emit = defineEmits<{
   ready: [editor: TabUIEditor | null];
   change: [state: TabUIEditorStateSnapshot];
+  edit: [state: TabUIEditorStateSnapshot];
   error: [message: string];
 }>();
 const host = shallowRef<HTMLDivElement | null>(null);
@@ -33,6 +34,7 @@ onMounted(() => {
   editor.init();
   unsubscribe = editor.subscribe((event) => {
     if (event.type === "change") emit("change", event.state);
+    else if (event.type === "edit") emit("edit", event.state);
     else emit("error", event.error.message);
   });
   emit("ready", editor);

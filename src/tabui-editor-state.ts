@@ -43,9 +43,15 @@ export interface TabUIEditorError {
   readonly cause: unknown;
 }
 
-/** Editor change or playback-error notification. Direct model mutations do not necessarily emit change events. */
+/**
+ * Editor notification. "change" covers any editor state change, such as
+ * selection, playback, layout, or an edit. "edit" follows the change event of
+ * each user action that changed the saved score, including undo and redo.
+ * Direct model mutations do not necessarily emit either.
+ */
 export type TabUIEditorEvent =
   | { readonly type: "change"; readonly state: TabUIEditorStateSnapshot }
+  | { readonly type: "edit"; readonly state: TabUIEditorStateSnapshot }
   | { readonly type: "error"; readonly error: TabUIEditorError };
 
 /** Receives future events after subscription; no initial event is sent. Read current state with getState(). */

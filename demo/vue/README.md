@@ -30,8 +30,8 @@ If you edit the example's source files, restart the command to load your changes
    Score edits and form values remain. Recreating the editor resets its selection
    and undo history.
 
-The status fields show the active track, layout width, event count, and how many
-times the editor has been created and cleaned up.
+The status fields show the active track, layout width, change and edit event
+counts, and how many times the editor has been created and cleaned up.
 
 ## Use the pattern in your app
 

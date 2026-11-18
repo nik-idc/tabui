@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 import { TabUIEditor } from "../../../src/tabui-editor";
+import type { TabUIEditorEvent } from "../../../src/tabui-editor-state";
 import { PlaybackErrorCode } from "../../../src/player";
 import { GuitarNote, NoteDuration } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
@@ -345,6 +346,52 @@ describe("mounted editor lifecycle and callbacks", () => {
       state: second.editor.getState(),
     });
   });
+  test("edit events follow score edits once per action, not other changes", () => {
+    const { editor, root } = mount();
+    const events: TabUIEditorEvent[] = [];
+    editor.subscribe((event) => events.push(event));
+    const edits = () => events.filter((e) => e.type === "edit");
+    // Edit events are combined in a microtask after the action.
+    const settle = () => jest.runAllTicks();
+
+    key(root, "ArrowRight");
+    button(root, "Loop").click();
+    settle();
+    expect(events.length).toBeGreaterThan(0);
+    expect(edits()).toEqual([]);
+
+    events.length = 0;
+    key(root, "5");
+    settle();
+    expect(events.map((e) => e.type)).toEqual(["change", "edit"]);
+    expect(edits()[0]).toEqual({ type: "edit", state: editor.getState() });
+
+    // Several edits in one task send one event.
+    events.length = 0;
+    key(root, "ArrowRight");
+    key(root, "7");
+    key(root, "ArrowLeft");
+    key(root, "3");
+    settle();
+    expect(events.filter((e) => e.type === "change").length).toBeGreaterThan(2);
+    expect(edits()).toHaveLength(1);
+
+    events.length = 0;
+    button(root, "Undo").click();
+    settle();
+    expect(edits()).toHaveLength(1);
+
+    // Mix settings are saved with the score, so they are edits too.
+    events.length = 0;
+    const volume = required(
+      root.querySelector<HTMLInputElement>(".tu-master-volume-controls input")
+    );
+    volume.value = "40";
+    volume.dispatchEvent(new Event("input", { bubbles: true }));
+    settle();
+    expect(edits()).toHaveLength(1);
+  });
+
   test("state snapshot identity changes only after a real change notification", () => {
     const { editor, root } = mount();
     const initial = editor.getState();

@@ -70,6 +70,8 @@ export class TabUIEditor {
   private _layoutResizeRafId?: number;
   /** Whether a cursor announcement check is queued for the current turn. */
   private _selectionAnnouncementQueued = false;
+  /** Whether an edit event is queued for the current turn. */
+  private _editEventQueued = false;
   /** Current responsive restriction applied above the configured mode. */
   private _responsiveInteractionMode: ResponsiveInteractionMode =
     ResponsiveInteractionMode.Normal;
@@ -180,6 +182,7 @@ export class TabUIEditor {
       this._layoutDimensions,
       this.onNotationComponentError.bind(this)
     );
+    this._notationComponent.onScoreEdited = this.queueEditEvent.bind(this);
     this._uiComponent = new UIComponent(
       this._shellComponent.template.scorePanelHost,
       this.rootDiv,
@@ -457,8 +460,28 @@ export class TabUIEditor {
   }
 
   /**
-   * Subscribes to future change and playback-error events; does not call the listener immediately.
-   * @param listener Listener receiving change and actionable error events
+   * Sends one edit event per user action, after that action's change event.
+   * An action can report several edits, such as a paste or a slider step that
+   * also re-renders, so the reports are combined in a microtask.
+   */
+  private queueEditEvent(): void {
+    if (this._editEventQueued) {
+      return;
+    }
+
+    this._editEventQueued = true;
+    queueMicrotask(() => {
+      this._editEventQueued = false;
+      if (this._state !== TabUIEditorLifecycleState.Initialized) {
+        return;
+      }
+      this._stateStore.emitEdit();
+    });
+  }
+
+  /**
+   * Subscribes to future change, edit, and playback-error events; does not call the listener immediately.
+   * @param listener Listener receiving change, edit, and actionable error events
    * @returns Idempotent subscription disposer
    * @throws If the editor is not initialized or is disposed.
    */

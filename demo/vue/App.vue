@@ -21,6 +21,7 @@ const variant = ref<"light" | "dark">("light");
 const activeTrack = ref("Unmounted");
 const width = ref(1200);
 const events = ref(0);
+const edits = ref(0);
 const setups = ref(0);
 const cleanups = ref(0);
 const title = ref("");
@@ -165,6 +166,10 @@ function saveSession() {
       <dd>
         <output aria-label="Change events">{{ events }}</output>
       </dd>
+      <dt>Edit events</dt>
+      <dd>
+        <output aria-label="Edit events">{{ edits }}</output>
+      </dd>
       <dt>Lifecycle setups</dt>
       <dd>
         <output aria-label="Lifecycle setups">{{ setups }}</output>
@@ -184,6 +189,7 @@ function saveSession() {
       :variant="variant"
       @ready="onReady"
       @change="onChange"
+      @edit="edits++"
       @error="error = $event"
     />
   </main>

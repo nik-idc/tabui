@@ -51,7 +51,8 @@ theme makes the component dispose the old editor and create a new one.
 The `ready` event gives the parent access to the current editor, or `null` after
 cleanup. The parent updates its status fields after Angular finishes checking
 the current view. The wrapper calls its state event `stateChange` to distinguish
-it from ordinary HTML `change` events.
+it from ordinary HTML `change` events. Its `edit` event fires after each user
+edit to the saved score, for example to autosave.
 
 ## Run the integration test
 

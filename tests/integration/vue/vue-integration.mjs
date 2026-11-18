@@ -195,6 +195,7 @@ async function checkVue(page) {
   await root.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   await page.keyboard.press("7");
   await expect(root.locator('[id^="note-text-"]')).toHaveText("7");
+  await expect(output("Edit events")).toHaveText("1");
   await checkHostForm(page, root);
 
   const beforeResize = Number(await output("Change events").textContent());
@@ -227,6 +228,12 @@ async function checkVue(page) {
   await expect(output("Active track")).toHaveText("Second track");
   await expect(output("Change events")).toHaveText(String(beforeTrack + 1));
   await expect(root.locator('[id^="note-text-"]')).toHaveText("7");
+  // Switching tracks is not an edit, but changing the mix is.
+  await expect(output("Edit events")).toHaveText("1");
+  await root
+    .getByRole("button", { name: "Second track solo", exact: true })
+    .click();
+  await expect(output("Edit events")).toHaveText("2");
 
   for (const [index, dark] of [true, false].entries()) {
     const previousHost = await root.elementHandle();

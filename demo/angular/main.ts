@@ -41,6 +41,7 @@ export class AngularDemo {
   activeTrack = "Unmounted";
   width = 1200;
   events = 0;
+  edits = 0;
   setups = 0;
   cleanups = 0;
   title = "";

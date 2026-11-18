@@ -63,6 +63,8 @@ type TabUIProps = {
   variant: "light" | "dark";
   onReady: (editor: TabUIEditor | null) => void;
   onChange: (state: TabUIEditorStateSnapshot) => void;
+  /** Called after each user edit to the saved score, for example to autosave. */
+  onEdit: (state: TabUIEditorStateSnapshot) => void;
   onError: (message: string) => void;
 };
 
@@ -72,6 +74,7 @@ export function TabUI({
   variant,
   onReady,
   onChange,
+  onEdit,
   onError,
 }: TabUIProps) {
   const host = useRef<HTMLDivElement>(null);
@@ -91,6 +94,8 @@ export function TabUI({
     const unsubscribe = editor.subscribe((event) => {
       if (event.type === "change") {
         onChange(event.state);
+      } else if (event.type === "edit") {
+        onEdit(event.state);
       } else {
         onError(event.error.message);
       }
@@ -101,7 +106,7 @@ export function TabUI({
       editor.dispose();
       onReady(null);
     };
-  }, [score, variant, onReady, onChange, onError]);
+  }, [score, variant, onReady, onChange, onEdit, onError]);
 
   return <div id="tabui-editor" ref={host} />;
 }

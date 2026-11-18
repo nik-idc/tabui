@@ -206,6 +206,7 @@ async function checkAngular(page) {
   await root.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   await page.keyboard.press("7");
   await expect(root.locator('[id^="note-text-"]')).toHaveText("7");
+  await expect(output("Edit events")).toHaveText("1");
   await expect(root.locator("#tu-selection rect").first()).toBeVisible();
   const beforeForm = Number(await output("Change events").textContent());
 
@@ -289,6 +290,8 @@ async function checkAngular(page) {
   await selectTrack("Second track");
   await expect(output("Change events")).toHaveText(String(beforeForm + 3));
   await expect(root.locator('[id^="note-text-"]')).toHaveText("7");
+  // Switching tracks is not an edit, but renaming one is.
+  await expect(output("Edit events")).toHaveText("1");
 
   // Rename through TabUI to prove that the same score survives theme rebuilds.
   const trackName = root.getByRole("textbox", {
@@ -299,6 +302,7 @@ async function checkAngular(page) {
   await root
     .getByRole("textbox", { name: "Practice guitar name", exact: true })
     .press("Tab");
+  await expect(output("Edit events")).toHaveText("2");
   // Theme replacement is checked with both lifecycle counters and DOM identity.
   for (const [variant, setups] of [
     ["dark", 3],

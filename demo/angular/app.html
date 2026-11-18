@@ -90,6 +90,8 @@
     <dd><output aria-label="Layout width">{{ width }}</output></dd>
     <dt>Change events</dt>
     <dd><output aria-label="Change events">{{ events }}</output></dd>
+    <dt>Edit events</dt>
+    <dd><output aria-label="Edit events">{{ edits }}</output></dd>
     <dt>Effect setups</dt>
     <dd><output aria-label="Effect setups">{{ setups }}</output></dd>
     <dt>Effect cleanups</dt>
@@ -104,6 +106,7 @@
     [variant]="variant"
     (ready)="onReady($event)"
     (stateChange)="onChange($event)"
+    (edit)="edits = edits + 1"
     (failure)="error = $event"
   />
   }
