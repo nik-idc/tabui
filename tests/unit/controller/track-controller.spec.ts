@@ -1129,10 +1129,11 @@ describe("TrackController", () => {
     expectEdits(() => controller.setMasterPan(score, -0.5), 1);
     expectEdits(() => controller.setMasterPan(score, -0.5), 0);
 
-    let second = track;
+    let added: ReturnType<typeof controller.addTrack>;
     expectEdits(() => {
-      second = required(controller.addTrack(score, new Guitar(), "Second"));
+      added = controller.addTrack(score, new Guitar(), "Second");
     }, 1);
+    const second = required(added);
     expectEdits(() => controller.moveTrack(second, 0), 1);
     expectEdits(() => controller.moveTrack(second, 0), 0);
     expectEdits(() => controller.setTrackName(second, "Lead"), 1);
