@@ -1,4 +1,5 @@
 import { randomInt } from "../../shared";
+import { getMeterType, MeterType } from "./bar-beaming";
 import { BarRepeatStatus, BarRepeatStatusChange } from "./bar-repeat-status";
 import { NoteDuration } from "./note-duration";
 import { getBaseDurationFraction, TimingFraction } from "./timing";
@@ -141,6 +142,11 @@ export class MasterBar {
   /** Written meter beat unit in whole-note units, such as 0.25 for a quarter note. */
   public get duration(): NoteDuration {
     return this._duration;
+  }
+
+  /** Whether the time signature is simple, compound, or irregular, as beaming groups it. */
+  public get meterType(): MeterType {
+    return getMeterType(this._beatsCount, 1 / this._duration);
   }
 
   /** Time signature numerator alias */

@@ -12,8 +12,6 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
   readonly beats: Beat<I>[];
   /** True if beats 'fill' the tuplet group */
   readonly complete: boolean;
-  /** True if normal count = tuplet count + 1 (3:2, 4:3, 5:4 etc) */
-  readonly isStandard: boolean;
   /** "normalCount" many notes are equal "tupletCount" beats */
   readonly normalCount: number;
   /** "normalCount" many notes are equal "tupletCount" beats */
@@ -33,7 +31,6 @@ export class BarTupletGroup<I extends MusicInstrument = MusicInstrument> {
     this.beats = beats;
 
     this.complete = this.beats.length === normalCount;
-    this.isStandard = this.normalCount === this.tupletCount + 1;
   }
 
   /**

@@ -6,6 +6,8 @@ import {
   DYNAMIC_NAMES,
   DYNAMIC_SYMBOLS,
   DYNAMICS,
+  TUPLET_PRESETS,
+  tupletSettingsEqual,
 } from "../../../notation/model";
 
 export class NoteControlsTemplateRenderer {
@@ -264,14 +266,10 @@ export class NoteControlsTemplateRenderer {
         continue;
       }
 
-      if (
-        beat.tupletSettings.normalCount === 2 &&
-        beat.tupletSettings.tupletCount === 1
-      ) {
+      if (tupletSettingsEqual(beat.tupletSettings, TUPLET_PRESETS.duplet)) {
         hasTuplet2 = true;
       } else if (
-        beat.tupletSettings.normalCount === 3 &&
-        beat.tupletSettings.tupletCount === 2
+        tupletSettingsEqual(beat.tupletSettings, TUPLET_PRESETS.triplet)
       ) {
         hasTuplet3 = true;
       } else {

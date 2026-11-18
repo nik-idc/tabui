@@ -747,7 +747,7 @@ describe("EditorKeyboardDefCallbacks", () => {
     (initial) => {
       const { callbacks, notationComponent, rootElement, renderFunc } =
         createHarness();
-      const duplet = { normalCount: 2, tupletCount: 1 };
+      const duplet = { normalCount: 2, tupletCount: 3 };
       const triplet = { normalCount: 3, tupletCount: 2 };
       const { track, beats } = createBarWithBeats([
         { baseDuration: NoteDuration.Eighth, tupletSettings: duplet },
@@ -1510,7 +1510,7 @@ describe("EditorKeyboardDefCallbacks", () => {
   test("real backward range cycles custom tuplets and restores mixed values", () => {
     const { callbacks, notationComponent, rootElement } = createHarness();
     const custom = { normalCount: 5, tupletCount: 4 };
-    const duplet = { normalCount: 2, tupletCount: 1 };
+    const duplet = { normalCount: 2, tupletCount: 3 };
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Eighth, tupletSettings: custom },
       { baseDuration: NoteDuration.Eighth, tupletSettings: duplet },

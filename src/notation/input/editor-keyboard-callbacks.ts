@@ -9,6 +9,8 @@ import {
   NoteDuration,
   NoteValue,
   StrokeDirection,
+  TUPLET_PRESETS,
+  tupletSettingsEqual,
   VoiceNumber,
 } from "../model";
 import type { SetTechniqueOptions } from "../model/editor/set-technique-options";
@@ -342,11 +344,12 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     const settings = reference.tupletSettings;
+    const { duplet, triplet } = TUPLET_PRESETS;
     const next =
       settings === null
-        ? { normalCount: 2, tupletCount: 1 }
-        : settings.normalCount === 2 && settings.tupletCount === 1
-          ? { normalCount: 3, tupletCount: 2 }
+        ? duplet
+        : tupletSettingsEqual(settings, duplet)
+          ? triplet
           : null;
     if (next === null) {
       // Custom tuplets and triplets both return to no tuplet.

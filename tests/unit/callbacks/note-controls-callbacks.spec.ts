@@ -170,9 +170,13 @@ describe("NoteControlsDefaultCallbacks", () => {
     expect(enforcer.activeDialog).toBeUndefined();
   });
 
-  test("rejects an invalid tuplet preset without editing the selected beat", () => {
-    expect(() => fixture.callbacks.onTupletNormalClicked(1)).toThrow(Error);
-    expect(fixture.beat.tupletSettings).toBeNull();
+  test("the tuplet preset button applies a 2:3 duplet", () => {
+    fixture.callbacks.bind();
+    fixture.controls.template.tuplet2Button.click();
+    expect(fixture.beat.tupletSettings).toEqual({
+      normalCount: 2,
+      tupletCount: 3,
+    });
   });
 
   test("pitch buttons shift the selected note and participate in undo history", () => {

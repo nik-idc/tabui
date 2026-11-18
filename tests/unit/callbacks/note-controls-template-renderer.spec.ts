@@ -46,6 +46,36 @@ describe("NoteControlsTemplateRenderer", () => {
     }
   });
 
+  test("presses the tuplet preset button for a 2:3 duplet", () => {
+    const { score } = createBarWithBeats([
+      {
+        baseDuration: NoteDuration.Eighth,
+        tupletSettings: { normalCount: 2, tupletCount: 3 },
+      },
+    ]);
+    const notation = new NotationComponent(
+      document.createElement("div"),
+      score,
+      resolveTabUIConfig(),
+      createTestLayoutDimensions()
+    );
+    const template = new NoteControlsTemplate();
+    const renderer = new NoteControlsTemplateRenderer(
+      document.createElement("div"),
+      notation,
+      template
+    );
+
+    try {
+      renderer.render();
+
+      expect(template.tuplet2Button.getAttribute("aria-pressed")).toBe("true");
+      expect(template.tuplet3Button.getAttribute("aria-pressed")).toBe("false");
+    } finally {
+      notation.dispose();
+    }
+  });
+
   test("lights every dynamic found in a mixed selection", () => {
     const { score, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },

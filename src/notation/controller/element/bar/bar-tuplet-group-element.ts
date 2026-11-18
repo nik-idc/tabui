@@ -1,4 +1,10 @@
-import { BarTupletGroup, VoiceNumber } from "../../../model";
+import {
+  BarTupletGroup,
+  MeterType,
+  TUPLET_PRESETS,
+  tupletSettingsEqual,
+  VoiceNumber,
+} from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
 import { TrackElement } from "../track-element";
 import { NotationElement, NotationNodeType } from "../notation-element";
@@ -7,6 +13,47 @@ import { TabBeatElement } from "../beat/tab-beat-element";
 import { VoiceBarRhythmContainer } from "./voice-bar-rhythm-container";
 import type { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
+
+function isPowerOfTwo(n: number): boolean {
+  return Number.isInteger(n) && n >= 1 && (n & (n - 1)) === 0;
+}
+
+/**
+ * Returns the tuplet text: only the first number when readers expect the
+ * second one, and the full ratio otherwise. Preset ratios (TUPLET_PRESETS)
+ * always show one number, because they are what that number means in
+ * TabUI, like Guitar Pro's fixed tuplet meanings. In any meter, N is also
+ * expected against the largest power of two below N (3:2, 5:4, 6:4, 7:4,
+ * 9:8). In compound meter, a power of two is also expected against 3/2 or
+ * 3/4 of itself (2:3, 4:3, 4:6, 8:6).
+ * @param normalCount Number of written notes (3 for triplets).
+ * @param tupletCount Number of ordinary notes they replace (2 for triplets).
+ * @param compoundMeter Whether the bar is in compound meter, such as 6/8.
+ */
+export function formatTupletRatio(
+  normalCount: number,
+  tupletCount: number,
+  compoundMeter: boolean
+): string {
+  const oneNumber = `${normalCount}`;
+  const ratio = { normalCount, tupletCount };
+  if (
+    Object.values(TUPLET_PRESETS).some((preset) =>
+      tupletSettingsEqual(preset, ratio)
+    )
+  ) {
+    return oneNumber;
+  }
+
+  const expected = isPowerOfTwo(normalCount)
+    ? compoundMeter &&
+      (tupletCount * 2 === normalCount * 3 ||
+        tupletCount * 4 === normalCount * 3)
+    : isPowerOfTwo(tupletCount) &&
+      tupletCount < normalCount &&
+      tupletCount * 2 > normalCount;
+  return expected ? oneNumber : `${normalCount}:${tupletCount}`;
+}
 
 /**
  * Class that handles geometry & visually relevant info of a bar tuplet group
@@ -154,9 +201,7 @@ export class BarTupletGroupElement implements NotationElement {
    */
   public getTupletString(beatIndex: number): string {
     if (this.tupletGroup.complete) {
-      return this.tupletGroup.isStandard
-        ? `${this.tupletGroup.normalCount}`
-        : `${this.tupletGroup.normalCount}:${this.tupletGroup.tupletCount}`;
+      return this.completeText;
     }
 
     if (beatIndex < 0 || beatIndex >= this.beatElements.length) {
@@ -167,9 +212,16 @@ export class BarTupletGroupElement implements NotationElement {
     if (beatElementTuplet === null) {
       throw Error("Non-tuplet beat inside tuplet element");
     }
-    return this.tupletGroup.isStandard
-      ? `${beatElementTuplet.normalCount}`
-      : `${beatElementTuplet.normalCount}:${beatElementTuplet.tupletCount}`;
+    return formatTupletRatio(
+      beatElementTuplet.normalCount,
+      beatElementTuplet.tupletCount,
+      this.isCompoundMeter
+    );
+  }
+
+  /** Whether this tuplet's bar is in compound meter, such as 6/8. */
+  private get isCompoundMeter(): boolean {
+    return this.owningBarElement.bar.masterBar.meterType === MeterType.Compound;
   }
 
   /** String encoding the state of this element */
@@ -179,6 +231,8 @@ export class BarTupletGroupElement implements NotationElement {
         `${this.barLocalBoundingBox.y}` +
         `${this.barLocalBoundingBox.width}` +
         `${this.barLocalBoundingBox.height}`,
+      // The text depends on the bar's meter, which may change on its own.
+      this.completeText,
     ];
 
     if (this._incompleteRects !== undefined) {
@@ -348,9 +402,11 @@ export class BarTupletGroupElement implements NotationElement {
 
   /** Text for a complete tuplet */
   public get completeText(): string {
-    return this.tupletGroup.isStandard
-      ? `${this.tupletGroup.normalCount}`
-      : `${this.tupletGroup.normalCount}:${this.tupletGroup.tupletCount}`;
+    return formatTupletRatio(
+      this.tupletGroup.normalCount,
+      this.tupletGroup.tupletCount,
+      this.isCompoundMeter
+    );
   }
 
   /** Complete tuplet group text coordinates (or undefined if tuplet group incomplete) */
