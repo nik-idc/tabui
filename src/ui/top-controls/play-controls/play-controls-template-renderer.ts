@@ -5,7 +5,7 @@ import { PlayControlsTemplate } from "./play-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 import { PlaybackState } from "../../../player";
 
-const buttonSize = `30px`;
+const buttonSize = `1.875rem`;
 
 export class PlayControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;

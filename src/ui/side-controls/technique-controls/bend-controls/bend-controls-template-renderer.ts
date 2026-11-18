@@ -92,8 +92,6 @@ export class BendControlsTemplateRenderer {
   private renderSVGGraph(): void {
     const cssClass = "tu-bend-controls-svg";
     this.template.bendSelectorGraphSVG.classList.add(cssClass);
-    this.template.bendSelectorGraphSVG.setAttribute("width", "420px");
-    this.template.bendSelectorGraphSVG.setAttribute("height", "300px");
     this.template.bendSelectorGraphSVG.setAttribute("role", "group");
     this.template.bendSelectorGraphSVG.setAttribute(
       "aria-label",

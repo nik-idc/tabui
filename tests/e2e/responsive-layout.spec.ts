@@ -739,3 +739,21 @@ test("configured view-only keeps only track selection, names, and playback", asy
     await expect(editor.locator(`${selector}:visible`)).toHaveCount(0);
   }
 });
+
+test("fills the height of its parent", async ({ page }) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  // The demo sets its own editor height. Remove it to test the default.
+  await editor.evaluate((element) => {
+    element.classList.remove("demo-editor");
+    const parent = element.parentElement;
+    if (parent === null) {
+      throw new Error("Expected the editor to have a parent");
+    }
+    parent.style.height = "500px";
+  });
+  await expect
+    .poll(async () => (await requiredBoundingBox(editor)).height)
+    .toBe(500);
+});
