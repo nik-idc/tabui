@@ -121,6 +121,31 @@ export function buildIrregularBeams(
   return result;
 }
 
+/** How a time signature groups its beats. */
+export enum MeterType {
+  /** 1 to 4 beats, such as 2/4, 3/4, or 4/4. */
+  Simple = "simple",
+  /** Eighth-note meters with groups of three, such as 6/8, 9/8, or 12/8. */
+  Compound = "compound",
+  /** Every other meter, such as 5/4, 7/8, or 6/4. */
+  Irregular = "irregular",
+}
+
+/**
+ * Classifies a time signature.
+ * @param beatsCount Top number of the time signature, such as 6 in 6/8.
+ * @param duration Bottom number of the time signature, such as 8 in 6/8.
+ */
+export function getMeterType(beatsCount: number, duration: number): MeterType {
+  if (beatsCount >= 1 && beatsCount <= 4) {
+    return MeterType.Simple;
+  }
+  if (beatsCount % 3 === 0 && duration === 8) {
+    return MeterType.Compound;
+  }
+  return MeterType.Irregular;
+}
+
 /**
  * Returns beaming rules for a given time signature.
  * @param beatsCount - top number of the time signature (e.g., 4 in 4/4, 7 in 7/8)
@@ -129,13 +154,10 @@ export function buildIrregularBeams(
  * the time-signature denominator or an eighth note, whichever is shorter
  */
 export function getBeaming(beatsCount: number, duration: number) {
-  const isSimple =
-    beatsCount === 1 ||
-    beatsCount === 2 ||
-    beatsCount === 3 ||
-    beatsCount === 4;
-  const isCompound = beatsCount % 3 === 0 && beatsCount !== 3 && duration === 8;
-  const isIrregular = !isSimple && !isCompound;
+  const meterType = getMeterType(beatsCount, duration);
+  const isSimple = meterType === MeterType.Simple;
+  const isCompound = meterType === MeterType.Compound;
+  const isIrregular = meterType === MeterType.Irregular;
 
   // Handle irregular meters first
   if (isIrregular) {

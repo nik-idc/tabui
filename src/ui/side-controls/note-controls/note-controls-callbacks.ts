@@ -2,6 +2,7 @@ import {
   Dynamic,
   DYNAMICS,
   NoteDuration,
+  TUPLET_PRESETS,
   VoiceNumber,
 } from "../../../notation/model";
 import { NotationComponent } from "../../../notation/notation-component";
@@ -21,13 +22,15 @@ export interface NoteControlsCallbacks {
   onRemoveBeatClicked(): void;
   onRestClicked(): void;
   onVoiceClicked(voiceNumber: VoiceNumber): void;
-  onTupletNormalClicked(normalCount: number): void;
+  onTupletPresetClicked(preset: TupletPreset): void;
   onTupletClicked(): void;
   onPitchShiftClicked(semitones: number): void;
   onDynamicClicked(dynamic: Dynamic): void;
   bind(): void;
   unbind(): void;
 }
+
+type TupletPreset = (typeof TUPLET_PRESETS)[keyof typeof TUPLET_PRESETS];
 
 function parseVoiceNumber(value: string | undefined): VoiceNumber {
   const voiceNumber = Number(value);
@@ -114,13 +117,10 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._renderActiveVoiceFunc();
   }
 
-  onTupletNormalClicked(normalCount: number): void {
-    if (normalCount < 2) {
-      throw Error("Tuplet normal count has to be >= 2");
-    }
+  onTupletPresetClicked(preset: TupletPreset): void {
     this._notationComponent.trackController.setSelectedBeatsTuplet(
-      normalCount,
-      normalCount - 1
+      preset.normalCount,
+      preset.tupletCount
     );
     this._renderFunc();
   }
@@ -217,12 +217,12 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
       {
         element: this._noteComponent.template.tuplet2Button,
         event: "click",
-        handler: () => this.onTupletNormalClicked(2),
+        handler: () => this.onTupletPresetClicked(TUPLET_PRESETS.duplet),
       },
       {
         element: this._noteComponent.template.tuplet3Button,
         event: "click",
-        handler: () => this.onTupletNormalClicked(3),
+        handler: () => this.onTupletPresetClicked(TUPLET_PRESETS.triplet),
       },
       {
         element: this._noteComponent.template.tupletButton,

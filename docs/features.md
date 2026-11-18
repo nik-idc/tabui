@@ -1,9 +1,9 @@
 # Features
 
-This guide explains how TabUI's notation features behave: repeats, staves, dynamics, and
-guitar techniques. These are TabUI's rules, not a claim about how other
-tablature editors interpret the same marks. For what each term means, see
-[Domain Model and Terms](domain.md).
+This guide explains how TabUI's notation features behave: repeats, staves,
+tuplets, dynamics, and guitar techniques. These are TabUI's rules, not a claim
+about how other tablature editors interpret the same marks. For what each term
+means, see [Domain Model and Terms](domain.md).
 
 ## Repeat sections
 
@@ -57,6 +57,28 @@ staves play together. See [Domain model and terms](domain.md#staff).
   track always keeps one staff. Undo brings the staff back.
 - Alt+Up and Alt+Down move the cursor to the same moment in the staff above or
   below.
+
+## Tuplets
+
+A tuplet plays a number of notes in the time of a different number, such as
+three eighths in the time of two (3:2).
+
+- **Tuplet preset** makes a duplet: two notes in the time of three (2:3), such
+  as two eighths in a dotted quarter.
+- **Triplet preset** makes three notes in the time of two (3:2).
+- **Custom tuplet** (Shift+T) sets any ratio.
+- T cycles the selected beats through duplet, triplet, and no tuplet.
+
+The tuplet number shows only the first number when readers expect the second
+one, and the full ratio otherwise:
+
+- The presets always show one number: 2 for a duplet and 3 for a triplet, in
+  any meter, as in Guitar Pro.
+- In any meter, one number shows when the second is the largest power of two
+  below it: 3:2, 5:4, 6:4, 7:4, 9:8, and so on.
+- In compound meter (6/8, 9/8, 12/8), one number also shows for 4:3, 4:6, and
+  8:6.
+- All other ratios show both numbers, for example 7:8, 5:3, or 4:6 in 4/4.
 
 ## Dynamics
 

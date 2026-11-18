@@ -10,6 +10,18 @@ export type TupletSettings = {
 };
 
 /**
+ * Tuplet ratios with their own buttons and keyboard cycle. They also always
+ * show only their first number, so adding a preset changes how that ratio is
+ * labeled.
+ */
+export const TUPLET_PRESETS = {
+  /** Two notes in the time of three, such as two eighths in a dotted quarter. */
+  duplet: { normalCount: 2, tupletCount: 3 },
+  /** Three notes in the time of two. */
+  triplet: { normalCount: 3, tupletCount: 2 },
+} as const satisfies Record<string, TupletSettings>;
+
+/**
  * Lowest accepted tuplet normalCount. The storage layer accepts any positive
  * integer (matches serialization); the UI stepper intentionally offers 2+ to
  * avoid degenerate 1-tuplets. See `MIN_TUPLET_NORMAL_COUNT_UI`.
