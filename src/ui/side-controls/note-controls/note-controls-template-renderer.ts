@@ -296,7 +296,9 @@ export class NoteControlsTemplateRenderer {
     for (const [i, dynamic] of DYNAMICS.entries()) {
       const button = this.template.dynamicButtons[i];
       const symbol = DYNAMIC_SYMBOLS[dynamic];
-      const label = DYNAMIC_NAMES[dynamic];
+      // Starts with the visible symbol, so voice control users can say
+      // "click mf"; the full word follows for screen readers.
+      const label = `${symbol}, ${DYNAMIC_NAMES[dynamic].toLowerCase()}`;
       setImageAsset(
         button,
         this.assetsPath,

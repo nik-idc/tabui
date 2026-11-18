@@ -121,8 +121,9 @@ describe("NoteControlsTemplateRenderer", () => {
         b.classList.contains("tu-applied-img")
       );
       expect(applied).toHaveLength(2);
+      // The name starts with the visible symbol (WCAG 2.5.3 Label in Name).
       expect(template.dynamicButtons[6].getAttribute("aria-label")).toBe(
-        "Fortissimo"
+        "ff, fortissimo"
       );
     } finally {
       notation.dispose();
