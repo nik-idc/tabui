@@ -301,9 +301,10 @@ A `"change"` event is a broad editor-state notification: selection, playback,
 layout, or score edits can trigger it. It is not a document-dirty event.
 
 An `"edit"` event follows the `"change"` event of each user action that changed
-the saved score: notes and bars, techniques, the score name, tracks and their
-instruments, and mix settings such as volume, pan, mute, and solo. Undo and redo
-are edits too. One action sends one event, even when it changes many beats.
+the saved score: notes and bars, techniques, the score name and details, tracks
+and their instruments, and mix settings such as volume, pan, mute, and solo.
+Undo and redo are edits too. One action sends one event, even when it changes
+many beats.
 Changes that the host makes directly to the model do not send edit events. Read
 `editor.getState()` after initialization for the initial state; subscribing does
 not immediately call the listener. State snapshots describe the editor and refer

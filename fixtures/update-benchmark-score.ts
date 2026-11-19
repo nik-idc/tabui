@@ -12,17 +12,11 @@ export function createUpdateBenchmarkScore(): Score {
     beatsCount: 32,
     beatsDuration: NoteDuration.ThirtySecond,
   }));
-  return createScore(
-    "Updates Benchmark Score",
-    "TabUI",
-    "Updates Stress Test",
-    masterBarsCount,
-    [
-      {
-        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-        stavesInfo: [barsInfo],
-        name: "Updates Benchmark Track",
-      },
-    ]
-  );
+  return createScore("Updates Benchmark Score", "TabUI", masterBarsCount, [
+    {
+      instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
+      stavesInfo: [barsInfo],
+      name: "Updates Benchmark Track",
+    },
+  ]);
 }

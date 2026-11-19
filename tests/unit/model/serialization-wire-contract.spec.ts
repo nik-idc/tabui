@@ -329,7 +329,6 @@ function wireDocument() {
     version: 1,
     name: "Unknown",
     artist: "Unknown artist",
-    song: "Unknown song",
     masterVolume: 0.5,
     masterPan: 0,
     masterBars: [
@@ -384,7 +383,8 @@ function richDocument() {
   Object.assign(document, {
     name: "Wire contract",
     artist: "Artist",
-    song: "Song",
+    album: "Album",
+    releaseDate: "2024-05",
     masterVolume: 0.7,
     masterPan: -0.25,
   });
@@ -478,7 +478,9 @@ function populatedVoice(score: Score) {
 }
 
 function richScore(): Score {
-  const score = new Score([], "Wire contract", "Artist", "Song");
+  const score = new Score([], "Wire contract", "Artist");
+  score.album = "Album";
+  score.releaseDate = "2024-05";
   score.masterVolume = 0.7;
   score.masterPan = -0.25;
   Object.assign(score.masterBars[0], {
@@ -555,6 +557,43 @@ describe("V1 serialization wire contract", () => {
     expect(serializeScore(new Score())).toStrictEqual(wireDocument());
   });
 
+  test("reads older documents with a song field and no album or release date", () => {
+    const score = deserializeScore({ ...wireDocument(), song: "Old song" });
+    expect(score.album).toBeNull();
+    expect(score.releaseDate).toBeNull();
+    expect(serializeScore(score)).toStrictEqual(wireDocument());
+  });
+
+  test.each(["2024", "2024-05", "2024-02-29"])(
+    "accepts the release date %s",
+    (releaseDate) => {
+      const score = deserializeScore({ ...wireDocument(), releaseDate });
+      expect(score.releaseDate).toBe(releaseDate);
+      expect(serializeScore(score).releaseDate).toBe(releaseDate);
+    }
+  );
+
+  test.each([
+    "",
+    "24",
+    "20 4",
+    "2024-",
+    "2024-5",
+    "2024-00",
+    "2024-13",
+    "2024-04-31",
+    "2023-02-29",
+    "2024-05-17-01",
+    "May 2024",
+  ])("rejects the release date %s when reading and writing", (releaseDate) => {
+    expect(() => deserializeScore({ ...wireDocument(), releaseDate })).toThrow(
+      "$.releaseDate"
+    );
+    const score = new Score();
+    score.releaseDate = releaseDate;
+    expect(() => serializeScore(score)).toThrow("$.releaseDate");
+  });
+
   test("writes exact V1 fields without owners, identities, or derived timing", () => {
     const score = richScore();
     const voice = score.tracks[0].staves[0].bars[0].getVoiceBar(3);
@@ -569,7 +608,8 @@ describe("V1 serialization wire contract", () => {
     expect(score).toMatchObject({
       name: "Wire contract",
       artist: "Artist",
-      song: "Song",
+      album: "Album",
+      releaseDate: "2024-05",
       masterVolume: 0.7,
       masterPan: -0.25,
     });

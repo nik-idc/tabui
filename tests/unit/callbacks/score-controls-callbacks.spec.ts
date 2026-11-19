@@ -164,7 +164,6 @@ describe("Score controls", () => {
     expect(notation.trackController.playbackState).toBe(PlaybackState.Playing);
     controls.render();
     expect(controls.template.newTrackButton.disabled).toBe(true);
-    expect(controls.template.scoreNameInput.disabled).toBe(true);
     const t = controls.template;
     for (const button of [
       t.rangeButton,
@@ -178,9 +177,7 @@ describe("Score controls", () => {
     callbacks.onRangeClicked();
     expect(notation.trackController.hasSelectionAnchor).toBe(false);
     callbacks.onNewTrackButtonClicked();
-    input(controls.template.scoreNameInput, "Blocked");
     expect(controls.newTrackComponent.dialog.open).toBe(false);
-    expect(notation.score.name).toBe("Original");
     expect(notation.score.tracks).toHaveLength(2);
     expect(controls.template.masterVolumeInput.disabled).toBe(false);
     expect(controls.template.masterPanningInput.disabled).toBe(false);
@@ -190,7 +187,7 @@ describe("Score controls", () => {
     expect(notation.score.masterPan).toBe(0.5);
   });
 
-  test("score controls toggle tracks, rename and open dialogs; unbind stops events", () => {
+  test("score controls toggle tracks and open dialogs; unbind stops events", () => {
     controls.template.showTracksButton.click();
     expect(controls.tracksAreDisplayed).toBe(true);
     expect(controls.template.showTracksButton.textContent).toBe(
@@ -204,8 +201,6 @@ describe("Score controls", () => {
     const lead = controls.trackComponents[1];
     lead.template.container.click();
     expect(notation.trackController.track).toBe(lead.track);
-    input(controls.template.scoreNameInput, "Renamed");
-    expect(notation.score.name).toBe("Renamed");
     controls.template.newTrackButton.click();
     expect(controls.newTrackComponent.dialog.open).toBe(true);
     controls.newTrackComponent.dialog.close();
@@ -219,10 +214,8 @@ describe("Score controls", () => {
     expect(notation.score.tracks).not.toContain(lead.track);
     callbacks.unbind();
     controls.template.showTracksButton.click();
-    input(controls.template.scoreNameInput, "Detached");
     input(controls.template.masterVolumeInput, "10");
     expect(controls.tracksAreDisplayed).toBe(true);
-    expect(notation.score.name).toBe("Renamed");
     expect(notation.score.masterVolume).toBe(0.5);
   });
 

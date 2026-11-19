@@ -1061,6 +1061,9 @@ describe("TrackController", () => {
     const before = serializeScore(score);
 
     controller.setScoreName(score, "Blocked");
+    controller.setScoreArtist(score, "Blocked");
+    controller.setScoreAlbum(score, "Blocked");
+    controller.setScoreReleaseDate(score, "2024");
     controller.setMasterVolume(score, 0.25);
     controller.setMasterPan(score, -0.5);
     controller.addTrack(score, new Guitar(), "Blocked");
@@ -1124,6 +1127,17 @@ describe("TrackController", () => {
 
     expectEdits(() => controller.setScoreName(score, "Song"), 1);
     expectEdits(() => controller.setScoreName(score, "Song"), 0);
+    expectEdits(() => controller.setScoreArtist(score, "Band"), 1);
+    expectEdits(() => controller.setScoreArtist(score, "Band"), 0);
+    expectEdits(() => controller.setScoreAlbum(score, "Record"), 1);
+    expectEdits(() => controller.setScoreAlbum(score, "Record"), 0);
+    expectEdits(() => controller.setScoreReleaseDate(score, "2024-05"), 1);
+    expectEdits(() => controller.setScoreReleaseDate(score, "2024-05"), 0);
+    // An invalid date is rejected, and an empty one clears the date.
+    expect(controller.setScoreReleaseDate(score, "2024-13")).toBe(false);
+    expect(score.releaseDate).toBe("2024-05");
+    expectEdits(() => controller.setScoreReleaseDate(score, ""), 1);
+    expect(score.releaseDate).toBeNull();
     expectEdits(() => controller.setMasterVolume(score, 0.25), 1);
     expectEdits(() => controller.setMasterVolume(score, 0.25), 0);
     expectEdits(() => controller.setMasterPan(score, -0.5), 1);

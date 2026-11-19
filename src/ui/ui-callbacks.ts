@@ -2,6 +2,7 @@ import { UIComponent } from "./";
 import { SideControlsCallbacks } from "./side-controls/side-controls-callbacks";
 import { TopControlsCallbacks } from "./top-controls/top-controls-callbacks";
 import { NotationComponent } from "../notation/notation-component";
+import { ScoreHeaderCallbacks } from "./score-header";
 
 export class UICallbacks {
   private _uiComponent: UIComponent;
@@ -11,6 +12,7 @@ export class UICallbacks {
 
   private _topCallbacks: TopControlsCallbacks;
   private _sideCallbacks: SideControlsCallbacks;
+  private _headerCallbacks: ScoreHeaderCallbacks;
   private _bound = false;
 
   constructor(
@@ -34,6 +36,10 @@ export class UICallbacks {
       this._renderFunc,
       this._renderActiveVoiceFunc
     );
+    this._headerCallbacks = new ScoreHeaderCallbacks(
+      this._uiComponent.headerComponent,
+      this._notationComponent
+    );
   }
 
   public bind(): void {
@@ -43,6 +49,7 @@ export class UICallbacks {
 
     this._topCallbacks.bind();
     this._sideCallbacks.bind();
+    this._headerCallbacks.bind();
     this._bound = true;
   }
 
@@ -53,6 +60,7 @@ export class UICallbacks {
 
     this._topCallbacks.unbind();
     this._sideCallbacks.unbind();
+    this._headerCallbacks.unbind();
     this._bound = false;
   }
 }

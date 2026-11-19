@@ -9,7 +9,7 @@ import {
   MIN_MASTER_BAR_REPEAT_COUNT,
   MIN_MASTER_BAR_TEMPO,
 } from "../../master-bar";
-import { Score } from "../../score";
+import { Score, isReleaseDate } from "../../score";
 import { Staff } from "../../staff";
 import { Track } from "../../track";
 import { ScoreSerializationError } from "../serialization-error";
@@ -307,7 +307,20 @@ function serializeMasterBar(
 export function serializeScore(score: Score): SerializedScoreV1 {
   validateString(score.name, propertyPath(ROOT_SERIALIZATION_PATH, "name"));
   validateString(score.artist, propertyPath(ROOT_SERIALIZATION_PATH, "artist"));
-  validateString(score.song, propertyPath(ROOT_SERIALIZATION_PATH, "song"));
+  const albumPath = propertyPath(ROOT_SERIALIZATION_PATH, "album");
+  if (score.album !== null) {
+    validateString(score.album, albumPath);
+  }
+  const releaseDatePath = propertyPath(ROOT_SERIALIZATION_PATH, "releaseDate");
+  if (score.releaseDate !== null) {
+    validateString(score.releaseDate, releaseDatePath);
+    if (!isReleaseDate(score.releaseDate)) {
+      throw new ScoreSerializationError(
+        releaseDatePath,
+        'expected a date as "YYYY", "YYYY-MM" or "YYYY-MM-DD"'
+      );
+    }
+  }
   const masterBarsPath = propertyPath(ROOT_SERIALIZATION_PATH, "masterBars");
   if (score.masterBars.length === 0) {
     throw new ScoreSerializationError(
@@ -347,7 +360,8 @@ export function serializeScore(score: Score): SerializedScoreV1 {
     version: SCORE_SERIALIZATION_VERSION,
     name: score.name,
     artist: score.artist,
-    song: score.song,
+    ...(score.album === null ? {} : { album: score.album }),
+    ...(score.releaseDate === null ? {} : { releaseDate: score.releaseDate }),
     masterVolume: score.masterVolume,
     masterPan: score.masterPan,
     masterBars,

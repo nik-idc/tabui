@@ -16,7 +16,7 @@ function importedDocument(name = "Imported study", fret = 7): string {
     version: 1,
     name,
     artist: "Ada",
-    song: "Evening",
+    album: "Evening",
     masterVolume: 0.8,
     masterPan: -0.2,
     masterBars: [
@@ -175,7 +175,7 @@ describe("demo score persistence controls", () => {
     );
     let editor = new TabUIEditor(
       root,
-      new Score([], "Current score", "Artist", "Song"),
+      new Score([], "Current score", "Artist"),
       {
         layout: { width: 1200 },
       }
@@ -266,7 +266,6 @@ describe("demo score persistence controls", () => {
     const restored = deserializeScore(JSON.parse(contents) as unknown);
     expect(restored.name).toBe("Current score");
     expect(restored.artist).toBe("Artist");
-    expect(restored.song).toBe("Song");
     expect(restored.tracks).toHaveLength(1);
     expect(
       restored.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0].notes
