@@ -208,7 +208,9 @@ describe("BendControlsDefaultCallbacks", () => {
       component.template.bendSelectorGraphSVG.querySelector<SVGCircleElement>(
         'circle[aria-label="Bend point"]'
       );
-    if (point === null) throw Error("Expected bend point");
+    if (point === null) {
+      throw Error("Expected bend point");
+    }
     point.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     point.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     const before = point.getAttribute("cy");
@@ -225,7 +227,9 @@ describe("BendControlsDefaultCallbacks", () => {
       component.template.bendSelectorGraphSVG.querySelector<SVGCircleElement>(
         'circle[aria-label="Bend point"]'
       );
-    if (reopenedPoint === null) throw Error("Expected reopened bend point");
+    if (reopenedPoint === null) {
+      throw Error("Expected reopened bend point");
+    }
     reopenedPoint.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     reopenedPoint.dispatchEvent(
       new KeyboardEvent("keydown", { key: "ArrowUp" })

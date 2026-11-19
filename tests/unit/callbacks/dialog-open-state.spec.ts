@@ -43,8 +43,11 @@ describe("dialog open state", () => {
           values[0].textContent = "99";
         }
         expect(component.dialog.open).toBe(false);
-        if (name === "tempo") controller.setSelectedBarTempo(90);
-        else controller.setSelectedBarTimeSignature(7, 1 / 8);
+        if (name === "tempo") {
+          controller.setSelectedBarTempo(90);
+        } else {
+          controller.setSelectedBarTimeSignature(7, 1 / 8);
+        }
         open();
         expect(component.dialog.open).toBe(true);
         expect(

@@ -121,7 +121,9 @@ export class RepeatCountControlsDefaultCallbacks {
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog } = this._component;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

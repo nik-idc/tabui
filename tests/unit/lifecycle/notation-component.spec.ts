@@ -30,7 +30,9 @@ describe("NotationComponent", () => {
   });
 
   afterEach(() => {
-    cleanups.splice(0).forEach((c) => c());
+    for (const c of cleanups.splice(0)) {
+      c();
+    }
     audio.restore();
     jest.restoreAllMocks();
     jest.useRealTimers();
@@ -62,10 +64,10 @@ describe("NotationComponent", () => {
     const graph = createBarWithBeats(
       Array.from({ length: 4 }, () => ({ baseDuration: NoteDuration.Quarter }))
     );
-    graph.beats.forEach((b, i) => {
+    for (const [i, b] of graph.beats.entries()) {
       b.makeBeatWithNotes();
       (required(b.notes)[0] as GuitarNote).setFret(i + 3);
-    });
+    }
     return graph;
   }
 
@@ -79,7 +81,9 @@ describe("NotationComponent", () => {
       node = node.parentElement
     ) {
       const transform = node.getAttribute("transform");
-      if (transform === null) continue;
+      if (transform === null) {
+        continue;
+      }
       const translation = required(
         /^translate\(([-\d.]+)[,\s]+([-\d.]+)\)$/.exec(transform)
       );
@@ -134,7 +138,9 @@ describe("NotationComponent", () => {
       expect(notation.trackController.isLooped).toBe(true);
       expect(viewport.querySelectorAll(".tu-root-svg")).toHaveLength(1);
       expect(audio.sources).toEqual(sources);
-      sources.forEach((s) => expect(s.stop).toHaveBeenCalledTimes(1));
+      for (const s of sources) {
+        expect(s.stop).toHaveBeenCalledTimes(1);
+      }
     }
     jest.advanceTimersByTime(500);
     expect(notation.trackController.playerLastStartedBeat).toBe(beats[1]);
@@ -142,12 +148,16 @@ describe("NotationComponent", () => {
     notation.dispose();
     expect(viewport.querySelectorAll(".tu-root-svg")).toHaveLength(0);
     expect(audio.context.close).toHaveBeenCalledTimes(1);
-    sources.forEach((s) => expect(s.stop).toHaveBeenCalledTimes(2));
+    for (const s of sources) {
+      expect(s.stop).toHaveBeenCalledTimes(2);
+    }
   });
 
   test("switching during buffered playback materializes and follows the new track cursor", async () => {
     const { score, track } = populatedScore();
-    for (let i = 0; i < 30; i++) score.appendMasterBar();
+    for (let i = 0; i < 30; i++) {
+      score.appendMasterBar();
+    }
     const nextTrack = score.addTrack(track.context.instrument, "Track 2")
       .tracks[0];
     const nextBeat = required(nextTrack.staves[0].bars[30].getVoiceBar(1))
@@ -216,7 +226,9 @@ describe("NotationComponent", () => {
 
   test("follows the active range endpoint when no cursor is selected", () => {
     const { score, track, bar } = createScoreGraph();
-    for (let i = 0; i < 30; i++) score.appendMasterBar();
+    for (let i = 0; i < 30; i++) {
+      score.appendMasterBar();
+    }
     const { notation, viewport } = viewFor(score);
     const controller = notation.trackController;
     const start = required(bar.getVoiceBar(1)).beats[0];
@@ -240,7 +252,9 @@ describe("NotationComponent", () => {
 
   test("explicit layout refresh reflows rendered notation without changing the score", () => {
     const { score, track } = populatedScore();
-    for (let i = 0; i < 12; i++) score.appendMasterBar();
+    for (let i = 0; i < 12; i++) {
+      score.appendMasterBar();
+    }
     const { notation, viewport, dimensions } = viewFor(score);
     const before =
       notation.trackController.trackElement.trackLineElements.length;

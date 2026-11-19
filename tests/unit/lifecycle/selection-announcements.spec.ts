@@ -27,14 +27,18 @@ describe("selection announcement behavior", () => {
         .constructor,
     });
     cleanups.push(() => {
-      if (descriptor)
+      if (descriptor) {
         Object.defineProperty(globalThis, "SVGRectElement", descriptor);
-      else Reflect.deleteProperty(globalThis, "SVGRectElement");
+      } else {
+        Reflect.deleteProperty(globalThis, "SVGRectElement");
+      }
     });
   });
 
   afterEach(() => {
-    for (const cleanup of cleanups.splice(0).reverse()) cleanup();
+    for (const cleanup of cleanups.splice(0).reverse()) {
+      cleanup();
+    }
     jest.useRealTimers();
     document.body.replaceChildren();
   });
@@ -311,8 +315,9 @@ describe("selection announcement behavior", () => {
       expect(fixture.announce).not.toHaveBeenCalled();
 
       // A new cursor selection must win over the range waiting for its frame.
-      if (action === "unbind") fixture.callbacks.unbind();
-      else if (action === "refresh") {
+      if (action === "unbind") {
+        fixture.callbacks.unbind();
+      } else if (action === "refresh") {
         const beat = required(
           fixture.selection.trackElement.getBeatElement(fixture.beats[0])
         );
@@ -326,18 +331,21 @@ describe("selection announcement behavior", () => {
       }
 
       const output = fixture.announce.mock.calls.map((v) => v[0]);
-      if (action === "unbind") expect(output).toEqual([]);
-      else
+      if (action === "unbind") {
+        expect(output).toEqual([]);
+      } else {
         expect(output).toEqual([
           action === "refresh"
             ? "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, fret 5."
             : initial,
         ]);
+      }
 
       jest.advanceTimersByTime(100);
       expect(fixture.announce.mock.calls.map((v) => v[0])).toEqual(output);
-      if (action !== "unbind")
+      if (action !== "unbind") {
         expect(fixture.region.textContent).toBe(output[0]);
+      }
     }
   );
 

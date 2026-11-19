@@ -235,7 +235,9 @@ test("notation clicks do not open dialogs in view-only mode or playback", async 
   );
   const tempoBounds = await tempo.boundingBox();
   expect(tempoBounds).not.toBeNull();
-  if (tempoBounds === null) throw Error("Expected tempo hit target bounds");
+  if (tempoBounds === null) {
+    throw Error("Expected tempo hit target bounds");
+  }
   await page.mouse.click(
     tempoBounds.x + tempoBounds.width / 2,
     tempoBounds.y + tempoBounds.height / 2

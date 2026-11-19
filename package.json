@@ -71,7 +71,8 @@
     "test:vue-integration": "node tests/integration/vue/vue-integration.mjs",
     "demo:vue": "npm run build:package && node tests/integration/vue/vue-integration.mjs --demo",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
-    "verify": "npm run build:package && npm run test:all && npm run build:demo",
+    "lint": "eslint .",
+    "verify": "npm run lint && npm run build:package && npm run test:all && npm run build:demo",
     "verify:ci": "npm run build:package && npm run test:unit && npm run test:integration && npm run build:demo"
   },
   "devDependencies": {
@@ -100,6 +101,7 @@
     "vitepress": "^1.6.4"
   },
   "lint-staged": {
+    "*.{js,mjs,cjs,ts,tsx}": "eslint --fix --no-warn-ignored",
     "*": "prettier --write --ignore-unknown"
   }
 }

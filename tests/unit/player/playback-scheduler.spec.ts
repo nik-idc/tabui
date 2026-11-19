@@ -84,7 +84,9 @@ function pannerCount(
   node: AudioNodeRecorder,
   seen = new Set<AudioNodeRecorder>()
 ): number {
-  if (seen.has(node)) return 0;
+  if (seen.has(node)) {
+    return 0;
+  }
   seen.add(node);
   return (
     (node.isPanner ? 1 : 0) +
@@ -285,13 +287,16 @@ describe("PlaybackScheduler", () => {
     const secondStaffBeat = secondStaff.bars[0].ensureVoiceBar(1).beats[0];
     const secondTrackBeat =
       secondTrack.staves[0].bars[0].ensureVoiceBar(1).beats[0];
-    [
+    const soundedBeats = [
       firstVoiceBeat,
       secondVoiceBeat,
       overflowBeat,
       secondStaffBeat,
       secondTrackBeat,
-    ].forEach((b) => soundNote(b));
+    ];
+    for (const b of soundedBeats) {
+      soundNote(b);
+    }
     const scheduler = createScheduler(score);
 
     expect(scheduler.scheduleUntil(1).beatChanges).toEqual([
@@ -379,7 +384,9 @@ describe("PlaybackScheduler", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    beats.forEach((b) => soundNote(b));
+    for (const b of beats) {
+      soundNote(b);
+    }
     const note = soundNote(beats[2]);
     expect(
       note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.LetRing))
@@ -476,7 +483,9 @@ describe("PlaybackScheduler", () => {
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
     ]);
-    beats.forEach((b) => soundNote(b));
+    for (const b of beats) {
+      soundNote(b);
+    }
     const scheduler = createScheduler(score);
 
     expect(scheduler.scheduleUntil(0.25).beatChanges).toEqual([

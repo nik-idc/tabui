@@ -77,6 +77,14 @@ export default defineConfig(
         { assertionStyle: "as" },
       ],
       "@typescript-eslint/naming-convention": ["error", ...namingConventions],
+      curly: ["error", "all"],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.property.name='forEach']",
+          message: "Use a for...of loop instead of forEach.",
+        },
+      ],
     },
   },
   {

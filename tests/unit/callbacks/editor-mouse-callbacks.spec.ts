@@ -539,7 +539,9 @@ describe("EditorMouseDefCallbacks", () => {
           });
         }
         const active = notation.trackController;
-        if (mode === "view-only") active.setEditingEnabled(false);
+        if (mode === "view-only") {
+          active.setEditingEnabled(false);
+        }
         const before = active.selectionCursor;
         const render = jest.fn();
         const callbacks = new EditorMouseDefCallbacks(
@@ -595,7 +597,9 @@ describe("EditorMouseDefCallbacks", () => {
           overlays: { selection: false, player: false },
         });
         const renderer = renderers.find((v) => v instanceof Renderer);
-        if (renderer === undefined) throw Error(`Missing ${Renderer.name}`);
+        if (renderer === undefined) {
+          throw Error(`Missing ${Renderer.name}`);
+        }
         const render = jest.fn();
         const callbacks = new EditorMouseDefCallbacks(
           ui as ConstructorParameters<typeof EditorMouseDefCallbacks>[0],
@@ -640,7 +644,9 @@ describe("EditorMouseDefCallbacks", () => {
         expect(host.querySelectorAll("[open]")).toHaveLength(
           opensDialog ? 1 : 0
         );
-        for (const dialog of dialogs) dialog.close();
+        for (const dialog of dialogs) {
+          dialog.close();
+        }
         callbacks.bind([]);
         const selected = controller.selectionAsBeats;
         click();
@@ -650,7 +656,9 @@ describe("EditorMouseDefCallbacks", () => {
         callbacks.bind([renderer]);
         click();
         expect(render).toHaveBeenCalledTimes(2);
-        for (const dialog of dialogs) dialog.close();
+        for (const dialog of dialogs) {
+          dialog.close();
+        }
         callbacks.unbind();
         click();
         expect(render).toHaveBeenCalledTimes(2);
@@ -821,8 +829,11 @@ describe("EditorMouseDefCallbacks", () => {
       player.dispose();
       audio.restore();
       jest.useRealTimers();
-      if (previous) Object.defineProperty(globalThis, "document", previous);
-      else Reflect.deleteProperty(globalThis, "document");
+      if (previous) {
+        Object.defineProperty(globalThis, "document", previous);
+      } else {
+        Reflect.deleteProperty(globalThis, "document");
+      }
       dom.window.close();
     }
   }
@@ -1267,9 +1278,11 @@ describe("EditorMouseDefCallbacks", () => {
       } finally {
         callbacks.unbind();
         renderer.dispose();
-        if (rectConstructor)
+        if (rectConstructor) {
           Object.defineProperty(globalThis, "SVGRectElement", rectConstructor);
-        else Reflect.deleteProperty(globalThis, "SVGRectElement");
+        } else {
+          Reflect.deleteProperty(globalThis, "SVGRectElement");
+        }
       }
     });
   });
@@ -1280,7 +1293,9 @@ describe("EditorMouseDefCallbacks", () => {
         document.createElement("div"),
         document.createElement("div"),
       ];
-      hosts.forEach((h) => root.appendChild(h));
+      for (const h of hosts) {
+        root.appendChild(h);
+      }
       const renderers = hosts.map(
         (h) =>
           new EditorSVGRenderer(h, controller, {
@@ -1323,7 +1338,9 @@ describe("EditorMouseDefCallbacks", () => {
         expect(controller.selectionCursor?.beat).toBe(beats[1]);
       } finally {
         callbacks.unbind();
-        renderers.forEach((r) => r.dispose());
+        for (const r of renderers) {
+          r.dispose();
+        }
       }
     });
   });

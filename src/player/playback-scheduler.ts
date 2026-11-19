@@ -245,7 +245,9 @@ export class PlaybackScheduler {
     );
     for (let pulseIndex = 0; pulseIndex < masterBar.beatsCount; pulseIndex++) {
       const offset = pulseIndex * pulseSeconds;
-      if (offset < sliceStart || offset >= sliceEnd) continue;
+      if (offset < sliceStart || offset >= sliceEnd) {
+        continue;
+      }
       this._audioEngine.scheduleMetronomeClick(
         this._currentScheduleBase +
           this._scheduledPlaybackSeconds +

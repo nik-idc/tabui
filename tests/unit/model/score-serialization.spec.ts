@@ -334,7 +334,9 @@ describe("score serialization", () => {
     );
     const notes = beats.map((b) => required(b.notes)[0] as GuitarNote);
     notes[0].setFret(5);
-    notes.forEach((n) => n.setTechnique(GuitarTechniqueType.LetRing));
+    for (const n of notes) {
+      n.setTechnique(GuitarTechniqueType.LetRing);
+    }
     const document = serializeScore(score);
     const restored = deserializeScore(document);
     const restoredBeats = required(
@@ -746,7 +748,9 @@ describe("score serialization", () => {
       "wrong note slot count",
       (d: ReturnType<typeof serializeScore>) => {
         const beat = d.tracks[0].staves[0].bars[0].voices[0]?.beats[0];
-        if (beat === undefined) throw Error("Expected serialized beat");
+        if (beat === undefined) {
+          throw Error("Expected serialized beat");
+        }
         beat.notes = [];
       },
       "$.tracks[0].staves[0].bars[0].voices[0].beats[0].notes",
@@ -773,7 +777,9 @@ describe("score serialization", () => {
       "dots",
       (d: ReturnType<typeof serializeScore>) => {
         const beat = d.tracks[0].staves[0].bars[0].voices[0]?.beats[0];
-        if (beat === undefined) throw Error("Expected serialized beat");
+        if (beat === undefined) {
+          throw Error("Expected serialized beat");
+        }
         Reflect.set(beat, "dots", 3);
       },
       "$.tracks[0].staves[0].bars[0].voices[0].beats[0].dots",
@@ -782,7 +788,9 @@ describe("score serialization", () => {
       "tuplet",
       (d: ReturnType<typeof serializeScore>) => {
         const beat = d.tracks[0].staves[0].bars[0].voices[0]?.beats[0];
-        if (beat === undefined) throw Error("Expected serialized beat");
+        if (beat === undefined) {
+          throw Error("Expected serialized beat");
+        }
         beat.tuplet = { normalCount: 0, tupletCount: 2 };
       },
       "$.tracks[0].staves[0].bars[0].voices[0].beats[0].tuplet.normalCount",
@@ -984,7 +992,9 @@ describe("score serialization", () => {
       "unsafe tuplet normalCount",
       (d: ReturnType<typeof serializeScore>) => {
         const b = d.tracks[0].staves[0].bars[0].voices[0]?.beats[0];
-        if (b === undefined) throw Error("Expected serialized beat");
+        if (b === undefined) {
+          throw Error("Expected serialized beat");
+        }
         b.tuplet = { normalCount: Number.MAX_SAFE_INTEGER + 1, tupletCount: 2 };
       },
       "$.tracks[0].staves[0].bars[0].voices[0].beats[0].tuplet.normalCount",
@@ -994,7 +1004,9 @@ describe("score serialization", () => {
       "unsafe tuplet tupletCount",
       (d: ReturnType<typeof serializeScore>) => {
         const b = d.tracks[0].staves[0].bars[0].voices[0]?.beats[0];
-        if (b === undefined) throw Error("Expected serialized beat");
+        if (b === undefined) {
+          throw Error("Expected serialized beat");
+        }
         b.tuplet = { normalCount: 3, tupletCount: Number.MAX_SAFE_INTEGER + 1 };
       },
       "$.tracks[0].staves[0].bars[0].voices[0].beats[0].tuplet.tupletCount",
@@ -1029,7 +1041,9 @@ describe("score serialization", () => {
       document.masterBars[0].isRepeatEnd = true;
       document.masterBars[0].repeatCount = 2;
       const beat = document.tracks[0].staves[0].bars[0].voices[0]?.beats[0];
-      if (beat === undefined) throw Error("Expected serialized beat");
+      if (beat === undefined) {
+        throw Error("Expected serialized beat");
+      }
       beat.tuplet = { normalCount: 3, tupletCount: 2 };
       expect(deserializeScore(document)).toBeInstanceOf(Score);
       mutate(document);

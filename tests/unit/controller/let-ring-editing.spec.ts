@@ -329,7 +329,9 @@ describe("Let Ring editing", () => {
     const notes = passage([5, null, null]);
     ScoreEditor.setTechniqueForNotes(notes, GuitarTechniqueType.LetRing);
     const blank = notes[1].beat.deepCopy();
-    blank.notes?.forEach((n) => n.clearTechniques());
+    for (const n of blank.notes ?? []) {
+      n.clearTechniques();
+    }
     const voice = notes[0].beat.voiceBar;
     const command = new InsertBeatsCommand(voice.bar, notes[0].beat, [blank]);
     command.execute();
@@ -463,10 +465,10 @@ describe("Let Ring editing", () => {
     const original = serializeScore(score);
     const blank = first.deepCopy();
     blank.makeBeatWithNotes();
-    blank.notes?.forEach((n) => {
+    for (const n of blank.notes ?? []) {
       n.clearTechniques();
       (n as GuitarNote).setFret(null);
-    });
+    }
     const manager = new CommandManager();
     manager.execute(new InsertBeatsCommand(first.voiceBar.bar, first, [blank]));
     expect(

@@ -53,7 +53,9 @@ describe("TempoControlsDefaultCallbacks", () => {
       expect(template.valueInput.value).toBe("130");
       template.decreaseButton.click();
       expect(template.valueInput.value).toBe("129");
-      for (let i = 0; i < 13; i++) template.decreaseTenButton.click();
+      for (let i = 0; i < 13; i++) {
+        template.decreaseTenButton.click();
+      }
       expect(template.valueInput.value).toBe("1");
       expect(template.decreaseButton.disabled).toBe(true);
       expect(template.decreaseTenButton.disabled).toBe(true);
@@ -61,7 +63,9 @@ describe("TempoControlsDefaultCallbacks", () => {
       template.increaseButton.click();
       expect(template.valueInput.value).toBe("2");
       expect(template.decreaseButton.disabled).toBe(false);
-      for (let i = 0; i < 100; i++) template.increaseTenButton.click();
+      for (let i = 0; i < 100; i++) {
+        template.increaseTenButton.click();
+      }
       expect(template.valueInput.value).toBe("999");
       expect(template.increaseButton.disabled).toBe(true);
       expect(template.increaseTenButton.disabled).toBe(true);

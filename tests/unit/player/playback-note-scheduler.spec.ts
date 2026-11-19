@@ -90,7 +90,9 @@ function createAudioContext(startError?: Error, currentTime = 0) {
         frequency: createParam(),
         detune: createParam(),
         start: jest.fn(() => {
-          if (startError !== undefined) throw startError;
+          if (startError !== undefined) {
+            throw startError;
+          }
         }),
         stop: jest.fn(),
         connect: jest.fn(),
@@ -163,7 +165,9 @@ function notesAtFrets(...frets: number[]): GuitarNote[] {
   return beats.map((b, i) => {
     b.makeBeatWithNotes();
     const note = b.notes?.[0];
-    if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
     note.setFret(frets[i]);
     return note;
   });
@@ -614,9 +618,9 @@ describe("PlaybackNoteScheduler", () => {
     other.setFret(3);
     const audio = createAudioContext();
     const player = scheduler(audio.context);
-    notes.forEach((note, index) =>
-      player.scheduleNote(note, index * 0.5, (index + 1) * 0.5, trackBus())
-    );
+    for (const [index, note] of notes.entries()) {
+      player.scheduleNote(note, index * 0.5, (index + 1) * 0.5, trackBus());
+    }
     player.scheduleNote(other, 0.5, 1, trackBus());
     expect(audio.oscillators[0].stop).toHaveBeenCalledWith(0.18);
     expect(audio.oscillators[1].stop).toHaveBeenCalledWith(1);

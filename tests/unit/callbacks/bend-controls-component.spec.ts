@@ -26,7 +26,9 @@ describe("BendControlsComponent", () => {
     });
     controller.insertBeatAfterSelected();
     controller.setSelectedNoteFret(5);
-    if (tie) controller.setTechnique(GuitarTechniqueType.Tie);
+    if (tie) {
+      controller.setTechnique(GuitarTechniqueType.Tie);
+    }
     harness.component.prepareForOpen();
   }
 

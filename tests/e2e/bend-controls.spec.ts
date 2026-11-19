@@ -145,7 +145,9 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
   await expect(status).toHaveText(
     "Bend point. Pitch full tone. Duration 67 percent."
   );
-  for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowUp");
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press("ArrowUp");
+  }
   await page.keyboard.press("Tab");
   await page.keyboard.press("Shift+Tab");
   await expect(status).toHaveText(
@@ -178,7 +180,9 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     return messages;
   });
   expect(updates).toEqual([]);
-  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowUp");
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press("ArrowUp");
+  }
   await expect(status).toHaveText(
     "Bend point. Pitch three tones. Duration 67 percent."
   );
@@ -202,7 +206,9 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     const cancel = element.querySelector<HTMLButtonElement>(
       ".tu-bend-controls-cancel-button"
     );
-    if (cancel === null) throw Error("Expected bend cancel button");
+    if (cancel === null) {
+      throw Error("Expected bend cancel button");
+    }
     cancel.click();
     await new Promise((resolve) => setTimeout(resolve, 100));
     return { clampedUpdates, text: region.textContent };
@@ -280,7 +286,9 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
   await expect(handle).not.toHaveAttribute("cy", handleYBefore ?? "");
   await expect(notation).toHaveJSProperty("scrollTop", scrollTopBefore);
   const editedY = await handle.getAttribute("cy");
-  if (editedY === null) throw Error("Expected a positioned bend handle");
+  if (editedY === null) {
+    throw Error("Expected a positioned bend handle");
+  }
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(editor.locator(".tu-inline-technique")).toHaveCount(1);

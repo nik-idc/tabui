@@ -1248,10 +1248,13 @@ describe("TrackElement techniques", () => {
     expect(finalFirstPath).toBe(initialFirstPath);
     // The standard layout has 2px half-waves and a 4px peak-to-peak height.
     expect(interiorWidths.length).toBeGreaterThan(0);
-    for (const width of interiorWidths) expect(width).toBeCloseTo(2, 5);
+    for (const width of interiorWidths) {
+      expect(width).toBeCloseTo(2, 5);
+    }
     expect(vibratoHeight).toBeCloseTo(4);
-    for (const vibrato of vibratos)
+    for (const vibrato of vibratos) {
       expect(vibrato.segments.length).toBeGreaterThan(1);
+    }
     for (let i = 0; i < labels.length - 1; i++) {
       const left = vibratos[i];
       const right = vibratos[i + 1];

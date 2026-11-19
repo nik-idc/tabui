@@ -66,7 +66,9 @@ function realTransport(
 }
 
 afterEach(() => {
-  realPlayers.splice(0).forEach((p) => p.dispose());
+  for (const p of realPlayers.splice(0)) {
+    p.dispose();
+  }
   if (transportAudio !== undefined) {
     transportAudio.restore();
     transportAudio = undefined;
@@ -148,7 +150,9 @@ function copyPassage(
   }
   const clipboard = controller.copy();
   controller.clearSelection();
-  if (clipboard === undefined) throw Error("Expected clipboard text");
+  if (clipboard === undefined) {
+    throw Error("Expected clipboard text");
+  }
   return clipboard;
 }
 
@@ -315,7 +319,9 @@ describe("TrackController", () => {
       beat.dots = 2;
       if (mode === "playing") {
         const player = mockScorePlayerInstances.at(-1);
-        if (player === undefined) throw Error("Expected test player");
+        if (player === undefined) {
+          throw Error("Expected test player");
+        }
         player.isPlaying = true;
       }
       expect(controller.setBeatDots(beat, 0)).toBe(false);
@@ -395,7 +401,9 @@ describe("TrackController", () => {
     const otherBeat = getBeatElements(controller).find(
       (e) => e.beat.voiceBar.bar === otherBar
     );
-    if (otherBeat === undefined) throw Error("Expected beat in the other bar");
+    if (otherBeat === undefined) {
+      throw Error("Expected beat in the other bar");
+    }
     controller.selectNoteElement(otherBeat.noteElements[0]);
     const cursor = controller.selectionCursor;
     expect(
@@ -940,10 +948,10 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     const frets = [0, 3, 7];
-    beats.forEach((b, i) => {
+    for (const [i, b] of beats.entries()) {
       b.makeBeatWithNotes();
       (required(b.notes)[0] as GuitarNote).setFret(frets[i]);
-    });
+    }
     const { controller, player, audio } = realTransport(track);
     const beatElement = getBeatElements(controller)[1];
     controller.selectBeat(beatElement);
@@ -965,9 +973,9 @@ describe("TrackController", () => {
     );
     expect(startedSources).toHaveLength(5);
     const expectedStarts = [0.05, 0.55, 1.05, 1.55, 2.05];
-    startedSources.forEach((s, i) => {
+    for (const [i, s] of startedSources.entries()) {
       expect(s.start.mock.calls[0][0]).toBeCloseTo(expectedStarts[i]);
-    });
+    }
     expect(player.lastStartedBeat).toBe(beatElement.beat);
     expect(player.playbackState).toBe("playing");
   });
@@ -2474,9 +2482,9 @@ describe("TrackController", () => {
     controller.undo();
     expect(score.masterBars).toEqual(originalMasterBars);
     expect(track.staves[0].bars).toHaveLength(3);
-    originalStaffBars.forEach((v, i) => {
+    for (const [i, v] of originalStaffBars.entries()) {
       expect(track.staves[0].bars[i]).toBe(v);
-    });
+    }
 
     controller.redo();
     expect(score.masterBars).toEqual([originalMasterBars[2]]);
@@ -4120,8 +4128,9 @@ describe("TrackController", () => {
     const sourceController = realTransport(source.track).controller;
     const sourceNote =
       source.track.staves[0].bars[0].getVoiceBar(1)?.beats[0].notes?.[0];
-    if (!(sourceNote instanceof GuitarNote))
+    if (!(sourceNote instanceof GuitarNote)) {
       throw Error("Expected source note");
+    }
     sourceNote.setFret(3);
     const sourceNotes = required(sourceNote.beat.notes) as GuitarNote[];
     sourceNotes[1].setFret(-1);
@@ -4212,8 +4221,9 @@ describe("TrackController", () => {
         source.track.staves[0].bars[0].getVoiceBar(1)
       );
       const sourceNote = sourceVoiceBar.beats[0].notes?.[5];
-      if (!(sourceNote instanceof GuitarNote))
+      if (!(sourceNote instanceof GuitarNote)) {
         throw Error("Expected source note");
+      }
       sourceNote.setFret(3);
       sourceController.trackElement.update();
       sourceController.selectNoteElement(
@@ -4349,8 +4359,9 @@ describe("TrackController", () => {
       source.track.staves[0].bars[0].getVoiceBar(1)
     );
     const sourceNote = sourceVoiceBar.beats[0].notes?.[0];
-    if (!(sourceNote instanceof GuitarNote))
+    if (!(sourceNote instanceof GuitarNote)) {
       throw Error("Expected source note");
+    }
     sourceNote.setFret(4);
     sourceController.trackElement.update();
     sourceController.selectNoteElement(
@@ -4396,7 +4407,9 @@ describe("TrackController", () => {
     const lastBar = staff.bars[staff.bars.length - 1];
     const navigationLimit = staff.bars.length * 16;
     for (let i = 0; i < navigationLimit; i++) {
-      if (controller.selectionCursor?.bar === lastBar) break;
+      if (controller.selectionCursor?.bar === lastBar) {
+        break;
+      }
       controller.moveSelectedNote(SelectedMoveDirection.Right);
     }
     expect(controller.selectionCursor?.bar).toBe(lastBar);
@@ -4405,7 +4418,9 @@ describe("TrackController", () => {
 
     for (let i = 0; i < 64; i++) {
       const lineCount = controller.trackElement.trackLineElements.length;
-      if (lineCount > initialLineCount) break;
+      if (lineCount > initialLineCount) {
+        break;
+      }
       controller.moveSelectedNote(SelectedMoveDirection.Right);
     }
 
@@ -4427,7 +4442,9 @@ describe("TrackController", () => {
     const currentLastBar = staff.bars[staff.bars.length - 1];
     expect(controller.selectionCursor?.bar).toBe(currentLastBar);
     const selectedBeat = controller.selectionCursor?.beat;
-    if (selectedBeat === undefined) throw Error("Expected selected beat");
+    if (selectedBeat === undefined) {
+      throw Error("Expected selected beat");
+    }
     expect(controller.trackElement.getBeatElement(selectedBeat)?.beat).toBe(
       selectedBeat
     );
@@ -4608,14 +4625,14 @@ describe("paste at an empty beat or rest", () => {
     const { track, beats } = createBarWithBeats(
       content.map(() => ({ baseDuration: NoteDuration.Eighth }))
     );
-    content.forEach((value, i) => {
+    for (const [i, value] of content.entries()) {
       if (value === "rest") {
         beats[i].makeRest();
       } else if (value !== null) {
         playAnchor(beats[i]);
         (required(beats[i].notes)[0] as GuitarNote).setFret(value);
       }
-    });
+    }
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const voiceBar = required(track.staves[0].bars[0].getVoiceBar(1));
     const frets = () =>

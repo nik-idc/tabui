@@ -325,7 +325,9 @@ describe("EditorKeyboardDefCallbacks", () => {
       expect(renderFunc).toHaveBeenCalledTimes(2);
       for (const beat of beats) {
         for (const note of beat.notes ?? []) {
-          if (note instanceof GuitarNote) note.setFret(null);
+          if (note instanceof GuitarNote) {
+            note.setFret(null);
+          }
         }
       }
       const disabled = createKeyboardEvent(key, { shiftKey });
@@ -544,7 +546,9 @@ describe("EditorKeyboardDefCallbacks", () => {
       ]);
       const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
       notationComponent.trackController = controller;
-      if (state === "rest") controller.setSelectedBeatRest();
+      if (state === "rest") {
+        controller.setSelectedBeatRest();
+      }
       rootElement.focus();
       for (const key of ["v", "p", "l", "s", "b", "h"]) {
         const event = createKeyboardEvent(key);
@@ -776,13 +780,17 @@ describe("EditorKeyboardDefCallbacks", () => {
         expect(event.preventDefault).toHaveBeenCalledTimes(1);
         expect(renderFunc).toHaveBeenCalledTimes(1);
       }
-      for (let i = 0; i < expectedCycle.length; i++) controller.undo();
+      for (let i = 0; i < expectedCycle.length; i++) {
+        controller.undo();
+      }
       expect(beats.map((beat) => beat.tupletSettings)).toEqual([
         duplet,
         initial,
         null,
       ]);
-      for (let i = 0; i < expectedCycle.length; i++) controller.redo();
+      for (let i = 0; i < expectedCycle.length; i++) {
+        controller.redo();
+      }
       expect(beats.map((beat) => beat.tupletSettings)).toEqual([
         null,
         null,
@@ -1194,9 +1202,11 @@ describe("EditorKeyboardDefCallbacks", () => {
       callbacks.bind();
       try {
         for (const target of [shell, sibling, descendant, document.body]) {
-          if (target === document.body)
+          if (target === document.body) {
             (document.activeElement as HTMLElement).blur();
-          else target.focus();
+          } else {
+            target.focus();
+          }
           expect(document.activeElement).toBe(target);
           const event = new window.KeyboardEvent("keydown", {
             key: "5",
@@ -2031,7 +2041,9 @@ describe("EditorKeyboardDefCallbacks", () => {
   test("horizontal arrows move an active beat range", () => {
     withNotationDialog(({ controller, beats, root, notation, ui }) => {
       notation.ensureSelectedNoteVisible = () => {};
-      for (const beat of beats) beat.baseDuration = NoteDuration.Half;
+      for (const beat of beats) {
+        beat.baseDuration = NoteDuration.Half;
+      }
       beats[0].voiceBar.rebuildTiming();
       const track = controller.trackElement.track;
       track.score.appendMasterBar(DEFAULT_MASTER_BAR);

@@ -27,13 +27,13 @@ function createMultiTrackScore(masterBarCount = 3) {
 function expectStaffBars(score: Score, expectedBars: Bar[][]) {
   const staves = score.tracks.flatMap((v) => v.staves);
   expect(staves).toHaveLength(expectedBars.length);
-  staves.forEach((s, i) => {
+  for (const [i, s] of staves.entries()) {
     expect(s.bars).toHaveLength(expectedBars[i].length);
-    s.bars.forEach((b, j) => {
+    for (const [j, b] of s.bars.entries()) {
       expect(b).toBe(expectedBars[i][j]);
       expect(b.masterBar).toBe(score.masterBars[j]);
-    });
-  });
+    }
+  }
 }
 
 describe("RemoveBarsCommand", () => {
@@ -72,7 +72,9 @@ describe("RemoveBarsCommand", () => {
     command.undo();
     expect(score.masterBars).toHaveLength(3);
     expect(score.masterBars.map((bar) => bar.tempo)).toEqual(originalTempos);
-    originalMasterBars.forEach((v, i) => expect(score.masterBars[i]).toBe(v));
+    for (const [i, v] of originalMasterBars.entries()) {
+      expect(score.masterBars[i]).toBe(v);
+    }
     expectStaffBars(score, originalBars);
     const restoredBeat =
       score.tracks[1].staves[0].bars[1].getVoiceBar(1)?.beats[0];
@@ -116,7 +118,9 @@ describe("RemoveBarsCommand", () => {
 
     command.undo();
     expect(score.masterBars.map((bar) => bar.uuid)).toEqual(originalUUIDs);
-    originalMasterBars.forEach((v, i) => expect(score.masterBars[i]).toBe(v));
+    for (const [i, v] of originalMasterBars.entries()) {
+      expect(score.masterBars[i]).toBe(v);
+    }
     expectStaffBars(score, originalBars);
 
     command.redo();

@@ -79,8 +79,9 @@ test("adapts between unrestricted, view-only, and blocked widths", async ({
         const svgLine = line as SVGLineElement;
         const matrix = svgLine.getScreenCTM();
         const svgRoot = svgLine.ownerSVGElement;
-        if (matrix === null || svgRoot === null)
+        if (matrix === null || svgRoot === null) {
           throw new Error("Expected rendered notation geometry");
+        }
         const point = new DOMPoint(
           svgLine.x1.baseVal.value,
           svgLine.y1.baseVal.value
@@ -224,7 +225,9 @@ test("collapses the side panel and gives notation its space", async ({
     .poll(async () => {
       const widths = await notation.evaluate((viewport) => {
         const rendered = viewport.querySelector(".tu-root-svg");
-        if (rendered === null) throw new Error("Expected rendered notation");
+        if (rendered === null) {
+          throw new Error("Expected rendered notation");
+        }
         return {
           svg: rendered.getBoundingClientRect().width,
           available: viewport.clientWidth,
@@ -490,7 +493,9 @@ test("opens the track list in the available direction without moving notation", 
   const geometry = await editor.evaluate((root) => {
     const getBox = (selector: string): DOMRect => {
       const element = root.querySelector<HTMLElement>(selector);
-      if (element === null) throw new Error(`Missing ${selector}`);
+      if (element === null) {
+        throw new Error(`Missing ${selector}`);
+      }
       return element.getBoundingClientRect();
     };
     const toolbar = getBox(".tu-top-controls");
@@ -501,7 +506,9 @@ test("opens the track list in the available direction without moving notation", 
     const row = getBox(".tu-track-controls");
     const panel = getBox(".tu-track-controls-overlay");
     const viewport = root.querySelector<HTMLElement>(".tu-notation-viewport");
-    if (viewport === null) throw new Error("Missing notation viewport");
+    if (viewport === null) {
+      throw new Error("Missing notation viewport");
+    }
     return {
       toolbarCenter: toolbar.left + toolbar.width / 2,
       mixerCenter: row.left + row.width / 2,
@@ -557,7 +564,9 @@ test("opens the track list in the available direction without moving notation", 
   const bottomGeometry = await editor.evaluate((root) => {
     const getBox = (selector: string): DOMRect => {
       const element = root.querySelector<HTMLElement>(selector);
-      if (element === null) throw new Error(`Missing ${selector}`);
+      if (element === null) {
+        throw new Error(`Missing ${selector}`);
+      }
       return element.getBoundingClientRect();
     };
     const panel = getBox(".tu-track-controls-overlay");
@@ -606,7 +615,9 @@ test("caps a long track list at five rows and keeps it scrollable", async ({
   const overlay = editor.locator(".tu-track-list");
   const metrics = await overlay.evaluate((panel) => {
     const row = panel.querySelector<HTMLElement>(".tu-track-controls");
-    if (row === null) throw new Error("Expected track row");
+    if (row === null) {
+      throw new Error("Expected track row");
+    }
     const style = getComputedStyle(panel);
     return {
       clientHeight: panel.clientHeight,
@@ -638,7 +649,9 @@ test("caps a long track list at five rows and keeps it scrollable", async ({
     const row = panel.querySelector<HTMLElement>(
       ".tu-track-controls:last-child"
     );
-    if (row === null) throw new Error("Expected last track row");
+    if (row === null) {
+      throw new Error("Expected last track row");
+    }
     const panelBox = panel.getBoundingClientRect();
     const rowBox = row.getBoundingClientRect();
     return {

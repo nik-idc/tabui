@@ -1,4 +1,5 @@
 #!/bin/sh
 
-# Formats only the staged changes; unstaged changes stay out of the commit.
-npx lint-staged
+# Lints and formats only the staged changes; unstaged changes stay out of the
+# commit. Tasks run in order, so Prettier formats ESLint's fixes.
+npx lint-staged --concurrent false

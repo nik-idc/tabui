@@ -105,13 +105,18 @@ describe("TabUIEditor responsive sizing with real components", () => {
   });
 
   afterEach(() => {
-    for (const editor of editors.splice(0)) editor.dispose();
+    for (const editor of editors.splice(0)) {
+      editor.dispose();
+    }
     jest.restoreAllMocks();
     jest.useRealTimers();
     dom.window.close();
     for (const [name, descriptor] of originalGlobals) {
-      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
-      else Reflect.deleteProperty(globalThis, name);
+      if (descriptor) {
+        Object.defineProperty(globalThis, name, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, name);
+      }
     }
     originalGlobals.clear();
   });
@@ -128,8 +133,9 @@ describe("TabUIEditor responsive sizing with real components", () => {
     const beat = required(bar.getVoiceBar(1)).beats[0];
     const frets = () =>
       required(beat.notes).map((v) => {
-        if (!(v instanceof guitarNoteConstructor))
+        if (!(v instanceof guitarNoteConstructor)) {
           throw new Error("Expected a guitar note");
+        }
         return v.fret;
       });
     return { root, editor, svg, frets };

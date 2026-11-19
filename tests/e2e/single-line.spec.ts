@@ -186,7 +186,9 @@ test("follows an offscreen selected bar in single-line mode", async ({
     .poll(() =>
       viewport.evaluate((element) => {
         const selection = element.querySelector("#tu-selection rect");
-        if (selection === null) throw Error("Expected selection rectangle");
+        if (selection === null) {
+          throw Error("Expected selection rectangle");
+        }
         const bounds = selection.getBoundingClientRect();
         const left = element.getBoundingClientRect().left + element.clientLeft;
         const right = left + element.clientWidth;
@@ -225,7 +227,9 @@ test("follows playback to an offscreen bar in single-line mode", async ({
         requestAnimationFrame(() => resolve())
       );
       const cursor = element.querySelector("#playerCursor");
-      if (cursor === null) throw Error("Expected playback cursor");
+      if (cursor === null) {
+        throw Error("Expected playback cursor");
+      }
       const bounds = cursor.getBoundingClientRect();
       const left = scroller.getBoundingClientRect().left + scroller.clientLeft;
       const right = left + scroller.clientWidth;

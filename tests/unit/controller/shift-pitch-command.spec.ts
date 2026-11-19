@@ -11,7 +11,9 @@ import { required } from "../required";
 function playableNotes(beats: ReturnType<typeof createBarWithBeats>["beats"]) {
   return beats.map((beat) => {
     const note = required(beat.notes)[0];
-    if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
     return note;
   });
 }
@@ -42,7 +44,9 @@ describe("ShiftPitchCommand", () => {
       { baseDuration: 1 / 4 },
       { baseDuration: 1 / 4 },
     ]);
-    for (const beat of beats) beat.makeBeatWithNotes();
+    for (const beat of beats) {
+      beat.makeBeatWithNotes();
+    }
     const first = playableNotes([beats[0]])[0];
     const second = playableNotes([beats[1]])[0];
     first.setFret(4);
@@ -80,7 +84,9 @@ describe("ShiftPitchCommand", () => {
       { baseDuration: 1 / 4 },
     ]);
     const notes = playableNotes(beats);
-    for (const note of notes) note.setFret(5);
+    for (const note of notes) {
+      note.setFret(5);
+    }
     notes[1].addTechnique(
       new GuitarTechnique(notes[1], GuitarTechniqueType.Tie)
     );
@@ -104,7 +110,9 @@ describe("ShiftPitchCommand", () => {
         { baseDuration: 1 / 4 },
       ]);
       const notes = playableNotes(beats);
-      for (const note of notes) note.setFret(5);
+      for (const note of notes) {
+        note.setFret(5);
+      }
       notes[1].addTechnique(
         new GuitarTechnique(notes[1], GuitarTechniqueType.Tie)
       );
@@ -133,7 +141,9 @@ describe("ShiftPitchCommand", () => {
     ]);
     const notes = playableNotes(beats);
     const max = notes[0].trackContext.instrument.fretsCount;
-    for (const note of notes) note.setFret(max);
+    for (const note of notes) {
+      note.setFret(max);
+    }
     notes[1].addTechnique(
       new GuitarTechnique(notes[1], GuitarTechniqueType.Tie)
     );

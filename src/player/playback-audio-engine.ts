@@ -440,7 +440,9 @@ export class PlaybackAudioEngine {
     }
     this._pitchShiftSemitones = semitones;
     const currentTime = this._audioContext?.currentTime;
-    if (currentTime === undefined) return;
+    if (currentTime === undefined) {
+      return;
+    }
     for (const node of this._scheduledAudioNodes) {
       node.pitchShiftParam?.setValueAtTime(
         semitones * CENTS_PER_SEMITONE,
