@@ -81,9 +81,10 @@ export class TrackControlsTemplateRenderer {
     );
     this.template.moveUpButton.textContent = "▲";
     const controller = this.notationComponent.trackController;
-    const editingDisabled =
-      !controller.editingEnabled || controller.isPlaybackActive;
-    this.template.moveUpButton.disabled = editingDisabled || trackIndex <= 0;
+    this.template.moveUpButton.disabled = !controller.canMoveTrack(
+      this.track,
+      trackIndex - 1
+    );
     this.template.moveUpButton.title = "Move track up";
     this.template.moveUpButton.setAttribute(
       "aria-label",
@@ -95,10 +96,10 @@ export class TrackControlsTemplateRenderer {
       "tu-track-move-down-button"
     );
     this.template.moveDownButton.textContent = "▼";
-    this.template.moveDownButton.disabled =
-      editingDisabled ||
-      trackIndex === -1 ||
-      trackIndex >= this.notationComponent.score.tracks.length - 1;
+    this.template.moveDownButton.disabled = !controller.canMoveTrack(
+      this.track,
+      trackIndex + 1
+    );
     this.template.moveDownButton.title = "Move track down";
     this.template.moveDownButton.setAttribute(
       "aria-label",
@@ -117,8 +118,7 @@ export class TrackControlsTemplateRenderer {
     );
     this.template.trackNameInput.value = this.track.name;
     const controller = this.notationComponent.trackController;
-    this.template.trackNameInput.disabled =
-      !controller.editingEnabled || controller.isPlaybackActive;
+    this.template.trackNameInput.disabled = !controller.canEdit;
     this.template.trackNameLabel.className = "tu-track-name-label";
     this.template.trackNameLabel.textContent = this.track.name;
     this.template.trackNameLabel.hidden = isActive;
@@ -128,10 +128,9 @@ export class TrackControlsTemplateRenderer {
   private renderRemoveButton(): void {
     const cssClass = "tu-track-remove-button";
     this.template.removeButton.classList.add(cssClass);
-    const disabled =
-      !this.notationComponent.trackController.editingEnabled ||
-      this.notationComponent.trackController.isPlaybackActive ||
-      this.notationComponent.score.tracks.length <= 1;
+    const disabled = !this.notationComponent.trackController.canRemoveTrack(
+      this.notationComponent.score
+    );
     this.template.removeButton.classList.toggle("tu-disabled-img", disabled);
     this.template.removeButton.disabled = disabled;
     this.template.removeButton.setAttribute("aria-disabled", `${disabled}`);
@@ -164,7 +163,7 @@ export class TrackControlsTemplateRenderer {
 
     this.template.volumeInput.value = `${this.track.volume * maxVolume}`;
     this.template.volumeInput.disabled =
-      !this.notationComponent.trackController.editingEnabled;
+      !this.notationComponent.trackController.canChangeMix;
     this.template.volumeControls.classList.add("tu-track-volume-controls");
   }
 
@@ -183,7 +182,7 @@ export class TrackControlsTemplateRenderer {
 
     this.template.panningInput.value = `${this.track.pan}`;
     this.template.panningInput.disabled =
-      !this.notationComponent.trackController.editingEnabled;
+      !this.notationComponent.trackController.canChangeMix;
     this.template.panningControls.classList.add("tu-track-panning-controls");
   }
 
@@ -211,7 +210,7 @@ export class TrackControlsTemplateRenderer {
 
   private renderPlaybackState(): void {
     const editingDisabled =
-      !this.notationComponent.trackController.editingEnabled;
+      !this.notationComponent.trackController.canChangeMix;
     for (const button of [this.template.muteButton, this.template.soloButton]) {
       button.classList.toggle("tu-disabled-img", editingDisabled);
       button.disabled = editingDisabled;
@@ -245,8 +244,7 @@ export class TrackControlsTemplateRenderer {
       `${this.track.name} settings`
     );
     const controller = this.notationComponent.trackController;
-    const editingDisabled =
-      !controller.editingEnabled || controller.isPlaybackActive;
+    const editingDisabled = !controller.canEdit;
     this.template.settingsButton.classList.toggle(
       "tu-disabled-img",
       editingDisabled

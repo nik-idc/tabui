@@ -113,8 +113,7 @@ export class ScoreControlsTemplateRenderer {
       "New track"
     );
     const controller = this.notationComponent.trackController;
-    const editingDisabled =
-      !controller.editingEnabled || controller.isPlaybackActive;
+    const editingDisabled = !controller.canEdit;
     this.template.newTrackButton.classList.toggle(
       "tu-disabled-img",
       editingDisabled
@@ -145,7 +144,7 @@ export class ScoreControlsTemplateRenderer {
   private renderSelectionButtons(): void {
     const tc = this.notationComponent.trackController;
     const hasSelectionAnchor = tc.hasSelectionAnchor;
-    const playbackIdle = !tc.isPlaybackActive;
+    const canSelect = tc.canSelect;
     const label = hasSelectionAnchor
       ? "Clear selection range"
       : "Set selection anchor";
@@ -161,17 +160,14 @@ export class ScoreControlsTemplateRenderer {
       "aria-pressed",
       `${hasSelectionAnchor}`
     );
-    this.template.rangeButton.disabled = !playbackIdle;
-    this.template.rangeButton.classList.toggle(
-      "tu-disabled-img",
-      !playbackIdle
-    );
+    this.template.rangeButton.disabled = !canSelect;
+    this.template.rangeButton.classList.toggle("tu-disabled-img", !canSelect);
     this.renderEditButton(
       this.template.selectAllButton,
       "img/ui/select-all.svg",
       "Select all",
       "Ctrl+A",
-      playbackIdle
+      canSelect
     );
     // Copying also works in view-only mode.
     this.renderEditButton(
@@ -179,7 +175,7 @@ export class ScoreControlsTemplateRenderer {
       "img/ui/copy.svg",
       "Copy",
       "Ctrl+C",
-      playbackIdle
+      canSelect
     );
   }
 
@@ -232,7 +228,7 @@ export class ScoreControlsTemplateRenderer {
 
     this.template.masterVolumeInput.value = `${score.masterVolume * 100}`;
     this.template.masterVolumeInput.disabled =
-      !this.notationComponent.trackController.editingEnabled;
+      !this.notationComponent.trackController.canChangeMix;
   }
 
   private renderMasterPanningInput(score: Score): void {
@@ -250,7 +246,7 @@ export class ScoreControlsTemplateRenderer {
 
     this.template.masterPanningInput.value = `${score.masterPan}`;
     this.template.masterPanningInput.disabled =
-      !this.notationComponent.trackController.editingEnabled;
+      !this.notationComponent.trackController.canChangeMix;
   }
 
   private renderTracksContainer(): void {

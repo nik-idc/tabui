@@ -103,7 +103,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
   onNewTrackButtonClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       return;
     }
     this._scoreComponent.showNewTrackDialog();
@@ -163,7 +163,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
   async onCutClicked(): Promise<void> {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive || !controller.editingEnabled) {
+    if (!controller.canEdit) {
       return;
     }
     const text = controller.copy();

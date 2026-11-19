@@ -654,7 +654,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       changed = controller.moveSelectionToStaff(
         code === EditorKey.StaffUp ? -1 : 1
       );
-    } else if (!controller.editingEnabled) {
+    } else if (!controller.canEdit) {
       return false;
     } else if (code === EditorKey.AddStaffBelow) {
       changed = controller.addStaffBelowSelected();
@@ -1034,7 +1034,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
     const tc = this._notationComponent.trackController;
-    if (tc.playbackState !== PlaybackState.Idle || !tc.editingEnabled) {
+    if (!tc.canEdit) {
       return;
     }
     const clipboardText = tc.copy();
@@ -1053,10 +1053,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
     const controller = this._notationComponent.trackController;
-    if (
-      controller.playbackState !== PlaybackState.Idle ||
-      !controller.editingEnabled
-    ) {
+    if (!controller.canEdit) {
       return;
     }
 

@@ -224,7 +224,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     element: TabBeatRhythmElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+    if (event.button !== 0 || !tc.canSelect) {
       return;
     }
 
@@ -234,7 +234,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Clears all dots from the clicked beat without changing selection. */
   public onDotsClick(event: MouseEvent, element: TabBeatRhythmElement): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
 
@@ -248,7 +248,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Selects every beat in the clicked connected beam group. */
   public onBeamClick(event: MouseEvent, element: BeamSegmentElement): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+    if (event.button !== 0 || !tc.canSelect) {
       return;
     }
 
@@ -286,11 +286,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   ): void {
     if (target === "appendBar") {
       const tc = this.notationComponent.trackController;
-      if (
-        event.button === 0 &&
-        tc.editingEnabled &&
-        tc.playbackState === PlaybackState.Idle
-      ) {
+      if (event.button === 0 && tc.canEdit) {
         tc.appendBar();
         this.renderFunc(RenderType.Full);
         this._focusViewport();
@@ -308,9 +304,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Opens the tempo dialog for the clicked bar. */
   public onTempoClicked(event: MouseEvent, bar: BarElement): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
@@ -321,9 +315,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Opens the existing settings dialog for the displayed track tuning. */
   public onTuningClicked(event: MouseEvent): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     this.uiComponent.topComponent.scoreComponent.showTrackSettingsDialog(
@@ -334,9 +326,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Opens the time-signature dialog for the clicked bar. */
   public onTimeSignatureClicked(event: MouseEvent, bar: BarElement): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
@@ -366,9 +356,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Opens the repeat-count dialog for the clicked bar. */
   public onRepeatEndClicked(event: MouseEvent, bar: BarElement): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
@@ -383,9 +371,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     beatIndex?: number
   ): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beats =
@@ -407,10 +393,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this._completedDragClickPoint = undefined;
 
     this._focusViewport();
-    if (
-      this.notationComponent.trackController.playbackState !==
-      PlaybackState.Idle
-    ) {
+    if (!this.notationComponent.trackController.canSelect) {
       return;
     }
 
@@ -436,7 +419,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     noteElement: NoteElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (tc.playbackState !== PlaybackState.Idle) {
+    if (!tc.canSelect) {
       this._selectionDragController.reset();
       this.notationComponent.renderer.hideSelectionPreview();
       return;
@@ -479,10 +462,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
-    if (
-      this.notationComponent.trackController.playbackState !==
-      PlaybackState.Idle
-    ) {
+    if (!this.notationComponent.trackController.canSelect) {
       this._selectionDragController.reset();
       return;
     }
@@ -524,7 +504,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     beatElement: BeatElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || !tc.editingEnabled) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
 
@@ -567,10 +547,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Starts drag-selection from beat mouse-down.
    */
   public onBeatPointerDown(event: MouseEvent, beatElement: BeatElement): void {
-    if (
-      this.notationComponent.trackController.playbackState !==
-      PlaybackState.Idle
-    ) {
+    if (!this.notationComponent.trackController.canSelect) {
       return;
     }
 
@@ -595,7 +572,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     const tc = this.notationComponent.trackController;
-    if (tc.playbackState !== PlaybackState.Idle) {
+    if (!tc.canSelect) {
       this._selectionDragController.reset();
       return;
     }

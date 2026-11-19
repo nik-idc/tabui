@@ -395,8 +395,19 @@ export class TrackController {
     this._scorePlayer?.syncMasterPlaybackState();
   }
 
+  /** True when the track can move to the target index now. */
+  public canMoveTrack(track: Track, targetIndex: number): boolean {
+    const tracks = track.score.tracks;
+    return (
+      this.canEdit &&
+      tracks.includes(track) &&
+      targetIndex >= 0 &&
+      targetIndex < tracks.length
+    );
+  }
+
   public moveTrack(track: Track, targetIndex: number): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canMoveTrack(track, targetIndex)) {
       return false;
     }
     return this._trackControllerEditor.moveTrack(track, targetIndex);
@@ -472,8 +483,13 @@ export class TrackController {
     );
   }
 
+  /** True when a track can be removed now; a score keeps at least one track. */
+  public canRemoveTrack(score: Score): boolean {
+    return this.canEdit && score.tracks.length > 1;
+  }
+
   public removeTrack(score: Score, track: Track): Track | undefined {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canRemoveTrack(score) || !score.tracks.includes(track)) {
       return undefined;
     }
     return this._trackControllerEditor.removeTrack(score, track);
@@ -587,6 +603,22 @@ export class TrackController {
   /** True when score edits are allowed now: editing is on and playback is idle. */
   public get canEdit(): boolean {
     return this.editingEnabled && this.playbackState === PlaybackState.Idle;
+  }
+
+  /**
+   * True when volume, pan, mute, and solo can change now. Unlike other edits,
+   * they also work during playback.
+   */
+  public get canChangeMix(): boolean {
+    return this.editingEnabled;
+  }
+
+  /**
+   * True when selection actions (select all, ranges, copy) work now. They
+   * also work in view-only mode.
+   */
+  public get canSelect(): boolean {
+    return this.playbackState === PlaybackState.Idle;
   }
 
   /** Enables or disables all score mutations for this active track. */
@@ -921,7 +953,7 @@ export class TrackController {
 
   /** Selects all beats in the current staff's active voice while playback is idle. */
   public selectAllBeats(): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 
@@ -930,7 +962,7 @@ export class TrackController {
 
   /** Extends the current selection by one beat in either direction. */
   public extendSelectionByBeat(direction: SelectedMoveDirection): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 
@@ -941,7 +973,7 @@ export class TrackController {
 
   /** Extends the current selection by one bar in either direction. */
   public extendSelectionByBar(direction: SelectedMoveDirection): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 
@@ -952,7 +984,7 @@ export class TrackController {
 
   /** Returns clipboard text for the current selection, or undefined during playback; browser events write it to the system clipboard. */
   public copy(): string | undefined {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return undefined;
     }
 
@@ -1113,7 +1145,7 @@ export class TrackController {
 
   /** Anchors a beat range at the current cursor. */
   public setSelectionAnchor(): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 
@@ -1122,7 +1154,7 @@ export class TrackController {
 
   /** Clears the beat range and restores its anchor as the current cursor. */
   public clearSelectionRange(): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 

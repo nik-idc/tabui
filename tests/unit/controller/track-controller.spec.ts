@@ -834,6 +834,49 @@ describe("TrackController", () => {
     expect(controller.canEdit).toBe(false);
   });
 
+  test("action rules follow playback and view-only mode", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    const rules = () => ({
+      edit: controller.canEdit,
+      mix: controller.canChangeMix,
+      select: controller.canSelect,
+    });
+    expect(rules()).toEqual({ edit: true, mix: true, select: true });
+
+    // Mix changes work during playback; edits and selection don't.
+    controller.startPlayer();
+    await settleTransport();
+    expect(rules()).toEqual({ edit: false, mix: true, select: false });
+    controller.stopPlayer();
+
+    // View-only mode still allows selection and copying.
+    controller.setEditingEnabled(false);
+    expect(rules()).toEqual({ edit: false, mix: false, select: true });
+  });
+
+  test("track move and remove rules match what the actions do", () => {
+    const { score, track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    // A score keeps at least one track; out-of-range moves are refused.
+    expect(controller.canRemoveTrack(score)).toBe(false);
+    expect(controller.removeTrack(score, track)).toBeUndefined();
+    expect(controller.canMoveTrack(track, 1)).toBe(false);
+    expect(controller.moveTrack(track, 1)).toBe(false);
+    expect(controller.canMoveTrack(track, -1)).toBe(false);
+
+    const second = required(controller.addTrack(score, new Guitar(), "Two"));
+    expect(controller.canRemoveTrack(score)).toBe(true);
+    expect(controller.canMoveTrack(track, 1)).toBe(true);
+    expect(controller.moveTrack(track, 1)).toBe(true);
+    expect(score.tracks).toEqual([second, track]);
+
+    controller.setEditingEnabled(false);
+    expect(controller.canRemoveTrack(score)).toBe(false);
+    expect(controller.canMoveTrack(track, 0)).toBe(false);
+    expect(controller.moveTrack(track, 0)).toBe(false);
+  });
+
   test("copy returns nothing during playback", async () => {
     const { track } = createScoreGraph();
     const { controller } = realTransport(track);
