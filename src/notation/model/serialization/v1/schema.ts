@@ -402,7 +402,10 @@ export type SerializedScoreV1 = {
   version: typeof SCORE_SERIALIZATION_VERSION;
   name: string;
   artist: string;
-  song: string;
+  /** Written only when the album is known. */
+  album?: string;
+  /** ISO partial date ("2024", "2024-05" or "2024-05-17"), written only when known. */
+  releaseDate?: string;
   masterVolume: number;
   masterPan: number;
   masterBars: SerializedMasterBar[];

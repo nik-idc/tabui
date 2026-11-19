@@ -9,7 +9,7 @@ import {
   MIN_MASTER_BAR_REPEAT_COUNT,
   MIN_MASTER_BAR_TEMPO,
 } from "../../master-bar";
-import { Score } from "../../score";
+import { Score, isReleaseDate } from "../../score";
 import { Staff } from "../../staff";
 import { Track } from "../../track";
 import { SerializedValueReader } from "../serialized-value-reader";
@@ -25,7 +25,8 @@ import {
 type ScoreData = {
   name: string;
   artist: string;
-  song: string;
+  album: string | null;
+  releaseDate: string | null;
   masterVolume: number;
   masterPan: number;
   masterBars: SerializedValueReader[];
@@ -53,21 +54,44 @@ function validateScoreHeader(reader: SerializedValueReader): void {
   }
 }
 
+const REQUIRED_SCORE_KEYS = [
+  "format",
+  "version",
+  "name",
+  "artist",
+  "masterVolume",
+  "masterPan",
+  "masterBars",
+  "tracks",
+] as const;
+/**
+ * Score keys that may be missing. Older files have `song`, which is no
+ * longer used, so it is accepted and ignored.
+ */
+const OPTIONAL_SCORE_KEYS = ["album", "releaseDate", "song"] as const;
+
+/** Reads a string that may be missing, as null. */
+function readOptionalString(reader: SerializedValueReader): string | null {
+  return reader.rawValue() === undefined ? null : reader.readString();
+}
+
+/** Reads an optional ISO partial release date. */
+function readReleaseDate(reader: SerializedValueReader): string | null {
+  const value = readOptionalString(reader);
+  if (value !== null && !isReleaseDate(value)) {
+    reader.fail('expected a date as "YYYY", "YYYY-MM" or "YYYY-MM-DD"');
+  }
+  return value;
+}
+
 /** Validates the root shape and retains child readers for ordered restoration. */
 function readScoreData(reader: SerializedValueReader): ScoreData {
-  reader.readObject();
+  const object = reader.readObject();
   validateScoreHeader(reader);
-  reader.expectKeys([
-    "format",
-    "version",
-    "name",
-    "artist",
-    "song",
-    "masterVolume",
-    "masterPan",
-    "masterBars",
-    "tracks",
-  ]);
+  const optionalKeys = OPTIONAL_SCORE_KEYS.filter((key) =>
+    Object.prototype.hasOwnProperty.call(object, key)
+  );
+  reader.expectKeys([...REQUIRED_SCORE_KEYS, ...optionalKeys]);
   const masterBarsReader = reader.property("masterBars");
   const tracksReader = reader.property("tracks");
   const masterBars = masterBarsReader.readArray();
@@ -81,7 +105,8 @@ function readScoreData(reader: SerializedValueReader): ScoreData {
   return {
     name: reader.property("name").readString(),
     artist: reader.property("artist").readString(),
-    song: reader.property("song").readString(),
+    album: readOptionalString(reader.property("album")),
+    releaseDate: readReleaseDate(reader.property("releaseDate")),
     masterVolume: reader.property("masterVolume").readNumberInRange(0, 1),
     masterPan: reader.property("masterPan").readNumberInRange(-1, 1),
     masterBars,
@@ -321,7 +346,9 @@ function restoreMasterBarVoices(
  */
 export function deserializeScore(value: unknown): Score {
   const scoreData = readScoreData(SerializedValueReader.root(value));
-  const score = new Score([], scoreData.name, scoreData.artist, scoreData.song);
+  const score = new Score([], scoreData.name, scoreData.artist);
+  score.album = scoreData.album;
+  score.releaseDate = scoreData.releaseDate;
   score.tracks.splice(0, score.tracks.length);
   score.masterBars.splice(0, score.masterBars.length);
   score.masterVolume = scoreData.masterVolume;

@@ -83,7 +83,6 @@ export function fillTrack(track: Track<Guitar>, info: TrackInfo): void {
 export function createScore(
   scoreName?: string,
   artist?: string,
-  songName?: string,
   masterBarsCount = 1,
   tracksInfo: TrackInfo[] = [
     {
@@ -93,7 +92,7 @@ export function createScore(
     },
   ]
 ): Score {
-  const score = new Score([], scoreName, artist, songName);
+  const score = new Score([], scoreName, artist);
 
   score.tracks.splice(0, score.tracks.length);
   score.masterBars.splice(0, score.masterBars.length);

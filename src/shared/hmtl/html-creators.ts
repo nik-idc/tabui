@@ -48,6 +48,14 @@ export function createInput(): HTMLInputElement {
   return document.createElement("input");
 }
 
+export function createTextArea(): HTMLTextAreaElement {
+  return document.createElement("textarea");
+}
+
+export function createSpan(): HTMLSpanElement {
+  return document.createElement("span");
+}
+
 export function createParagraph(): HTMLParagraphElement {
   return document.createElement("p");
 }

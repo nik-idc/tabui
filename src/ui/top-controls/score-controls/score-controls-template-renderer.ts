@@ -21,8 +21,6 @@ export class ScoreControlsTemplateRenderer {
 
   private _assembled: boolean;
 
-  private _currentScoreName: string = "Score name";
-
   constructor(
     parentDiv: HTMLDivElement,
     overlayParent: HTMLDivElement,
@@ -69,10 +67,6 @@ export class ScoreControlsTemplateRenderer {
       t.editContainer
     );
     this.template.masterContainer.append(this.template.settingsContainer);
-    const titleContainer = document.createElement("div");
-    titleContainer.classList.add("tu-score-title");
-    titleContainer.append(this.template.scoreNameInput);
-    this.notationComponent.rootDiv.prepend(titleContainer);
     this.template.settingsContainer.append(
       this.template.newTrackButton,
       this.template.showTracksButton,
@@ -259,32 +253,18 @@ export class ScoreControlsTemplateRenderer {
       !this.notationComponent.trackController.editingEnabled;
   }
 
-  private renderScoreNameInput(): void {
-    const cssClass = "tu-score-name-input";
-    this.template.scoreNameInput.classList.add(cssClass);
-    this.template.scoreNameInput.ariaLabel = "Score name";
-    this.template.scoreNameInput.value = this._currentScoreName;
-    const controller = this.notationComponent.trackController;
-    const readOnly = !controller.editingEnabled || controller.isPlaybackActive;
-    this.template.scoreNameInput.disabled = readOnly;
-    this.template.scoreNameInput.tabIndex = readOnly ? -1 : 0;
-  }
-
   private renderTracksContainer(): void {
     const cssClass = "tu-tracks";
     this.template.tracksContainer.classList.add(cssClass);
   }
 
   public render(score: Score, tracksAreDisplayed: boolean): void {
-    this._currentScoreName = score.name;
-
     this.renderSelectionButtons();
     this.renderEditButtons();
     this.renderShowButton(score, tracksAreDisplayed);
     this.renderNewTrackButton();
     this.renderMasterVolumeInput(score);
     this.renderMasterPanningInput(score);
-    this.renderScoreNameInput();
     this.renderTracksContainer();
 
     this._assembled = renderOnce(this._assembled, () =>

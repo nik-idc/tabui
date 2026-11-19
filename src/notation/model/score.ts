@@ -69,8 +69,10 @@ export class Score {
   private _name: string;
   /** Score's song artist */
   private _artist: string;
-  /** Score's song name */
-  private _song: string;
+  /** Album name, or null when unknown */
+  private _album: string | null = null;
+  /** Release date as an ISO partial date ("2024", "2024-05" or "2024-05-17"), or null when unknown */
+  private _releaseDate: string | null = null;
   /** Master bars */
   private _masterBars: MasterBar[];
 
@@ -79,20 +81,17 @@ export class Score {
    * @param tracks Retained live array; supplied tracks keep their parent references. Missing staves/bars are filled, without rebinding existing bars.
    * @param name Score's name
    * @param artist Score's song artist
-   * @param song Score's song name
    * @throws If filling missing staff/bar content or rebuilding its timing fails.
    */
   constructor(
     tracks: Track<MusicInstrument>[] = [],
     name: string = "Unknown",
-    artist: string = "Unknown artist",
-    song: string = "Unknown song"
+    artist: string = "Unknown artist"
   ) {
     this._tracks = tracks;
 
     this._name = name;
     this._artist = artist;
-    this._song = song;
     this.masterVolume = 0.5;
     this.masterPan = 0;
     this._masterBars = [new MasterBar(DEFAULT_MASTER_BAR)];
@@ -451,13 +450,24 @@ export class Score {
     return this._artist;
   }
 
-  /** Song setter */
-  public set song(newSong: string) {
-    this._song = newSong;
+  /** Album name, or null when unknown */
+  public set album(newAlbum: string | null) {
+    this._album = newAlbum;
   }
-  /** Song getter */
-  public get song(): string {
-    return this._song;
+  public get album(): string | null {
+    return this._album;
+  }
+
+  /**
+   * Release date, or null when unknown. Use an ISO partial date: "2024",
+   * "2024-05" or "2024-05-17". Assignments are not validated; see
+   * {@link isReleaseDate}.
+   */
+  public set releaseDate(newReleaseDate: string | null) {
+    this._releaseDate = newReleaseDate;
+  }
+  public get releaseDate(): string | null {
+    return this._releaseDate;
   }
 
   /** Live master-bar array; use score methods to keep staff bars aligned. */
@@ -469,4 +479,42 @@ export class Score {
   public get tracks(): Track[] {
     return this._tracks;
   }
+}
+
+/** Digit counts of the year, month and day parts of a release date. */
+const RELEASE_DATE_PART_LENGTHS = [4, 2, 2];
+
+/**
+ * Checks that a release date is an ISO partial date with a real month and
+ * day, for example "2024", "2024-05" or "2024-02-29".
+ * @param value Release date to check
+ * @returns True when the date is valid
+ */
+export function isReleaseDate(value: string): boolean {
+  const parts = value.split("-");
+  if (parts.length > RELEASE_DATE_PART_LENGTHS.length) {
+    return false;
+  }
+  const hasExpectedDigits = parts.every(
+    (part, i) =>
+      part.length === RELEASE_DATE_PART_LENGTHS[i] &&
+      [...part].every((char) => "0123456789".includes(char))
+  );
+  if (!hasExpectedDigits) {
+    return false;
+  }
+
+  const [year, month, day] = parts.map(Number);
+  if (month === undefined) {
+    return true;
+  }
+  if (month < 1 || month > 12) {
+    return false;
+  }
+  if (day === undefined) {
+    return true;
+  }
+  // Day 0 of the next month is the last day of this month.
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day >= 1 && day <= daysInMonth;
 }

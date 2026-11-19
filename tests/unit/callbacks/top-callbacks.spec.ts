@@ -47,12 +47,12 @@ describe("TopControlsCallbacks", () => {
       callbacks.bind();
       callbacks.bind();
       const loop = ui.topComponent.playComponent.template.loopButton;
-      const name = ui.topComponent.scoreComponent.template.scoreNameInput;
+      const volume = ui.topComponent.scoreComponent.template.masterVolumeInput;
       loop.click();
       expect(notation.trackController.isLooped).toBe(true);
-      name.value = "Mounted score";
-      name.dispatchEvent(new Event("input"));
-      expect(score.name).toBe("Mounted score");
+      volume.value = "30";
+      volume.dispatchEvent(new Event("input"));
+      expect(score.masterVolume).toBe(0.3);
       render.mockClear();
       const playerUUID = required(notation.trackController.playerUUID);
       trackEvent.emit(TrackEventType.PlayerStateChanged, {
@@ -64,11 +64,11 @@ describe("TopControlsCallbacks", () => {
       callbacks.unbind();
       callbacks.unbind();
       loop.click();
-      name.value = "Detached score";
-      name.dispatchEvent(new Event("input"));
+      volume.value = "90";
+      volume.dispatchEvent(new Event("input"));
       trackEvent.emit(TrackEventType.PlayerStateChanged, { playerUUID });
       expect(notation.trackController.isLooped).toBe(true);
-      expect(score.name).toBe("Mounted score");
+      expect(score.masterVolume).toBe(0.3);
       expect(render).toHaveBeenCalledTimes(1);
       callbacks.bind();
       loop.click();

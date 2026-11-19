@@ -352,7 +352,9 @@ describe("score serialization", () => {
   });
 
   test("serializes and restores score state without derived timing fields", () => {
-    const score = new Score([], "Name", "Artist", "Song");
+    const score = new Score([], "Name", "Artist");
+    score.album = "Album";
+    score.releaseDate = "2024-05-17";
     score.masterVolume = 0.7;
     score.masterPan = -0.25;
     score.tracks[0].volume = 0.35;
@@ -386,7 +388,8 @@ describe("score serialization", () => {
     expect(serializedScore).toMatchObject({
       name: "Name",
       artist: "Artist",
-      song: "Song",
+      album: "Album",
+      releaseDate: "2024-05-17",
       masterVolume: 0.7,
       masterPan: -0.25,
       masterBars: [
@@ -421,7 +424,8 @@ describe("score serialization", () => {
 
     expect(restored.name).toBe("Name");
     expect(restored.artist).toBe("Artist");
-    expect(restored.song).toBe("Song");
+    expect(restored.album).toBe("Album");
+    expect(restored.releaseDate).toBe("2024-05-17");
     expect(restored.masterVolume).toBe(0.7);
     expect(restored.masterPan).toBe(-0.25);
     expect(restoredTrack.volume).toBe(0.35);

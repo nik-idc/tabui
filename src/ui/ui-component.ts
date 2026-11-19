@@ -3,6 +3,7 @@ import { NotationComponent } from "../notation/notation-component";
 import { ResolvedTabUIConfig } from "../config/tabui-config";
 import { SideControlsComponent } from "./side-controls/side-controls-component";
 import { TopControlsComponent } from "./top-controls";
+import { ScoreHeaderComponent } from "./score-header";
 
 export class UIComponent {
   readonly topHost: HTMLDivElement;
@@ -13,6 +14,8 @@ export class UIComponent {
 
   readonly topComponent: TopControlsComponent;
   readonly sideComponent: SideControlsComponent;
+  /** Score title and details at the top of the notation. */
+  readonly headerComponent: ScoreHeaderComponent;
   /** Speaks text to screen readers. */
   readonly announce: (text: string) => void;
 
@@ -46,11 +49,16 @@ export class UIComponent {
       config,
       announce
     );
+    this.headerComponent = new ScoreHeaderComponent(
+      this.notationComponent.rootDiv,
+      this.notationComponent
+    );
   }
 
   public render(collapsed?: boolean): void {
     this.topComponent.render();
     this.sideComponent.render(collapsed);
+    this.headerComponent.render();
   }
 
   /** Closes editor-owned dialogs before their controls become unavailable. */

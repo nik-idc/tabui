@@ -24,7 +24,6 @@ export interface ScoreControlsCallbacks {
   onNewTrackButtonClicked(): void;
   onMasterVolumeChanged(): void;
   onMasterPanningChanged(): void;
-  onScoreNameChanged(): void;
   onRangeClicked(): void;
   onSelectAllClicked(): void;
   onCopyClicked(): Promise<void>;
@@ -121,17 +120,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     this._notationComponent.trackController.setMasterPan(
       this._scoreComponent.score,
       Number(this._scoreComponent.template.masterPanningInput.value)
-    );
-  }
-
-  onScoreNameChanged(): void {
-    const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
-      return;
-    }
-    this._notationComponent.trackController.setScoreName(
-      this._scoreComponent.score,
-      this._scoreComponent.template.scoreNameInput.value
     );
   }
 
@@ -285,11 +273,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         element: this._scoreComponent.template.masterPanningInput,
         event: "input",
         handler: () => this.onMasterPanningChanged(),
-      },
-      {
-        element: this._scoreComponent.template.scoreNameInput,
-        event: "input",
-        handler: () => this.onScoreNameChanged(),
       },
       {
         element: this._scoreComponent.template.rangeButton,

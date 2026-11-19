@@ -314,43 +314,31 @@ function fillBarVoices(bar: Bar<Guitar>, specs: VoiceSpec[]): void {
 }
 
 export function createMultiVoiceSingleStaffScoreFixture(): Score {
-  return createScore(
-    "Multi Voice Single Staff",
-    "TabUI",
-    "Multi Voice Single Staff",
-    3,
-    [
-      {
-        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-        name: "Two voices",
-        stavesInfo: [
-          (staff) => {
-            for (let i = 0; i < SINGLE_STAFF_SPECS.length; i++) {
-              fillBarVoices(staff.bars[i], SINGLE_STAFF_SPECS[i]);
-            }
-          },
-        ],
-      },
-    ]
-  );
+  return createScore("Multi Voice Single Staff", "TabUI", 3, [
+    {
+      instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
+      name: "Two voices",
+      stavesInfo: [
+        (staff) => {
+          for (let i = 0; i < SINGLE_STAFF_SPECS.length; i++) {
+            fillBarVoices(staff.bars[i], SINGLE_STAFF_SPECS[i]);
+          }
+        },
+      ],
+    },
+  ]);
 }
 
 export function createMultiVoiceTwoStaffScoreFixture(): Score {
-  return createScore(
-    "Multi Voice Two Staff",
-    "TabUI",
-    "Multi Voice Two Staff",
-    3,
-    [
-      {
-        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-        name: "Two staves, two voices",
-        stavesInfo: TWO_STAFF_SPECS.map((v) => (staff) => {
-          for (let i = 0; i < v.length; i++) {
-            fillBarVoices(staff.bars[i], v[i]);
-          }
-        }),
-      },
-    ]
-  );
+  return createScore("Multi Voice Two Staff", "TabUI", 3, [
+    {
+      instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
+      name: "Two staves, two voices",
+      stavesInfo: TWO_STAFF_SPECS.map((v) => (staff) => {
+        for (let i = 0; i < v.length; i++) {
+          fillBarVoices(staff.bars[i], v[i]);
+        }
+      }),
+    },
+  ]);
 }

@@ -29,7 +29,6 @@ export class ScoreControlsTemplate {
   /******/ readonly masterPanningControls: HTMLDivElement = createDiv();
   /******/ readonly masterVolumeInput: HTMLInputElement = createInput();
   /******/ readonly masterPanningInput: HTMLInputElement = createInput();
-  /****/ readonly scoreNameInput: HTMLInputElement = createInput();
   /**/ readonly tracksContainer: HTMLDivElement = createDiv();
   /** Scrolls; the container around it does not. */
   /****/ readonly trackList: HTMLDivElement = createDiv();

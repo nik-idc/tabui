@@ -22,7 +22,9 @@ Score
 
 ### Score
 
-A score is one whole piece of music, for example a song.
+A score is one whole piece of music, for example a song. It has a name and an
+artist, and can have an album and a release date. A release date is a year, a
+month, or a day: `2024`, `2024-05`, or `2024-05-17`.
 
 ### Master bar
 

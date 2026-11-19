@@ -330,15 +330,22 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
     await page.keyboard.press("Tab");
   }
   await expect(afterEditor).toBeFocused();
-  await page.keyboard.press("Shift+Tab");
-  const title = editor.getByRole("textbox", { name: "Score name" });
-  await expect(title).toBeFocused();
+  // The score header fields come after the notation, top to bottom.
+  const headerFields = ["Score name", "Artist", "Album", "Release date"].map(
+    (name) => editor.getByRole("textbox", { name, exact: true })
+  );
+  for (const field of headerFields.toReversed()) {
+    await page.keyboard.press("Shift+Tab");
+    await expect(field).toBeFocused();
+  }
   await page.keyboard.press("Shift+Tab");
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
-  await page.keyboard.press("Tab");
-  await expect(title).toBeFocused();
+  for (const field of headerFields) {
+    await page.keyboard.press("Tab");
+    await expect(field).toBeFocused();
+  }
   await page.keyboard.press("Tab");
   await expect(afterEditor).toBeFocused();
 });

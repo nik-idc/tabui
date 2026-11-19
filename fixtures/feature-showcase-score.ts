@@ -137,67 +137,63 @@ function fillPart(
 /** Builds a split fingerstyle arrangement, two-voice lead, and a separate feature-rich solo. */
 export function createFeatureShowcaseScoreFixture(): Score {
   const halfNotes = bassFrets.map(() => [half, half]);
-  const score = createScore(
-    "Feature Showcase Score",
-    "TabUI",
-    "Evening in E Minor",
-    6,
-    [
-      {
-        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-        name: "Rhythm track",
-        stavesInfo: [
-          (staff) =>
-            fillPart(
-              staff,
-              1,
-              trebleFrets.map((b) => b.map((f) => [2, f])),
-              trebleDurations
-            ),
-          (staff) =>
-            fillPart(
-              staff,
-              1,
-              accompaniment,
-              accompaniment.map(() => [quarter, quarter, quarter, quarter])
-            ),
-        ],
-      },
-      {
-        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Overdrive"],
-        name: "Lead track",
-        stavesInfo: [
-          (staff) => {
-            fillPart(
-              staff,
-              1,
-              leadFrets.map((b) => b.map((f) => [1, f])),
-              leadDurations
-            );
-            fillPart(
-              staff,
-              2,
-              harmonyFrets.map((b) => b.map((f) => [3, f])),
-              halfNotes
-            );
-          },
-        ],
-      },
-      {
-        instrument: DEFAULT_BASS_GUITARS["Bass Clean"],
-        name: "Bass track",
-        stavesInfo: [
-          (staff) =>
-            fillPart(
-              staff,
-              1,
-              bassFrets.map((b) => b.map((f) => [4, f])),
-              halfNotes
-            ),
-        ],
-      },
-    ]
-  );
+  const score = createScore("Feature Showcase Score", "TabUI", 6, [
+    {
+      instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
+      name: "Rhythm track",
+      stavesInfo: [
+        (staff) =>
+          fillPart(
+            staff,
+            1,
+            trebleFrets.map((b) => b.map((f) => [2, f])),
+            trebleDurations
+          ),
+        (staff) =>
+          fillPart(
+            staff,
+            1,
+            accompaniment,
+            accompaniment.map(() => [quarter, quarter, quarter, quarter])
+          ),
+      ],
+    },
+    {
+      instrument: DEFAULT_ELECTRIC_GUITARS["Electric Overdrive"],
+      name: "Lead track",
+      stavesInfo: [
+        (staff) => {
+          fillPart(
+            staff,
+            1,
+            leadFrets.map((b) => b.map((f) => [1, f])),
+            leadDurations
+          );
+          fillPart(
+            staff,
+            2,
+            harmonyFrets.map((b) => b.map((f) => [3, f])),
+            halfNotes
+          );
+        },
+      ],
+    },
+    {
+      instrument: DEFAULT_BASS_GUITARS["Bass Clean"],
+      name: "Bass track",
+      stavesInfo: [
+        (staff) =>
+          fillPart(
+            staff,
+            1,
+            bassFrets.map((b) => b.map((f) => [4, f])),
+            halfNotes
+          ),
+      ],
+    },
+  ]);
+  score.album = "Evening in E Minor";
+  score.releaseDate = "2026";
   appendFeatureShowcaseSolo(score);
   return score;
 }

@@ -26,7 +26,6 @@ export function createPerformanceStressScoreFixture(): Score {
   return createScore(
     "Performance Stress Score",
     "TabUI",
-    "Dense Playback/Layout Stress Test",
     MASTER_BARS_COUNT,
     tracksInfo
   );

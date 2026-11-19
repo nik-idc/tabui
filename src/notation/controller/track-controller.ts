@@ -409,6 +409,32 @@ export class TrackController {
     return this._trackControllerEditor.setScoreName(score, name);
   }
 
+  public setScoreArtist(score: Score, artist: string): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setScoreArtist(score, artist);
+  }
+
+  /** Sets the album; an empty name clears it. */
+  public setScoreAlbum(score: Score, album: string): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setScoreAlbum(score, album);
+  }
+
+  /**
+   * Sets the release date; an empty string clears it.
+   * @returns False during playback, in view-only mode, or for an invalid date
+   */
+  public setScoreReleaseDate(score: Score, releaseDate: string): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setScoreReleaseDate(score, releaseDate);
+  }
+
   public setMasterVolume(score: Score, volume: number): boolean {
     const changed = this._trackControllerEditor.setMasterVolume(score, volume);
     if (changed) {

@@ -17,6 +17,7 @@ import {
   VoiceNumber,
   ScoreEditor,
   Score,
+  isReleaseDate,
   Track,
   MusicInstrument,
   GuitarTechniqueType,
@@ -197,6 +198,52 @@ export class TrackControllerEditor {
       return true;
     }
     score.name = name;
+    this.onScoreEdited();
+    return true;
+  }
+
+  public setScoreArtist(score: Score, artist: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    if (score.artist === artist) {
+      return true;
+    }
+    score.artist = artist;
+    this.onScoreEdited();
+    return true;
+  }
+
+  /** Sets the album; an empty name clears it. */
+  public setScoreAlbum(score: Score, album: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const value = album === "" ? null : album;
+    if (score.album === value) {
+      return true;
+    }
+    score.album = value;
+    this.onScoreEdited();
+    return true;
+  }
+
+  /**
+   * Sets the release date; an empty string clears it.
+   * @returns False when editing is off or the date is not an ISO partial date
+   */
+  public setScoreReleaseDate(score: Score, releaseDate: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const value = releaseDate === "" ? null : releaseDate;
+    if (value !== null && !isReleaseDate(value)) {
+      return false;
+    }
+    if (score.releaseDate === value) {
+      return true;
+    }
+    score.releaseDate = value;
     this.onScoreEdited();
     return true;
   }
