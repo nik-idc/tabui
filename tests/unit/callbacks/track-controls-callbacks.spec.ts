@@ -85,24 +85,53 @@ describe("Track controls", () => {
     expect(notation.score.tracks).toEqual([rhythm.track]);
   });
 
-  test("track editing controls render disabled during playback", async () => {
-    notation.trackController.startPlayer();
-    await settleTransport();
-    expect(notation.trackController.playbackState).toBe(PlaybackState.Playing);
-    controls.render();
-    const template = controls.trackComponents[1].template;
-    for (const button of [
-      template.moveUpButton,
-      template.moveDownButton,
-      template.removeButton,
-      template.settingsButton,
-    ]) {
-      expect(button.disabled).toBe(true);
+  test.each([
+    { state: "idle", edit: true, mix: true, select: true },
+    { state: "playing", edit: false, mix: true, select: false },
+    { state: "view-only", edit: false, mix: false, select: true },
+  ])(
+    "controls follow the controller rules when $state",
+    async ({ state, edit, mix, select }) => {
+      if (state === "playing") {
+        notation.trackController.startPlayer();
+        await settleTransport();
+      } else if (state === "view-only") {
+        notation.setEditingEnabled(false);
+      }
+      controls.render();
+      const score = controls.template;
+      const lead = controls.trackComponents[1].template;
+      const enabled = (elements: { disabled: boolean }[]) =>
+        elements.map((element) => !element.disabled);
+
+      expect(
+        enabled([
+          lead.moveUpButton,
+          lead.removeButton,
+          lead.settingsButton,
+          lead.trackNameInput,
+          score.newTrackButton,
+          score.cutButton,
+          score.pasteButton,
+        ])
+      ).toEqual(Array(7).fill(edit));
+      expect(
+        enabled([
+          lead.volumeInput,
+          lead.panningInput,
+          lead.muteButton,
+          lead.soloButton,
+          score.masterVolumeInput,
+          score.masterPanningInput,
+        ])
+      ).toEqual(Array(6).fill(mix));
+      expect(
+        enabled([score.rangeButton, score.selectAllButton, score.copyButton])
+      ).toEqual(Array(3).fill(select));
+      // The last track can't move down in any state.
+      expect(lead.moveDownButton.disabled).toBe(true);
     }
-    expect(template.trackNameInput.disabled).toBe(true);
-    expect(template.volumeInput.disabled).toBe(false);
-    expect(template.panningInput.disabled).toBe(false);
-  });
+  );
 
   test("playback blocks track editing but preserves selection and mix controls", async () => {
     const lead = controls.trackComponents[1];

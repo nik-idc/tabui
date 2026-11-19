@@ -101,7 +101,7 @@ export class ScoreHeaderTemplateRenderer {
     t.releaseDateInput.removeAttribute("aria-invalid");
 
     const controller = this.notationComponent.trackController;
-    const readOnly = !controller.editingEnabled || controller.isPlaybackActive;
+    const readOnly = !controller.canEdit;
     for (const field of [
       t.titleInput,
       t.artistInput,

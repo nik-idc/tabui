@@ -76,7 +76,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
 
   onConfirmClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       this._trackSettingsComponent.dialog.close();
       return;
     }

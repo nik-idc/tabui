@@ -43,11 +43,7 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
   onTrackRemoveClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (
-      controller.isPlaybackActive ||
-      !controller.editingEnabled ||
-      this._notationComponent.score.tracks.length <= 1
-    ) {
+    if (!controller.canRemoveTrack(this._notationComponent.score)) {
       return;
     }
     this._showTrackRemove();
@@ -97,10 +93,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   private moveTrack(offset: number): void {
-    const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
-      return;
-    }
     const track = this._trackComponent.track;
     const trackIndex = this._notationComponent.score.tracks.indexOf(track);
     const targetIndex = trackIndex + offset;
@@ -110,10 +102,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackNameChanged(): void {
-    const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
-      return;
-    }
     const changed = this._notationComponent.trackController.setTrackName(
       this._trackComponent.track,
       this._trackComponent.template.trackNameInput.value
@@ -161,7 +149,7 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
   onTrackSettingsClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       return;
     }
     this._showTrackSettings();
