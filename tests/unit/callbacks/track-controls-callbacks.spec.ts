@@ -218,6 +218,8 @@ describe("Track controls", () => {
     lead.template.trackNameLabel.click();
     expect(notation.trackController.track).toBe(lead.track);
     expect(document.activeElement).not.toBe(lead.template.trackNameInput);
+    // A mouse click leaves focus to the editor, so Space stays a shortcut.
+    expect(document.activeElement).not.toBe(lead.template.container);
     expect(lead.template.trackNameInput.hidden).toBe(false);
 
     notation.loadTrack(rhythm.track);
@@ -227,6 +229,7 @@ describe("Track controls", () => {
       new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
     );
     expect(notation.trackController.track).toBe(lead.track);
+    expect(document.activeElement).toBe(lead.template.container);
 
     notation.loadTrack(rhythm.track);
     controls.render();

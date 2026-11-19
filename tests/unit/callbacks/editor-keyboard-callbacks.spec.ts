@@ -1014,6 +1014,49 @@ describe("EditorKeyboardDefCallbacks", () => {
     }
   );
 
+  test("Space on an editor slider toggles playback once and leaves other keys alone", () => {
+    withKeyboardFixture(({ callbacks, root }) => {
+      const slider = document.createElement("input");
+      slider.type = "range";
+      const dialog = document.createElement("dialog");
+      const dialogSlider = document.createElement("input");
+      dialogSlider.type = "range";
+      dialog.append(dialogSlider);
+      const outsideSlider = document.createElement("input");
+      outsideSlider.type = "range";
+      root.append(slider, dialog);
+      document.body.append(outsideSlider);
+      const toggle = jest
+        .spyOn(callbacks, "togglePlaybackEvent")
+        .mockImplementation(() => {});
+      callbacks.bind();
+      const press = (target: HTMLElement, init: KeyboardEventInit) => {
+        const event = new window.KeyboardEvent("keydown", {
+          bubbles: true,
+          cancelable: true,
+          ...init,
+        });
+        target.dispatchEvent(event);
+        return event.defaultPrevented;
+      };
+
+      expect(press(slider, { key: " " })).toBe(true);
+      expect(toggle).toHaveBeenCalledTimes(1);
+      // A held key is consumed but does not toggle again.
+      expect(press(slider, { key: " ", repeat: true })).toBe(true);
+      expect(toggle).toHaveBeenCalledTimes(1);
+
+      // Modified Space, arrows, and sliders in dialogs or other apps keep
+      // their own behavior.
+      expect(press(slider, { key: " ", ctrlKey: true })).toBe(false);
+      expect(press(slider, { key: "ArrowRight" })).toBe(false);
+      expect(press(dialogSlider, { key: " " })).toBe(false);
+      expect(press(outsideSlider, { key: " " })).toBe(false);
+      expect(toggle).toHaveBeenCalledTimes(1);
+      outsideSlider.remove();
+    });
+  });
+
   test("dialog events leave native keys available without enabling toolbar playback", () => {
     withKeyboardFixture(({ callbacks, controller, root }) => {
       const button = document.createElement("button");

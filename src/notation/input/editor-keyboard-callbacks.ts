@@ -737,6 +737,13 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
   /** Handles notation shortcuts and toolbar playback shortcuts. */
   public onKeyDown(event: KeyboardEvent): void {
+    if (this.isSliderPlayback(event)) {
+      event.preventDefault();
+      if (!event.repeat) {
+        this.togglePlaybackEvent();
+      }
+      return;
+    }
     if (!this.isKeyboardEventEligible(event)) {
       return;
     }
@@ -785,6 +792,25 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     if (this.dispatchShortcut(event)) {
       event.preventDefault();
     }
+  }
+
+  /**
+   * True for Space on an editor slider. Sliders keep focus after a drag and
+   * have no Space action, so Space toggles playback there, as in notation.
+   */
+  private isSliderPlayback(event: KeyboardEvent): boolean {
+    const target = event.target;
+    return (
+      event.key === EditorKey.TogglePlayback &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey &&
+      typeof Element !== "undefined" &&
+      target instanceof Element &&
+      target.matches('input[type="range"]') &&
+      this._rootElement.contains(target) &&
+      target.closest("dialog, .tu-dialog") === null
+    );
   }
 
   /** Checks the shared focus, ownership, and browser-control boundary. */
