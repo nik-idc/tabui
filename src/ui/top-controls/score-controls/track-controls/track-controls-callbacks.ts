@@ -49,10 +49,15 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     this._showTrackRemove();
   }
 
+  /** Loads the track and keeps keyboard focus on its row. */
   onTrackSelected(): void {
+    this.selectTrack();
+    this._trackComponent.template.container.focus();
+  }
+
+  private selectTrack(): void {
     this._notationComponent.loadTrack(this._trackComponent.track);
     this._renderFunc();
-    this._trackComponent.template.container.focus();
   }
 
   private onTrackRowClicked(event: Event): void {
@@ -70,7 +75,8 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     ) {
       return;
     }
-    this.onTrackSelected();
+    // A mouse click leaves focus to the editor, which returns it to notation.
+    this.selectTrack();
   }
 
   private onTrackRowKeyDown(event: KeyboardEvent): void {
