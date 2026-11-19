@@ -168,7 +168,9 @@ function formatRhythm(beat: Beat): string {
 
 /** Formats techniques, including the highest defined bend pitch. */
 function formatTechniques(note: GuitarNote): string {
-  if (note.techniques.length === 0) return "";
+  if (note.techniques.length === 0) {
+    return "";
+  }
   const names = note.techniques.map((technique) => {
     const name = TECHNIQUE_NAMES[technique.type];
     if (technique.accentOptions?.kind === AccentType.Heavy) {
@@ -199,11 +201,16 @@ function formatNoteSlot(selection: SelectionCursor): string {
   const prefix =
     `${beat.trackContext.instrument instanceof Guitar ? "String" : "Lane"}` +
     ` ${selection.noteIndex + 1}`;
-  if (beat.isRest()) return `${prefix}, rest.`;
+  if (beat.isRest()) {
+    return `${prefix}, rest.`;
+  }
   const note = beat.notes?.[selection.noteIndex] ?? null;
-  if (note === null || note.noteValue === NoteValue.None)
+  if (note === null || note.noteValue === NoteValue.None) {
     return `${prefix}, empty.`;
-  if (note.noteValue === NoteValue.Dead) return `${prefix}, dead note.`;
+  }
+  if (note.noteValue === NoteValue.Dead) {
+    return `${prefix}, dead note.`;
+  }
   return note instanceof GuitarNote
     ? `${prefix}, fret ${note.fret}${formatTechniques(note)}.`
     : `${prefix}.`;
@@ -211,7 +218,9 @@ function formatNoteSlot(selection: SelectionCursor): string {
 
 function formatRepeats(beat: Beat): string {
   const bar = beat.voiceBar.bar.masterBar;
-  if (!bar.isRepeatStart && !bar.isRepeatEnd) return "";
+  if (!bar.isRepeatStart && !bar.isRepeatEnd) {
+    return "";
+  }
   if (bar.isRepeatStart && bar.isRepeatEnd) {
     return (
       `, repeat start, repeat end ${bar.repeatCount}` +

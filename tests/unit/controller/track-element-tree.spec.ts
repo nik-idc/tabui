@@ -248,9 +248,9 @@ describe("TrackElement tree", () => {
     expect(beatElement.noteElements.map((v) => v.stringNumber)).toEqual([
       1, 2, 3, 4, 5, 6,
     ]);
-    beatElement.noteElements.forEach((v, i) => {
+    for (const [i, v] of beatElement.noteElements.entries()) {
       expect(v.note).toBe(beatElement.beat.notes?.[i]);
-    });
+    }
   });
 
   test("line-local geometry excludes the preceding line height for immediate children", () => {
@@ -278,7 +278,9 @@ describe("TrackElement tree", () => {
       height: 252,
     });
 
-    if (trackLineInfo === null) throw Error("Expected tempo information");
+    if (trackLineInfo === null) {
+      throw Error("Expected tempo information");
+    }
     expect(trackLineInfo.lineLocalCoords).toEqual({ x: 0, y: 0 });
     expect(trackLineInfo.lineLocalBoundingBox).toEqual({
       x: 0,
@@ -323,7 +325,9 @@ describe("TrackElement tree", () => {
     const gapLine = styleLine.techGapContainer.techGapLinesAsArray.find(
       (line) => line.labelElements.length > 0
     );
-    if (gapLine === undefined) throw Error("Expected technique gap line");
+    if (gapLine === undefined) {
+      throw Error("Expected technique gap line");
+    }
     const labelElement = gapLine.labelElements[0];
 
     // The 48px tempo/number header precedes a 24px palm-mute label row.
@@ -592,7 +596,9 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
     const finalVoiceBar = track.staves[0].bars[12].getVoiceBar(1);
-    if (finalVoiceBar === null) throw Error("Expected final voice bar");
+    if (finalVoiceBar === null) {
+      throw Error("Expected final voice bar");
+    }
     for (let i = 0; i < 3; i++) {
       finalVoiceBar.appendBeats();
     }
@@ -688,7 +694,9 @@ describe("TrackElement tree", () => {
       track.staves[0].bars.map((bar) => {
         const barElement = findBarElement(trackElement, bar.uuid);
         expect(barElement).toBeDefined();
-        if (barElement === undefined) throw Error("Expected bar element");
+        if (barElement === undefined) {
+          throw Error("Expected bar element");
+        }
         return [
           bar.uuid,
           {
@@ -740,10 +748,14 @@ describe("TrackElement tree", () => {
       );
     })?.uuid;
     expect(movedBarUUID).toBeDefined();
-    if (movedBarUUID === undefined) throw Error("Expected moved bar UUID");
+    if (movedBarUUID === undefined) {
+      throw Error("Expected moved bar UUID");
+    }
 
     const before = beforeByBarUUID.get(movedBarUUID);
-    if (before === undefined) throw Error("Expected original bar element");
+    if (before === undefined) {
+      throw Error("Expected original bar element");
+    }
     const after = findBarElement(trackElement, movedBarUUID);
     expect(after?.getStableIdentity()).toBe(before.stableIdentity);
     expect(after?.beatElements[0].getStableIdentity()).toBe(
@@ -934,10 +946,12 @@ describe("TrackElement tree", () => {
 
     expect(firstLineBeatElement).toBeDefined();
     expect(secondLineBeatElement).toBeDefined();
-    if (firstLineBeatElement === undefined)
+    if (firstLineBeatElement === undefined) {
       throw Error("Expected first line beat element");
-    if (secondLineBeatElement === undefined)
+    }
+    if (secondLineBeatElement === undefined) {
       throw Error("Expected second line beat element");
+    }
     expect(selectionRects).toHaveLength(2);
     expect(selectionRects[0].width).toBeGreaterThan(0);
     expect(selectionRects[1].width).toBeGreaterThan(0);
@@ -955,8 +969,9 @@ describe("TrackElement tree", () => {
     const selectedElements = [firstLineBeatElement, secondLineBeatElement];
     for (const [i, beatElement] of selectedElements.entries()) {
       const noteElement = beatElement.noteElements[0];
-      if (!(noteElement instanceof TabNoteSlotElement))
+      if (!(noteElement instanceof TabNoteSlotElement)) {
         throw Error("Expected tab note slot");
+      }
       const noteBounds = noteElement.textRectGlobal;
       expect(selectionRects[i].x).toBeLessThanOrEqual(noteBounds.x);
       expect(selectionRects[i].right).toBeGreaterThanOrEqual(noteBounds.right);

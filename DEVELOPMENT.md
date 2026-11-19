@@ -5,9 +5,12 @@ see [Contributing](CONTRIBUTING.md).
 
 ## Checks
 
-Run `npm run verify` before submitting any change. It checks TypeScript, builds the
-package and demo, and runs unit, integration, and browser tests.
-Also run `npx eslint .` and `git diff --check`.
+Run `npm run verify` before submitting any change. It runs ESLint, checks
+TypeScript, builds the package and demo, and runs unit, integration, and browser
+tests. Also run `git diff --check`.
+
+The pre-commit hook runs `eslint --fix` and Prettier on staged files. A commit
+stops if ESLint finds an error it can't fix.
 
 Useful commands:
 

@@ -24,7 +24,9 @@ describe("mounted editor lifecycle and callbacks", () => {
     });
   });
   afterEach(() => {
-    editors.splice(0).forEach((e) => e.dispose());
+    for (const e of editors.splice(0)) {
+      e.dispose();
+    }
     audio.restore();
     jest.useRealTimers();
     Reflect.deleteProperty(globalThis, "SVGRectElement");

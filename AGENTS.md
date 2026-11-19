@@ -4,8 +4,8 @@ This document provides guidance for AI agents working on TabUI.
 
 ## Core Commands
 
-`npm run verify` checks types, builds the package, runs unit, raw, React, Angular,
-and Vue integration, and Playwright tests, then builds the demo. A passing run does
+`npm run verify` runs ESLint, checks types, builds the package, runs unit, raw,
+React, Angular, and Vue integration, and Playwright tests, then builds the demo. A passing run does
 not prove that all behavior is correct. See [Development](DEVELOPMENT.md) for
 focused test commands and test worker limits.
 

@@ -209,7 +209,9 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._newTrackComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

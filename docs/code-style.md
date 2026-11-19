@@ -3,7 +3,7 @@
 These rules apply to all TabUI contributors.
 
 ESLint enforces additional rules in [`eslint.config.mjs`](../eslint.config.mjs).
-Run `npx eslint .` to check them.
+Run `npm run lint` to check them.
 
 ## Naming
 
@@ -29,7 +29,6 @@ const isMixed = bars.some((v) => !v.isEqualTimeSig(bars[0]));
   shapes, unions of structurally different objects, and composition.
 - Prefer named exports. Use barrel exports where they improve discoverability.
   For internal module boundaries, prefer direct imports over broad barrels.
-- Do not use `forEach` - prefer `for (const elem of arr)` syntax
 - When a class property has an object type that doesn't fit in one line consider
   extracting it into a small type. Example:
 
@@ -59,7 +58,6 @@ class RemoveBarsCommand {
   to format the repository.
 - Keep `for`, `if`, and similar control-flow headers on one line. If a header
   becomes too long, extract local variables before the statement.
-- `if`, `for` etc should always be a `{}` block - never use the short one-liner version
 - Prefer one-letter callback parameters for internal array operations:
 
 ```ts

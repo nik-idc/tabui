@@ -100,11 +100,11 @@ describe("ScoreEditor", () => {
       originalBars[5],
       originalBars[6],
     ]);
-    removedBars.forEach((v, i) => {
+    for (const [i, v] of removedBars.entries()) {
       expect(v.masterBar).toBe(originalMasterBars[i + 2]);
       expect(v.bars.size).toBe(1);
       expect(v.bars.get(staff.uuid)).toBe(originalBars[i + 2]);
-    });
+    }
   });
 
   test("setTupletGroupSettings clears only on exact tuplet match", () => {

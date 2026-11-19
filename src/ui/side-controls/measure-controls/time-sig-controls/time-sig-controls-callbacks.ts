@@ -177,7 +177,9 @@ export class TimeSigControlsDefaultCallbacks implements TimeSigControlsCallbacks
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._timeSigComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

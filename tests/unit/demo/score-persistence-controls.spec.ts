@@ -148,13 +148,18 @@ describe("demo score persistence controls", () => {
   });
 
   afterEach(() => {
-    for (const cleanup of cleanups.splice(0).reverse()) cleanup();
+    for (const cleanup of cleanups.splice(0).reverse()) {
+      cleanup();
+    }
     jest.restoreAllMocks();
     jest.useRealTimers();
     dom.window.close();
     for (const [name, descriptor] of originalGlobals) {
-      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
-      else Reflect.deleteProperty(globalThis, name);
+      if (descriptor) {
+        Object.defineProperty(globalThis, name, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, name);
+      }
     }
     originalGlobals.clear();
   });
@@ -232,7 +237,9 @@ describe("demo score persistence controls", () => {
     cleanups.push(() => jest.runOnlyPendingTimers());
     const blobs: Blob[] = [];
     jest.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
-      if (!(blob instanceof Blob)) throw new Error("Expected a download Blob");
+      if (!(blob instanceof Blob)) {
+        throw new Error("Expected a download Blob");
+      }
       blobs.push(blob);
       return "blob:score";
     });

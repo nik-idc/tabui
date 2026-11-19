@@ -97,7 +97,9 @@ export function installTransportAudio() {
 }
 
 function pannerCount(node: GraphNode, seen = new Set<GraphNode>()): number {
-  if (seen.has(node)) return 0;
+  if (seen.has(node)) {
+    return 0;
+  }
   seen.add(node);
   return (
     (node.isPanner ? 1 : 0) +
@@ -114,5 +116,7 @@ function isMetronomeSource(source: GraphNode): boolean {
 
 /** Waits for the public void controller start action to finish its async startup. */
 export async function settleTransport() {
-  for (let i = 0; i < 10; i++) await Promise.resolve();
+  for (let i = 0; i < 10; i++) {
+    await Promise.resolve();
+  }
 }

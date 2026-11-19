@@ -10,7 +10,9 @@ import { PlaybackState, ScorePlayer } from "../../../src/player/score-player";
 test("retained note DOM follows rebuilt elements and renders later edits", () => {
   const { track, bar } = createScoreGraph();
   const note = bar.getVoiceBar(1)?.beats[0].notes?.[0];
-  if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+  if (!(note instanceof GuitarNote)) {
+    throw Error("Expected guitar note");
+  }
   note.setFret(5);
   const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
   const viewport = document.createElement("div");
@@ -33,7 +35,9 @@ test("retained note DOM follows rebuilt elements and renders later edits", () =>
     render();
     const text = viewport.querySelector('text[id^="note-text-"]');
     expect(text?.textContent).toBe("5");
-    if (text === null) throw Error("Expected rendered fret");
+    if (text === null) {
+      throw Error("Expected rendered fret");
+    }
     const textID = text.id;
     expect(Number(text.getAttribute("x"))).toBeCloseTo(104.7);
 
@@ -48,7 +52,9 @@ test("retained note DOM follows rebuilt elements and renders later edits", () =>
     expect(viewport.querySelectorAll(`[id="${textID}"]`)).toHaveLength(1);
 
     const voiceBar = bar.getVoiceBar(1);
-    if (voiceBar === null) throw Error("Expected voice bar");
+    if (voiceBar === null) {
+      throw Error("Expected voice bar");
+    }
     voiceBar.insertBeat(0);
     controller.trackElement.update({ affectedMasterBarIndices: [0] });
     render();
@@ -119,7 +125,9 @@ test("renders, redraws, and removes a stroke with the beat's notation", () => {
   const { track, bar } = createScoreGraph();
   const beat = bar.getVoiceBar(1)?.beats[0];
   const note = beat?.notes?.[0];
-  if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+  if (!(note instanceof GuitarNote)) {
+    throw Error("Expected guitar note");
+  }
   note.setFret(5);
   const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
   const viewport = document.createElement("div");

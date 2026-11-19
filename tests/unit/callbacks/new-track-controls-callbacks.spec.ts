@@ -137,7 +137,9 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     expect(score.tracks).toHaveLength(2);
     const instrument = score.tracks[1].context.instrument;
     expect(instrument).toBeInstanceOf(Guitar);
-    if (!(instrument instanceof Guitar)) throw Error("Expected a guitar");
+    if (!(instrument instanceof Guitar)) {
+      throw Error("Expected a guitar");
+    }
     expect(instrument.type).toBe(StringInstrumentType.ElectricGuitar);
     expect(instrument.tone).toBe(ElectricGuitarTone.Overdrive);
     expect(instrument.stringsCount).toBe(7);

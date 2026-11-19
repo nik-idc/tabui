@@ -16,10 +16,10 @@ function scoreWithNotes() {
   const graph = createBarWithBeats(
     Array.from({ length: 4 }, () => ({ baseDuration: NoteDuration.Quarter }))
   );
-  graph.beats.forEach((b, i) => {
+  for (const [i, b] of graph.beats.entries()) {
     b.makeBeatWithNotes();
     (required(b.notes)[0] as GuitarNote).setFret(i);
-  });
+  }
   return graph;
 }
 
@@ -57,7 +57,9 @@ describe("ScorePlayer", () => {
     audio = installTransportAudio();
   });
   afterEach(() => {
-    players.splice(0).forEach((p) => p.dispose());
+    for (const p of players.splice(0)) {
+      p.dispose();
+    }
     audio.restore();
     globalThis.fetch = originalFetch;
     jest.restoreAllMocks();
@@ -374,7 +376,9 @@ describe("ScorePlayer", () => {
       message: "Failed to schedule playback",
       cause: error,
     });
-    for (const source of buffered) expect(source.disconnect).toHaveBeenCalled();
+    for (const source of buffered) {
+      expect(source.disconnect).toHaveBeenCalled();
+    }
     expect(player.playbackAnchorBeat).toBe(graph.beats[2]);
     await player.start();
     expect(player.playbackState).toBe(PlaybackState.Playing);
@@ -388,8 +392,9 @@ describe("ScorePlayer", () => {
     expect(player.playbackState).toBe(PlaybackState.Playing);
     jest.advanceTimersByTime(1);
     expect(player.playbackState).toBe(PlaybackState.Idle);
-    for (const source of audio.allSources)
+    for (const source of audio.allSources) {
       expect(source.disconnect).toHaveBeenCalled();
+    }
   });
 
   test("applies live loop changes without restarting transport", async () => {
@@ -404,7 +409,9 @@ describe("ScorePlayer", () => {
     player.toggleLoop();
     expect(player.isLooped).toBe(false);
     expect(player.playbackRunId).toBe(run);
-    for (const source of repeated) expect(source.disconnect).toHaveBeenCalled();
+    for (const source of repeated) {
+      expect(source.disconnect).toHaveBeenCalled();
+    }
     jest.advanceTimersByTime(2050);
     expect(player.playbackState).toBe(PlaybackState.Idle);
   });
@@ -422,8 +429,9 @@ describe("ScorePlayer", () => {
     expect(player.lastStartedBeat?.voiceBar.bar.staff.track).toBe(next);
     expect(player.playbackRunId).toBe(run);
     expect(audio.sources).toEqual(sources);
-    for (const source of sources)
+    for (const source of sources) {
       expect(source.disconnect).not.toHaveBeenCalled();
+    }
   });
 
   test("syncs live mix controls and disposes idempotently", async () => {
@@ -455,7 +463,8 @@ describe("ScorePlayer", () => {
     expect(audio.bufferSources).toHaveLength(bufferSourceCount);
     expect(audio.context.close).toHaveBeenCalledTimes(1);
     expect(player.playbackState).toBe(PlaybackState.Idle);
-    for (const source of audio.allSources)
+    for (const source of audio.allSources) {
       expect(source.disconnect).toHaveBeenCalled();
+    }
   });
 });

@@ -22,10 +22,9 @@ describe("TabUICallbacks", () => {
     });
   });
   afterEach(() => {
-    cleanups
-      .splice(0)
-      .reverse()
-      .forEach((c) => c());
+    for (const cleanup of cleanups.splice(0).reverse()) {
+      cleanup();
+    }
     Reflect.deleteProperty(globalThis, "SVGRectElement");
     jest.restoreAllMocks();
     jest.useRealTimers();
@@ -40,8 +39,11 @@ describe("TabUICallbacks", () => {
     shell.render();
     cleanups.push(() => shell.dispose());
     const { score, track, staff } = createScoreGraph();
-    if (long)
-      for (let i = 0; i < 80; i++) score.appendMasterBar(DEFAULT_MASTER_BAR);
+    if (long) {
+      for (let i = 0; i < 80; i++) {
+        score.appendMasterBar(DEFAULT_MASTER_BAR);
+      }
+    }
     const viewport = shell.template.notationViewport;
     Object.defineProperties(viewport, {
       clientHeight: { value: 400 },

@@ -116,7 +116,9 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._bendComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

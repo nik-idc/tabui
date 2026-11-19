@@ -231,11 +231,16 @@ export function appendFeatureShowcaseSolo(score: Score): void {
             continue;
           }
           const source = staff.bars[sourceIndex].getVoiceBar(1);
-          if (source === null) throw Error("Showcase backing voice is missing");
+          if (source === null) {
+            throw Error("Showcase backing voice is missing");
+          }
           const beats = source.beats.map((b) => b.deepCopy(voice));
           if (i === 6) {
-            if (trackIndex === 2) beats[1].baseDuration = quarter;
-            else beats.pop();
+            if (trackIndex === 2) {
+              beats[1].baseDuration = quarter;
+            } else {
+              beats.pop();
+            }
           }
           voice.replaceBeats(beats);
         }
@@ -249,7 +254,9 @@ export function appendFeatureShowcaseSolo(score: Score): void {
   ).tracks[0] as Track<Guitar>;
   for (const [barIndex, bar] of solo.staves[0].bars.entries()) {
     const voice = bar.getVoiceBar(1);
-    if (voice === null) throw Error("Showcase solo voice is missing");
+    if (voice === null) {
+      throw Error("Showcase solo voice is missing");
+    }
     const specs = soloBars[barIndex - sectionStart];
     if (specs === undefined) {
       voice.replaceBeats([
@@ -277,19 +284,24 @@ export function appendFeatureShowcaseSolo(score: Score): void {
         }
         for (const [stringNumber, fret] of spec.chord ?? []) {
           const chordNote = beat.notes?.[stringNumber - 1];
-          if (chordNote instanceof GuitarNote) chordNote.setFret(fret);
+          if (chordNote instanceof GuitarNote) {
+            chordNote.setFret(fret);
+          }
         }
         return beat;
       })
     );
     // Transition techniques need the complete voice before checking the next note.
     for (const [i, note] of notes.entries()) {
-      if (note === null) continue;
+      if (note === null) {
+        continue;
+      }
       for (const type of specs[i].techniques ?? []) {
-        if (!note.setTechnique(type))
+        if (!note.setTechnique(type)) {
           throw Error(
             `Showcase solo ${GuitarTechniqueType[type]} rejected at bar ${barIndex + 1}, beat ${i + 1}`
           );
+        }
       }
       const bend = specs[i].bend;
       if (

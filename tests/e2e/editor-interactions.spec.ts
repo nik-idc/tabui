@@ -132,14 +132,17 @@ test("clicks an underfilled bar end gap to append and select a beat", async ({
   const secondBeat = await beats.nth(1).boundingBox();
   expect(firstBeat).not.toBeNull();
   expect(secondBeat).not.toBeNull();
-  if (firstBeat === null || secondBeat === null)
+  if (firstBeat === null || secondBeat === null) {
     throw Error("Expected beat bounds");
+  }
   await page.mouse.move(firstBeat.x + firstBeat.width / 2, firstBeat.y + 10);
   await page.mouse.down();
   await page.mouse.move(secondBeat.x + secondBeat.width / 2, secondBeat.y + 10);
   const gapBounds = await gap.boundingBox();
   expect(gapBounds).not.toBeNull();
-  if (gapBounds === null) throw Error("Expected gap bounds");
+  if (gapBounds === null) {
+    throw Error("Expected gap bounds");
+  }
   await page.mouse.move(
     gapBounds.x + gapBounds.width / 2,
     gapBounds.y + gapBounds.height / 2
@@ -196,7 +199,9 @@ for (const layoutMode of ["wrapped", "single-line"] as const) {
       .last()
       .boundingBox();
     expect(finalBorder).not.toBeNull();
-    if (finalBorder === null) throw Error("Expected final bar border bounds");
+    if (finalBorder === null) {
+      throw Error("Expected final bar border bounds");
+    }
     expect(Math.abs(bounds.x - finalBorder.x)).toBeLessThan(1);
 
     const bars = editor.locator('g[id^="bar-"]');
@@ -454,7 +459,9 @@ test("starts and pauses playback from the transport control", async ({
       /** Captures native-clock cursor motion before stopping playback. */
       const observe = () => {
         const cursor = element.querySelector("#playerCursor");
-        if (cursor === null) throw Error("Expected playback cursor");
+        if (cursor === null) {
+          throw Error("Expected playback cursor");
+        }
         const visible = cursor.getAttribute("width") === "5";
         const x = Number(cursor.getAttribute("x"));
         if (visible && before === undefined) {
@@ -525,7 +532,9 @@ test("starts and pauses playback with Space", async ({ page }) => {
   await expect(cursor).toHaveAttribute("width", "5");
   const cursorXBefore = await cursor.getAttribute("x");
   await page.clock.runFor(100);
-  if (cursorXBefore === null) throw Error("Expected playback cursor position");
+  if (cursorXBefore === null) {
+    throw Error("Expected playback cursor position");
+  }
   await expect(cursor).not.toHaveAttribute("x", cursorXBefore);
 
   // A second Space press uses the same keyboard path to pause playback.

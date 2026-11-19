@@ -742,16 +742,20 @@ function restoreNoteTechniques(deferred: DeferredNoteTechniques): void {
   // Only these explicit continuation bends identify a legacy tie unambiguously.
   const legacyContinuation = deferred.techniques.some((r) => {
     const value = r.rawValue();
-    if (value === null || typeof value !== "object" || Array.isArray(value))
+    if (value === null || typeof value !== "object" || Array.isArray(value)) {
       return false;
-    if (r.property("type").rawValue() !== SerializedTechniqueType.Bend)
+    }
+    if (r.property("type").rawValue() !== SerializedTechniqueType.Bend) {
       return false;
+    }
     const options = r.property("options").rawValue();
     const hasOptions =
       options !== null &&
       typeof options === "object" &&
       !Array.isArray(options);
-    if (!hasOptions) return false;
+    if (!hasOptions) {
+      return false;
+    }
     const type = r.property("options").property("type").rawValue();
     return (
       type === SerializedBendType.Hold || type === SerializedBendType.Release

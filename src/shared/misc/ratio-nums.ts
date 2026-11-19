@@ -26,9 +26,13 @@ export function ratioNumsToChar(ratioNums: [number, number, number]): string {
   // Determine fraction symbol based on numerator/denominator
   let fractionStr = "";
   if (bottom === 4) {
-    if (top === 1) fractionStr = "¼";
-    else if (top === 2) fractionStr = "½";
-    else if (top === 3) fractionStr = "¾";
+    if (top === 1) {
+      fractionStr = "¼";
+    } else if (top === 2) {
+      fractionStr = "½";
+    } else if (top === 3) {
+      fractionStr = "¾";
+    }
   } else if (bottom === 2 && top === 1) {
     fractionStr = "½";
   }

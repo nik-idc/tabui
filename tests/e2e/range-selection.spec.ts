@@ -21,15 +21,18 @@ test("announces a mouse range once on release, not during held drag frames", asy
   await expect(announcement).toHaveAttribute("aria-live", "polite");
   await expect(announcement).toHaveAttribute("aria-atomic", "true");
   const initialText = await announcement.textContent();
-  if (initialText === null)
+  if (initialText === null) {
     throw Error("Expected initial selection announcement");
+  }
   const points = await notes.evaluateAll((elements) => {
     const first = elements[0].getBoundingClientRect();
     const seen = new Set<number>();
     return elements
       .flatMap((element) => {
         const rect = element.getBoundingClientRect();
-        if (rect.y !== first.y || seen.has(rect.x)) return [];
+        if (rect.y !== first.y || seen.has(rect.x)) {
+          return [];
+        }
         seen.add(rect.x);
         return [{ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }];
       })
@@ -42,7 +45,9 @@ test("announces a mouse range once on release, not during held drag frames", asy
       changes.mutations += records.length;
       for (const record of records) {
         for (const node of record.addedNodes) {
-          if (node.textContent) changes.insertions.push(node.textContent);
+          if (node.textContent) {
+            changes.insertions.push(node.textContent);
+          }
         }
       }
     });

@@ -524,7 +524,9 @@ describe("TrackElement rhythm", () => {
 
     expect(beatElement.durationFlagLines).toHaveLength(3);
     const flagLines = beatElement.durationFlagLines;
-    if (flagLines === undefined) throw Error("Expected duration flag lines");
+    if (flagLines === undefined) {
+      throw Error("Expected duration flag lines");
+    }
     expect(flagLines[0].y - flagLines[1].y).toBeCloseTo(
       TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2
     );
@@ -547,13 +549,17 @@ describe("TrackElement rhythm", () => {
     const beam = beatElement.owningBarElement
       .refreshOwnedNotationNodes()
       .find((e): e is BeamSegmentElement => e instanceof BeamSegmentElement);
-    if (beam === undefined) throw Error("Expected beam segment");
+    if (beam === undefined) {
+      throw Error("Expected beam segment");
+    }
     expect(beam.longRectsBarLocal).toHaveLength(3);
     const topBeamY = Math.min(...beam.longRectsBarLocal.map((r) => r.y));
 
     expect(beatElement.durationFlagLines).toBeUndefined();
     expect(dot).toBeDefined();
-    if (dot === undefined) throw Error("Expected duration dot");
+    if (dot === undefined) {
+      throw Error("Expected duration dot");
+    }
     // Dot and beam are both bar-local, including the same rhythm row origin.
     expect(dot.centerY + dot.diameter / 2).toBeLessThan(topBeamY);
   });
@@ -568,13 +574,16 @@ describe("TrackElement rhythm", () => {
 
     const beatElement = getRhythmElements(trackElement)[0];
     const flagLines = beatElement.durationFlagLinesBarLocal;
-    if (flagLines === undefined)
+    if (flagLines === undefined) {
       throw Error("Expected bar-local duration flag lines");
+    }
     const topFlagY = flagLines[2].y;
 
     expect(beatElement.dot1CircleBarLocal).toBeDefined();
     const dot = beatElement.dot1CircleBarLocal;
-    if (dot === undefined) throw Error("Expected duration dot");
+    if (dot === undefined) {
+      throw Error("Expected duration dot");
+    }
     expect(dot.centerY).toBeCloseTo(
       topFlagY - TEST_LAYOUT_DIMENSIONS.dotDiameter
     );

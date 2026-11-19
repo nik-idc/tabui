@@ -90,7 +90,9 @@ export class StrokeControlsDefaultCallbacks implements StrokeControlsCallbacks {
         event: "submit",
         handler: (event: SubmitEvent) => {
           event.preventDefault();
-          if (!this._strokeComponent.dialog.open) return;
+          if (!this._strokeComponent.dialog.open) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

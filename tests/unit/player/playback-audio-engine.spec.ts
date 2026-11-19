@@ -215,7 +215,9 @@ describe("PlaybackAudioEngine", () => {
 
     engine.scheduleBeat(beat, 5, 6);
     const note = audio.oscillators[0];
-    if (note === undefined) throw Error("Expected a note source");
+    if (note === undefined) {
+      throw Error("Expected a note source");
+    }
     engine.setPitchShiftSemitones(2);
     engine.scheduleBeat(beat, 6, 7);
     const handedOffNote = audio.oscillators[1];
@@ -237,7 +239,9 @@ describe("PlaybackAudioEngine", () => {
 
     engine.scheduleMetronomeClick(5, 6, true);
     const click = audio.oscillators[3];
-    if (click === undefined) throw Error("Expected a metronome source");
+    if (click === undefined) {
+      throw Error("Expected a metronome source");
+    }
     const clickEnvelope = click.connect.mock.calls[0][0];
     expect(clickEnvelope.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
       1,
@@ -253,7 +257,9 @@ describe("PlaybackAudioEngine", () => {
     const metronomeGain = audio.gains.find((gain) =>
       gain.connect.mock.calls.some((call) => call[0] === audio.gains[0])
     );
-    if (metronomeGain === undefined) throw Error("Expected metronome bus");
+    if (metronomeGain === undefined) {
+      throw Error("Expected metronome bus");
+    }
     engine.setMetronomeEnabled(false);
     expect(metronomeGain.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 4);
     engine.setMetronomeEnabled(true);

@@ -35,7 +35,9 @@ export function createBendControlsHarness() {
     callbacks,
     selectedNote(): GuitarNote {
       const note = controller.selectionCursor?.note;
-      if (!(note instanceof GuitarNote)) throw Error("Expected guitar note");
+      if (!(note instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
       return note;
     },
     open() {

@@ -22,10 +22,10 @@ function populatedScore() {
   const graph = createBarWithBeats(
     Array.from({ length: 4 }, () => ({ baseDuration: NoteDuration.Quarter }))
   );
-  graph.beats.forEach((b, i) => {
+  for (const [i, b] of graph.beats.entries()) {
     b.makeBeatWithNotes();
     (required(b.notes)[0] as GuitarNote).setFret(i + 3);
-  });
+  }
   return graph;
 }
 
@@ -96,7 +96,9 @@ describe("PlayerOverlayRenderer", () => {
   function frame() {
     const pending = [...frames.values()];
     frames.clear();
-    pending.forEach((f) => f(0));
+    for (const f of pending) {
+      f(0);
+    }
   }
 
   beforeEach(() => {
@@ -115,7 +117,9 @@ describe("PlayerOverlayRenderer", () => {
   });
 
   afterEach(() => {
-    cleanups.splice(0).forEach((c) => c());
+    for (const c of cleanups.splice(0)) {
+      c();
+    }
     audio.restore();
     jest.restoreAllMocks();
     jest.useRealTimers();
@@ -131,7 +135,9 @@ describe("PlayerOverlayRenderer", () => {
     view.emit(beat.uuid);
     const element = view.controller.trackElement.getBeatElement(beat);
     expect(element).toBeInstanceOf(TabBeatElement);
-    if (!(element instanceof TabBeatElement)) throw Error("Expected tab beat");
+    if (!(element instanceof TabBeatElement)) {
+      throw Error("Expected tab beat");
+    }
 
     expect(view.center()).toBeCloseTo(element.attackXGlobal);
     expect(Number(view.cursor().getAttribute("y"))).toBeCloseTo(60);
@@ -234,7 +240,9 @@ describe("PlayerOverlayRenderer", () => {
       view.controller.trackElement.getBeatElement(graph.beats[1])
     );
     expect(next).toBeInstanceOf(TabBeatElement);
-    if (!(next instanceof TabBeatElement)) throw Error("Expected tab beat");
+    if (!(next instanceof TabBeatElement)) {
+      throw Error("Expected tab beat");
+    }
     expect(next.attackXGlobal).toBeGreaterThan(startX);
     jest.advanceTimersByTime(250);
     frame();
@@ -306,7 +314,9 @@ describe("PlayerOverlayRenderer", () => {
     expect(view.player.lastStartedBeat).toBeUndefined();
     // Deliver captured callbacks as consumed frames, before rendering the new run.
     frames.clear();
-    staleFrames.forEach((f) => f(0));
+    for (const f of staleFrames) {
+      f(0);
+    }
     expect(view.center()).toBe(x);
     expect(frames.size).toBe(0);
     view.render();

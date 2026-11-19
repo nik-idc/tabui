@@ -89,7 +89,9 @@ export class TabUIHost implements AfterViewInit, OnChanges, OnDestroy {
   ngAfterViewInit(): void {
     // Defer the initial host notification until Angular finishes its view check.
     queueMicrotask(() => {
-      if (this._host) this.mount();
+      if (this._host) {
+        this.mount();
+      }
     });
   }
 
@@ -101,7 +103,9 @@ export class TabUIHost implements AfterViewInit, OnChanges, OnDestroy {
   }
 
   private mount(): void {
-    if (!this._host) return;
+    if (!this._host) {
+      return;
+    }
     const editor = new TabUIEditor(this._host.nativeElement, this.score, {
       assets: { variant: this.variant },
       theme: themes[this.variant],
@@ -111,9 +115,13 @@ export class TabUIHost implements AfterViewInit, OnChanges, OnDestroy {
     this._editor = editor;
     editor.init();
     this._unsubscribe = editor.subscribe((event) => {
-      if (event.type === "change") this.stateChange.emit(event.state);
-      else if (event.type === "edit") this.edit.emit(event.state);
-      else this.failure.emit(event.error.message);
+      if (event.type === "change") {
+        this.stateChange.emit(event.state);
+      } else if (event.type === "edit") {
+        this.edit.emit(event.state);
+      } else {
+        this.failure.emit(event.error.message);
+      }
     });
     this.ready.emit(editor);
   }

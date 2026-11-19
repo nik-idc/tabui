@@ -125,7 +125,9 @@ export class BendReleaseSelector implements Selector {
   }
 
   private onDocumentMouseMove(event: MouseEvent) {
-    if (this._isDragging === false) return;
+    if (this._isDragging === false) {
+      return;
+    }
 
     const pt = this.bendGraphSVG.createSVGPoint();
     pt.x = event.clientX;
@@ -200,7 +202,9 @@ export class BendReleaseSelector implements Selector {
     releaseX: number,
     releaseY: number
   ) {
-    if (this.bendPath === undefined) return;
+    if (this.bendPath === undefined) {
+      return;
+    }
     const d =
       `M ${this.bendManagerOptions.gridOffset} ${this.bendManagerOptions.height} ` +
       `Q ${peakX} ${this.bendManagerOptions.height}, ${peakX} ${peakY} ` +

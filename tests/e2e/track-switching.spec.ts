@@ -27,7 +27,9 @@ async function getBarBorderXsByRow(editor: Locator): Promise<number[][]> {
     for (const line of lines) {
       const svgLine = line as SVGLineElement;
       const matrix = svgLine.getScreenCTM();
-      if (matrix === null) throw Error("Expected a rendered bar border");
+      if (matrix === null) {
+        throw Error("Expected a rendered bar border");
+      }
       const point = new DOMPoint(
         svgLine.x1.baseVal.value,
         svgLine.y1.baseVal.value

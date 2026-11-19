@@ -98,7 +98,9 @@ test("keeps one announcement region inside the active modal before focus", async
   // open and close the dialog through the visible controls.
   const observations = await editor.evaluateHandle((root) => {
     const status = root.querySelector('[role="status"]');
-    if (status === null) throw Error("Expected editor status region");
+    if (status === null) {
+      throw Error("Expected editor status region");
+    }
     const result = {
       modalFocus: [] as boolean[],
       openerFocus: [] as boolean[],
@@ -263,7 +265,9 @@ test("implements the instance dialog method contract", async ({ page }) => {
     const closedValue = modal.returnValue;
     modal.open = true;
     const status = element.querySelector('[role="status"]');
-    if (status === null) throw Error("Expected dialog status region");
+    if (status === null) {
+      throw Error("Expected dialog status region");
+    }
     const modeless =
       modal.open &&
       !element.hasAttribute("aria-modal") &&
@@ -349,7 +353,9 @@ for (const mode of ["show", "showModal"] as const) {
           const first = fixture.first.dialog;
           const second = fixture.second.dialog;
           const status = root.querySelector('[role="status"]');
-          if (status === null) throw Error("Expected dialog status region");
+          if (status === null) {
+            throw Error("Expected dialog status region");
+          }
           first[mode]();
           const focus = document.activeElement;
           let focusEvents = 0;
@@ -371,8 +377,11 @@ for (const mode of ["show", "showModal"] as const) {
           }
           let errorName = "";
           try {
-            if (nextMode === "open") second.open = true;
-            else second[nextMode]();
+            if (nextMode === "open") {
+              second.open = true;
+            } else {
+              second[nextMode]();
+            }
           } catch (error) {
             if (error instanceof DOMException) {
               errorName = error.name;
@@ -392,8 +401,11 @@ for (const mode of ["show", "showModal"] as const) {
             secondOpen: second.open,
           };
           first.close();
-          if (nextMode === "open") second.open = true;
-          else second[nextMode]();
+          if (nextMode === "open") {
+            second.open = true;
+          } else {
+            second[nextMode]();
+          }
           const secondOpenedAfterRelease = second.open;
           second.close();
           fixture.dispose();
@@ -462,10 +474,15 @@ for (const mode of ["show", "showModal"] as const) {
               error instanceof DOMException &&
               error.name === "InvalidStateError";
           }
-          if (close === "open") first.open = false;
-          else if (close === "close") first.close();
-          else if (close === "closeOpenDialogs") fixture.ui.closeOpenDialogs();
-          else first.requestClose();
+          if (close === "open") {
+            first.open = false;
+          } else if (close === "close") {
+            first.close();
+          } else if (close === "closeOpenDialogs") {
+            fixture.ui.closeOpenDialogs();
+          } else {
+            first.requestClose();
+          }
           const restored = siblings.map((child) => child.inert);
           second[mode]();
           first.close("stale");

@@ -53,7 +53,9 @@ describe("PlayControlsDefaultCallbacks", () => {
     audio = installTransportAudio();
   });
   afterEach(() => {
-    players.splice(0).forEach((p) => p.dispose());
+    for (const p of players.splice(0)) {
+      p.dispose();
+    }
     audio.restore();
     jest.useRealTimers();
   });

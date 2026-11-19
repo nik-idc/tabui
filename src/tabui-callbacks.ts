@@ -113,7 +113,9 @@ export class TabUICallbacks {
   /** Focuses notation without allowing the focus event to announce stale state. */
   private focusViewport(): void {
     const viewport = this._notationComponent.rootDiv;
-    if (document.activeElement === viewport) return;
+    if (document.activeElement === viewport) {
+      return;
+    }
     this._suppressViewportFocusAnnouncement = true;
     viewport.focus({
       preventScroll: true,

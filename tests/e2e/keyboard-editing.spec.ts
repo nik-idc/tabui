@@ -104,7 +104,9 @@ for (const [key, name, dialogName] of [
     await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
     await editor.getByRole("button", { name: new RegExp(`^${name}`) }).click();
     await expect(dialog).toBeVisible();
-    if (keyboardText === null) throw Error("Expected dialog text");
+    if (keyboardText === null) {
+      throw Error("Expected dialog text");
+    }
     await expect(dialog).toHaveText(keyboardText);
     await dialog.getByRole("button", { name: "Cancel" }).click();
     expect(await editingState(editor)).toEqual(before);
@@ -318,7 +320,9 @@ for (const reverse of [false, true]) {
     await editor.locator('[data-dot="1"]').click();
     await editor.locator('[data-tuplet="2"]').click();
     await editor.locator(".tu-notation-viewport").focus();
-    if (!reverse) await page.keyboard.press("ArrowLeft");
+    if (!reverse) {
+      await page.keyboard.press("ArrowLeft");
+    }
     await page.keyboard.press(reverse ? "Shift+ArrowLeft" : "Shift+ArrowRight");
     await page.keyboard.press(reverse ? "Shift+ArrowLeft" : "Shift+ArrowRight");
     await expect(editor.locator(".tu-announcement-host")).toContainText(
@@ -657,7 +661,9 @@ test("handles composition, prevented events, and unsupported modifiers while sel
           cancelable: true,
           ...options,
         });
-        if (options.defaultPrevented) event.preventDefault();
+        if (options.defaultPrevented) {
+          event.preventDefault();
+        }
         notation.dispatchEvent(event);
         return event.defaultPrevented;
       });
