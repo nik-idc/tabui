@@ -53,7 +53,6 @@ test("time signature hover and click use the clicked bar", async ({ page }) => {
 test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
-  // The solo provides a real tempo boundary; opening-section edits must preserve it.
   const tempos = editor.locator(".tu-tempo");
   const first = tempos.first();
   const image = first.locator('[id^="tempo-img-"]');
@@ -73,36 +72,24 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   await expect(image).toHaveCSS("fill", highlight);
   await hitArea.click({ position: { x: 5, y: 5 } });
   const dialog = editor.getByRole("dialog", { name: "Tempo" });
-  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("120");
+  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("90");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
-  await expect(text).toHaveText("121");
+  await expect(text).toHaveText("91");
 
   await hitArea.click();
-  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("121");
+  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("91");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
-  await expect(text).toHaveText("122");
+  await expect(text).toHaveText("92");
 
-  await tempos.nth(1).locator(".tu-tempo-hit-area").click();
-  await expect(
-    editor
-      .getByRole("dialog", { name: "Tempo" })
-      .locator(".tu-number-stepper-value")
-  ).toHaveValue("144");
-  await editor
-    .getByRole("dialog", { name: "Tempo" })
-    .getByRole("button", {
-      name: "Cancel",
-    })
-    .click();
   await page.keyboard.press("Control+z");
-  await expect(text).toHaveText("121");
+  await expect(text).toHaveText("91");
   await page.keyboard.press("Control+y");
-  await expect(text).toHaveText("122");
+  await expect(text).toHaveText("92");
   await page.keyboard.press("Control+z");
   await page.keyboard.press("Control+z");
-  await expect(text).toHaveText("120");
+  await expect(text).toHaveText("90");
 });
 
 test("tempo input supports text, keyboard, escape, and wheel changes", async ({

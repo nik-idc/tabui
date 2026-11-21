@@ -1,23 +1,21 @@
 # Shared score fixtures
 
-This folder owns score builders and factories used by demos, tests, and the update
-benchmark. Each factory returns a fresh score. Demo menus and controls stay in
-`demo/`; test-only tools stay in `tests/`.
+This folder owns the scores used by demos, tests, and the update benchmark. Each
+factory returns a fresh score. Demo menus and controls stay in `demo/`;
+test-only tools stay in `tests/`.
 
-- `score-builder.ts`: fills bars, staves, and tracks, and builds scores.
-- `empty-score.ts`: the default empty score.
-- `feature-showcase-score.ts`: the main showcase with bass, rhythm, lead, and solo
-  guitar parts, demonstrating multiple staves, voices, rhythms, and techniques.
-- `feature-showcase-solo.ts`: the showcase's solo section.
-- `multi-voice-score.ts`: single-staff and two-staff multi-voice scores.
+- `feature-showcase-score.json`: the showcase, saved from TabUI.
+- `feature-showcase-score.ts`: loads the showcase with `deserializeScore`.
 - `performance-stress-score.ts`: the demo's dense stress score.
 - `update-benchmark-score.ts`: the dense controller-update benchmark score.
+- `score-builder.ts`: fills bars, staves, and tracks, and builds scores for the
+  generated fixtures.
 
-All factories use `createScore` from `score-builder.ts` for metadata, master bars,
-tracks, and staves. Call it without arguments for the default empty score. Each
-`stavesInfo` entry can be either an array of repeated-beat descriptions or a
-function that receives the created staff and fills its notation. Multi-voice
-fixtures use these functions for their detailed voice and beat definitions.
+The demo's empty score is `new Score()`, so it has no file here.
+
+To change the showcase, open it in the demo, edit it, save it, and replace
+`feature-showcase-score.json` with the saved file. `json.d.ts` types JSON
+imports as `unknown`, so the large file doesn't slow type checks.
 
 Factories import only model exports from `@atikincode/tabui`. Browser development
 and unit tests map the package to source. Production demo builds and isolated

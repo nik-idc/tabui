@@ -15,7 +15,7 @@ import {
 import { createBeat, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command";
-import { createMultiVoiceTwoStaffScoreFixture } from "../../../fixtures/multi-voice-score";
+import { createMultiVoiceTwoStaffScoreFixture } from "../multi-voice-score";
 import { TabUILayoutMode } from "../../../src/config/tabui-config";
 import { BeamSegmentElement } from "../../../src/notation/controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "../../../src/notation/controller/element/bar/bar-tuplet-group-element";

@@ -8,5 +8,5 @@
     "noEmit": true,
     "types": ["vite/client"]
   },
-  "include": ["**/*.ts"]
+  "include": ["**/*.ts", "../../fixtures/json.d.ts"]
 }

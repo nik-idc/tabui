@@ -441,7 +441,7 @@ test("keeps concise arrow announcements after the automatic flush", async ({
   await page.clock.runFor(100);
 
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    "Beat 2, quarter, String 1, empty."
+    "Beat 2, eighth, 1 dot, String 1, empty."
   );
 });
 

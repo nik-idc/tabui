@@ -48,15 +48,12 @@ async function checkShowcase(page, origin) {
   const downloadEvent = page.waitForEvent("download");
   await page.locator("#serialize-score").click();
   const download = await downloadEvent;
-  assert.equal(
-    download.suggestedFilename(),
-    "feature-showcase-score.tabui.json"
-  );
+  assert.equal(download.suggestedFilename(), "sample-song.tabui.json");
   const filename = await download.path();
   assert(filename !== null);
   const contents = await readFile(filename, "utf8");
   const document = JSON.parse(contents);
-  assert.equal(document.name, "Feature Showcase Score");
+  assert.equal(document.name, "Sample song");
   assert(
     document.tracks.length > 1,
     "Showcase must retain its multiple tracks"

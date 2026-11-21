@@ -10,7 +10,7 @@ import {
   VoiceBar,
   VoiceNumber,
 } from "@atikincode/tabui";
-import { createScore } from "./score-builder";
+import { createScore } from "../../fixtures/score-builder";
 
 type BeatSpec = {
   duration: NoteDuration;

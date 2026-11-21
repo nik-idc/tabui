@@ -371,7 +371,20 @@ for (const [key, name] of [
 test("Shift+V cycles without vibrato and note clicks refresh the active voice", async ({
   page,
 }) => {
-  const editor = await openEditor(page, "multi_voice_single_staff");
+  const editor = await openEditor(page);
+  // Fill string 1 in voice 1 and string 2 in voice 2, so voice 2 owns a note
+  // slot while voice 1 is active. Then return to voice 1 (2 -> 3 -> 4 -> 1).
+  await page.keyboard.press("5");
+  await page.keyboard.press("Shift+V");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("3");
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press("Shift+V");
+  }
+  await expect(editor.locator('[data-voice-number="1"]')).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   /** Keeps score content and toolbar state, excluding the voice's insertion hint. */
   async function voiceEditingState() {
     const state = await editingState(editor);

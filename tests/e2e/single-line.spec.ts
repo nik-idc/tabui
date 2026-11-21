@@ -156,6 +156,13 @@ test("keeps single-line bar borders aligned when switching tracks", async ({
     .poll(() => viewport.evaluate((e) => e.scrollLeft))
     .toBeGreaterThan(0);
   await expect.poll(() => barBorderXs(page)).not.toEqual(initialXs);
+  // Scrolling renders bars over a few frames; read once they are drawn.
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+      )
+  );
   const firstTrackXs = await barBorderXs(page);
   expect(firstTrackXs.length).toBeGreaterThan(2);
 
