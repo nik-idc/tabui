@@ -922,55 +922,6 @@ describe("score serialization", () => {
     expect(deserializeScore(serializedScore)).toBeInstanceOf(Score);
   });
 
-  test("loads legacy Let Ring Hold destinations as ties", () => {
-    const { score, beats } = createBarWithBeats([
-      { baseDuration: NoteDuration.Quarter },
-      { baseDuration: NoteDuration.Quarter },
-    ]);
-    const first = beats[0].notes?.[0];
-    const second = beats[1].notes?.[0];
-    if (!(first instanceof GuitarNote) || !(second instanceof GuitarNote)) {
-      throw Error("Expected guitar notes");
-    }
-    first.setFret(5);
-    second.setFret(5);
-    first.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
-        type: BendType.Bend,
-        bendPitch: 1,
-        bendDuration: 1,
-      })
-    );
-    second.setTechnique(GuitarTechniqueType.Tie);
-    second.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
-        type: BendType.Hold,
-        holdPitch: 1,
-        bendDuration: 1,
-      })
-    );
-    const document = serializeScore(score);
-    const techniques =
-      document.tracks[0].staves[0].bars[0].voices[0]?.beats[1].notes?.[0]
-        ?.techniques;
-    const tie = techniques?.find((t) => t.type === SerializedTechniqueType.Tie);
-    if (tie === undefined) {
-      throw Error("Expected serialized tie");
-    }
-    required(techniques).splice(required(techniques).indexOf(tie), 1, {
-      type: SerializedTechniqueType.LetRing,
-    });
-    required(techniques).reverse();
-    const restored = deserializeScore(document);
-    const note =
-      restored.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[1].notes?.[0];
-    expect(note?.hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
-    expect(note?.hasTechnique(GuitarTechniqueType.LetRing)).toBe(false);
-    expect(() => serializeScore(restored)).not.toThrow();
-  });
-
   test.each([
     [
       "fractional repeat",

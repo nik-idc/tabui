@@ -72,7 +72,8 @@
     "demo:vue": "npm run build:package && node tests/integration/vue/vue-integration.mjs --demo",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:e2e",
     "lint": "eslint .",
-    "verify": "npm run lint && npm run build:package && npm run test:all && npm run build:demo",
+    "typecheck:scripts": "tsc --project scripts/tsconfig.json",
+    "verify": "npm run lint && npm run typecheck:scripts && npm run build:package && npm run test:all && npm run build:demo",
     "verify:ci": "npm run build:package && npm run test:unit && npm run test:integration && npm run build:demo"
   },
   "devDependencies": {

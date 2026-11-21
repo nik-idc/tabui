@@ -64,11 +64,8 @@ const REQUIRED_SCORE_KEYS = [
   "masterBars",
   "tracks",
 ] as const;
-/**
- * Score keys that may be missing. Older files have `song`, which is no
- * longer used, so it is accepted and ignored.
- */
-const OPTIONAL_SCORE_KEYS = ["album", "releaseDate", "song"] as const;
+/** Score keys that may be missing. */
+const OPTIONAL_SCORE_KEYS = ["album", "releaseDate"] as const;
 
 /** Reads a string that may be missing, as null. */
 function readOptionalString(reader: SerializedValueReader): string | null {

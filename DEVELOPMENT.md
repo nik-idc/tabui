@@ -6,8 +6,8 @@ see [Contributing](CONTRIBUTING.md).
 ## Checks
 
 Run `npm run verify` before submitting any change. It runs ESLint, checks
-TypeScript, builds the package and demo, and runs unit, integration, and browser
-tests. Also run `git diff --check`.
+TypeScript, including `scripts/`, builds the package and demo, and runs unit,
+integration, and browser tests. Also run `git diff --check`.
 
 The pre-commit hook runs `eslint --fix` and Prettier on staged files. A commit
 stops if ESLint finds an error it can't fix.
@@ -121,7 +121,8 @@ TabUI package version. Each version lives in its own folder, such as
 - A breaking change, such as a removed, renamed, or changed field, needs a new
   version folder. The previous folder stays frozen and gets one migration step to
   the new version.
-- TabUI must read every older version it has ever saved.
+- TabUI must read every version saved since TabUI 0.5.0. The first one is
+  version 1 as of 0.5.0. Files saved before 0.5.0 may not load.
 
 ## Releases and deployment
 
