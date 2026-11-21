@@ -557,8 +557,11 @@ describe("V1 serialization wire contract", () => {
     expect(serializeScore(new Score())).toStrictEqual(wireDocument());
   });
 
-  test("reads older documents with a song field and no album or release date", () => {
-    const score = deserializeScore({ ...wireDocument(), song: "Old song" });
+  test("reads documents without album or release date", () => {
+    const document: Record<string, unknown> = { ...wireDocument() };
+    delete document.album;
+    delete document.releaseDate;
+    const score = deserializeScore(document);
     expect(score.album).toBeNull();
     expect(score.releaseDate).toBeNull();
     expect(serializeScore(score)).toStrictEqual(wireDocument());

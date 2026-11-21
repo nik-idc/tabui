@@ -738,34 +738,8 @@ function deserializeNote(
  */
 function restoreNoteTechniques(deferred: DeferredNoteTechniques): void {
   const seenTypes = new Set<GuitarTechniqueType>();
-  // Older v1 scores used Let Ring to mark Hold/Release bend destinations.
-  // Only these explicit continuation bends identify a legacy tie unambiguously.
-  const legacyContinuation = deferred.techniques.some((r) => {
-    const value = r.rawValue();
-    if (value === null || typeof value !== "object" || Array.isArray(value)) {
-      return false;
-    }
-    if (r.property("type").rawValue() !== SerializedTechniqueType.Bend) {
-      return false;
-    }
-    const options = r.property("options").rawValue();
-    const hasOptions =
-      options !== null &&
-      typeof options === "object" &&
-      !Array.isArray(options);
-    if (!hasOptions) {
-      return false;
-    }
-    const type = r.property("options").property("type").rawValue();
-    return (
-      type === SerializedBendType.Hold || type === SerializedBendType.Release
-    );
-  });
   for (const techniqueReader of deferred.techniques) {
-    let technique = deserializeTechnique(techniqueReader, deferred.note);
-    if (legacyContinuation && technique.type === GuitarTechniqueType.LetRing) {
-      technique = new GuitarTechnique(deferred.note, GuitarTechniqueType.Tie);
-    }
+    const technique = deserializeTechnique(techniqueReader, deferred.note);
     if (seenTypes.has(technique.type)) {
       techniqueReader.fail("duplicate technique");
     }

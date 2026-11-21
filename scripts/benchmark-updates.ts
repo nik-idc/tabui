@@ -333,7 +333,7 @@ function createTechniqueCase(
           new SetTechniqueCommand(
             ScoreEditor.getTechniqueTargetsForNotes(notes),
             type,
-            bendOptions
+            { bendOptions }
           ),
         ];
       }),

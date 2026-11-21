@@ -335,7 +335,7 @@ export type SerializedBeatTechnique = SerializedStrokeTechnique;
  * A rhythmic beat; `notes: null` encodes a rest, while note arrays retain
  * sparse string slots.
  * A note array must match the instrument string count; dots are 0, 1, or 2.
- * `techniques` is written only when non-empty, may be missing in older data,
+ * `techniques` is written only when non-empty, so a missing key means none. It
  * must be unique and compatible, and is not allowed on a rest.
  * `dynamic` is written only when it is not `mf`; a missing key means `mf`.
  * Rests can have a dynamic too.
