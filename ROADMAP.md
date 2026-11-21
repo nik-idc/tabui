@@ -59,6 +59,11 @@ in no particular order.
   good chunk of these tests **are** vibe coded. I usually only quickly glance at
   the diff to check if there are any red flags, not analyze the code as deeply
   as I do with actual source code, which is part of why I want to audit them.
+  Keep a test only if it checks behavior that someone depends on (rules, inputs
+  and outputs, the API) or guards a real bug that has happened. A good test
+  catches a plausible accidental regression and survives a valid change. Tests
+  that pin a style choice, such as a curve height or a spacing value, fail
+  both. Check visual results by eye or with screenshot tests instead.
 
 - Formats and parsing. At least MusicXML, since that is a universally supported
   format. But also preferably Guitar Pro (`.gp`) and MIDI too.
