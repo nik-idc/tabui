@@ -108,8 +108,17 @@ for (const shortcut of ["h", "Shift+H", "s", "l", "b"]) {
         if (target === undefined) {
           throw Error("Expected target fret geometry");
         }
-        expect(geometry.startX).toBeCloseTo(source.right);
-        expect(geometry.endX).toBeCloseTo(target.left);
+        if (shortcut === "s") {
+          // A slide runs between the frets.
+          expect(geometry.startX).toBeCloseTo(source.right);
+          expect(geometry.endX).toBeCloseTo(target.left);
+        } else {
+          // A legato curve runs from above one fret to above the next.
+          expect(geometry.startX).toBeGreaterThan(source.left);
+          expect(geometry.startX).toBeLessThan(source.right);
+          expect(geometry.endX).toBeGreaterThan(target.left);
+          expect(geometry.endX).toBeLessThan(target.right);
+        }
       } else {
         expect(geometry.right).toBeCloseTo(source.left);
       }
