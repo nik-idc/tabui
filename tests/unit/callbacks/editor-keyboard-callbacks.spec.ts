@@ -1429,6 +1429,137 @@ describe("EditorKeyboardDefCallbacks", () => {
     });
   });
 
+  describe("clipboard shortcuts without clipboard events (WebKit)", () => {
+    const blocked = new DOMException("Denied", "NotAllowedError");
+    let previousNavigator: PropertyDescriptor | undefined;
+    // Unbound after each test, so no listener outlives it.
+    let callbacks: EditorKeyboardDefCallbacks | undefined;
+
+    /** Mocks the Clipboard API and binds callbacks with notation focused. */
+    function setup(clipboard: Partial<Clipboard>) {
+      previousNavigator = Object.getOwnPropertyDescriptor(
+        globalThis,
+        "navigator"
+      );
+      Object.defineProperty(globalThis, "navigator", {
+        configurable: true,
+        value: { clipboard },
+      });
+      const harness = createHarness();
+      harness.callbacks.bind();
+      callbacks = harness.callbacks;
+      harness.uiComponent.announce = jest.fn();
+      harness.notationComponent.trackController.copy.mockReturnValue("beats");
+      harness.notationComponent.trackController.paste.mockReturnValue(true);
+      harness.rootElement.focus();
+      return harness;
+    }
+
+    /** Lets the async clipboard calls finish. */
+    const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+    afterEach(() => {
+      callbacks?.unbind();
+      if (previousNavigator) {
+        Object.defineProperty(globalThis, "navigator", previousNavigator);
+      } else {
+        Reflect.deleteProperty(globalThis, "navigator");
+      }
+    });
+
+    test.each([
+      ["c", "copy"],
+      ["x", "cut"],
+      ["v", "paste"],
+    ] as const)(
+      "leaves Ctrl+%s to the %s event when the browser fires it",
+      async (key, type) => {
+        const clipboard = { writeText: jest.fn(), readText: jest.fn() };
+        const { callbacks } = setup(clipboard);
+        const event = createKeyboardEvent(key, { ctrlKey: true });
+        callbacks.onKeyDown(event);
+        document.body.dispatchEvent(
+          clipboardEvent(type, new FakeClipboardData())
+        );
+        await flush();
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(clipboard.writeText).not.toHaveBeenCalled();
+        expect(clipboard.readText).not.toHaveBeenCalled();
+      }
+    );
+
+    test.each([{ ctrlKey: true }, { metaKey: true }])(
+      "copies with the Clipboard API (%o)",
+      async (modifier) => {
+        const writeText = jest.fn().mockResolvedValue(undefined);
+        const { callbacks } = setup({ writeText });
+        const event = createKeyboardEvent("c", modifier);
+        callbacks.onKeyDown(event);
+        await flush();
+        expect(writeText).toHaveBeenCalledWith("beats");
+      }
+    );
+
+    test("cuts only after the write succeeds", async () => {
+      const writeText = jest.fn().mockResolvedValue(undefined);
+      const { callbacks, notationComponent, renderFunc } = setup({
+        writeText,
+      });
+      const controller = notationComponent.trackController;
+      callbacks.onKeyDown(createKeyboardEvent("x", { ctrlKey: true }));
+      await flush();
+      expect(writeText).toHaveBeenCalledWith("beats");
+      expect(controller.removeSelectedBeat).toHaveBeenCalled();
+      expect(renderFunc).toHaveBeenCalled();
+    });
+
+    test("keeps the beats and announces it when the browser blocks a cut", async () => {
+      const writeText = jest.fn().mockRejectedValue(blocked);
+      const { callbacks, notationComponent, uiComponent } = setup({
+        writeText,
+      });
+      callbacks.onKeyDown(createKeyboardEvent("x", { ctrlKey: true }));
+      await flush();
+      expect(
+        notationComponent.trackController.removeSelectedBeat
+      ).not.toHaveBeenCalled();
+      expect(uiComponent.announce).toHaveBeenCalledWith(
+        "The browser blocked clipboard access."
+      );
+    });
+
+    test("pastes with the Clipboard API", async () => {
+      const readText = jest.fn().mockResolvedValue("copied");
+      const { callbacks, notationComponent, renderFunc } = setup({
+        readText,
+      });
+      callbacks.onKeyDown(createKeyboardEvent("v", { ctrlKey: true }));
+      await flush();
+      expect(notationComponent.trackController.paste).toHaveBeenCalledWith(
+        "copied"
+      );
+      expect(renderFunc).toHaveBeenCalled();
+    });
+
+    test.each(["x", "v"])(
+      "ignores Ctrl+%s when editing is off",
+      async (key) => {
+        const clipboard = {
+          writeText: jest.fn().mockResolvedValue(undefined),
+          readText: jest.fn().mockResolvedValue("copied"),
+        };
+        const { callbacks, notationComponent } = setup(clipboard);
+        notationComponent.trackController.editingEnabled = false;
+        const event = createKeyboardEvent(key, { ctrlKey: true });
+        callbacks.onKeyDown(event);
+        await flush();
+        expect(event.preventDefault).not.toHaveBeenCalled();
+        expect(clipboard.writeText).not.toHaveBeenCalled();
+        expect(clipboard.readText).not.toHaveBeenCalled();
+      }
+    );
+  });
+
   test("view-only blocks mutations without changing score, selection, or history", () => {
     withKeyboardFixture((fixture) => {
       const { callbacks, controller, root, host, render, beats } = fixture;

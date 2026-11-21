@@ -39,6 +39,8 @@ will require careful planning and execution.
   a rest, the copied beats replace it.
 - Copy and paste work between TabUI editors, also in other browser tabs, but not
   with text from other apps.
+- In Safari, Command+V may ask you to confirm with a **Paste** button,
+  usually when the copied content comes from another app or site.
 - On a narrow screen, TabUI switches to view-only mode. On a very narrow screen,
   it blocks interaction.
 
