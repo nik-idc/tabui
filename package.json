@@ -1,6 +1,6 @@
 {
   "name": "@atikincode/tabui",
-  "version": "0.1.47",
+  "version": "0.5.0",
   "description": "Framework-agnostic tablature editor library",
   "license": "MIT",
   "repository": {
@@ -45,6 +45,7 @@
     "preview_vite": "vite preview",
     "serve_vite": "npm run dev",
     "prepare": "husky",
+    "prepublishOnly": "npm run verify",
     "format": "npx prettier --write .",
     "benchmark:updates": "npx tsx --tsconfig scripts/tsconfig.json scripts/benchmark-updates.ts",
     "build:package": "vite build --config vite.config.lib.js && tsc --build",

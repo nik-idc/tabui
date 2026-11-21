@@ -135,8 +135,8 @@ TabUI package version. Each version lives in its own folder, such as
 - A breaking change, such as a removed, renamed, or changed field, needs a new
   version folder. The previous folder stays frozen and gets one migration step to
   the new version.
-- TabUI must read every version saved since TabUI 0.5.0. The first one is
-  version 1 as of 0.5.0. Files saved before 0.5.0 may not load.
+- TabUI must read every score format version from version 1, the format TabUI
+  0.5.0 saves, onward.
 
 ## Releases and deployment
 
@@ -166,3 +166,6 @@ source to **GitHub Actions**. The maintainer creates and pushes release tags.
 Before a release, review [ROADMAP.md](ROADMAP.md), run the update benchmark, and
 smoke-test editing, playback, persistence, and editor mount/disposal in the demo.
 Record user-visible changes in the GitHub release notes.
+
+To publish the package, run `npm publish` from `master`. It runs
+`npm run verify` first, through `prepublishOnly`, and stops if any check fails.

@@ -6,11 +6,11 @@ This file describes my vision for TabUI and its future.
 
 TabUI currently has two major milestones set:
 
-- `0.5.0`. **First version is ready to be used and built upon**. After `0.5.0`
-  is released, I will begin working on a wrapper React + Nest.js app. That is
-  the point of `0.5.0`: TabUI is stable and presentable enough to be embedded
-  into an actual app meant for guitarists to use. As it is pre-`1.0.0`, APIs can
-  and will break.
+- `0.5.0`. **First version is ready to be used and built upon**. Next, I'm
+  building a wrapper React + Nest.js app on top of it. That is the point of
+  `0.5.0`: TabUI is stable and presentable enough to be embedded into an actual
+  app meant for guitarists to use. As it is pre-`1.0.0`, APIs can and will
+  break.
 
 - `1.0.0`. As of now, there is no concrete `1.0.0` vision. Treat this list as a
   direction, not a fixed plan. It may change. But for now I feel like `1.0.0`
@@ -31,16 +31,24 @@ TabUI currently has two major milestones set:
 This file **does not** describe immediate features or bug fixes that are planned
 or in progress. Those live in GitHub issues.
 
-## Medium term work
+## Next
 
-These are issues that I want to address in the medium term. Meaning some time
-after `0.5.0` is released and a full web app is built on top of it. These are
-in no particular order.
+The work I plan to start right after `0.5.0`, in this order.
 
 - Layout rethink. Keep the time-based spacing, add a collision detector in the
   Element layer, and let each notation style report how much space it needs.
   Also set a minimum beat width, so fast notes don't squeeze fret numbers and
-  techniques together. Grace notes follow after that. I want to start this one soon.
+  techniques together.
+  - Grace notes, built on top of the rethink. A grace note takes space before
+    its beat, so it needs the new space reporting.
+
+- Section markers, with "Jump to..." to move between them. Each marker belongs
+  to a master bar, so all tracks share it.
+
+## Medium term work
+
+These are issues that I want to address in the medium term, after a full web
+app is built on top of `0.5.0`. These are in no particular order.
 
 - Show several tracks together. Currently one track is displayed at a time.
   Bar widths are already calculated across all tracks, so part of the groundwork

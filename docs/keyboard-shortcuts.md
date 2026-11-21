@@ -7,11 +7,8 @@ Letters do not need Shift unless it is shown. On macOS, use **Command** instead
 of **Ctrl** for select all, copy, cut, paste, undo, and redo. Bar navigation still
 uses **Ctrl**. **Alt** is **Option** on macOS.
 
-A shortcut marked as unavailable does not mean it's impossible to engage the action
-via the keyboard. Rather it means that doing so requires multiple inputs. Which is not
-to say the 2 are equivalent: obviously it's better to have a shortcut for every action.
-Some are deferred for after the release of `0.5.0` but are straightforward, some others
-will require careful planning and execution.
+A shortcut marked as unavailable means the action needs several keys instead of
+one. Some of these will get their own shortcut in later versions.
 
 ## Contents
 
