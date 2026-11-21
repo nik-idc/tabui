@@ -39,7 +39,8 @@ in no particular order.
 
 - Layout rethink. Keep the time-based spacing, add a collision detector in the
   Element layer, and let each notation style report how much space it needs.
-  Grace notes follow after that. I want to start this one soon.
+  Also set a minimum beat width, so fast notes don't squeeze fret numbers and
+  techniques together. Grace notes follow after that. I want to start this one soon.
 
 - Show several tracks together. Currently one track is displayed at a time.
   Bar widths are already calculated across all tracks, so part of the groundwork

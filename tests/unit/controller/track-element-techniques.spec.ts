@@ -562,13 +562,24 @@ describe("TrackElement techniques", () => {
       const path =
         sourceNoteElement.techniqueElements[0].pathDescriptors?.[0]?.d ?? "";
       const [startX, , endX] = parsePathEndpoints(path);
-      const expectedEndX =
-        targetNoteElement.selectionRect.left - sourceNoteElement.globalCoords.x;
-
-      expect(startX).toBeCloseTo(
-        sourceNoteElement.selectionRect.right - sourceNoteElement.globalCoords.x
-      );
-      expect(endX).toBeCloseTo(expectedEndX);
+      const originX = sourceNoteElement.globalCoords.x;
+      if (stringIndex === 0) {
+        // A slide runs between the frets.
+        expect(startX).toBeCloseTo(
+          sourceNoteElement.selectionRect.right - originX
+        );
+        expect(endX).toBeCloseTo(
+          targetNoteElement.selectionRect.left - originX
+        );
+      } else {
+        // A legato curve runs from above one fret to above the next.
+        const source = sourceNoteElement.textRectGlobal;
+        const target = targetNoteElement.textRectGlobal;
+        expect(startX + originX).toBeGreaterThan(source.left);
+        expect(startX + originX).toBeLessThan(source.right);
+        expect(endX + originX).toBeGreaterThan(target.left);
+        expect(endX + originX).toBeLessThan(target.right);
+      }
     }
   });
 
