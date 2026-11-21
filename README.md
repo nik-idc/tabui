@@ -72,8 +72,9 @@ With that said, along the way it got a few things I haven't seen elsewhere:
 
 ## Status and limits
 
-TabUI is under active development toward v0.5.0. APIs and saved-score formats
-may change before v1.0.0.
+TabUI 0.5.0 is the first version meant to be embedded and built upon. APIs may
+still change before v1.0.0. Scores saved with 0.5.0 or later will keep loading
+in later versions.
 
 The following limits are planned work:
 
