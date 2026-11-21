@@ -1,7 +1,11 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { Track } from "../../../notation";
 import { ScoreControlsComponent } from "../..";
-import { ListenerManager } from "../../../shared/misc";
+import {
+  ListenerManager,
+  readClipboardText,
+  writeClipboardText,
+} from "../../../shared/misc";
 import {
   TrackControlsCallbacks,
   TrackControlsDefaultCallbacks,
@@ -36,19 +40,6 @@ export interface ScoreControlsCallbacks {
 }
 
 /** The Clipboard API exists only in secure contexts, such as HTTPS. */
-function clipboardAvailable(): boolean {
-  return "clipboard" in navigator;
-}
-
-/**
- * True when the browser refused access, for example because the user denied
- * it or the host iframe does not allow it. Other errors are bugs and are
- * rethrown.
- */
-function isClipboardBlocked(error: unknown): boolean {
-  return error instanceof DOMException && error.name === "NotAllowedError";
-}
-
 export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _scoreComponent: ScoreControlsComponent;
   private _notationComponent: NotationComponent;
@@ -142,11 +133,11 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   /**
    * The clipboard buttons use the browser's Clipboard API, which the browser
    * can block. Ctrl+C, Ctrl+X, and Ctrl+V use clipboard events instead, which
-   * always work.
+   * the browser doesn't block.
    */
   async onCopyClicked(): Promise<void> {
     const text = this._notationComponent.trackController.copy();
-    if (text !== undefined && !(await this.writeClipboard(text))) {
+    if (text !== undefined && !(await writeClipboardText(text))) {
       this.announceClipboardBlocked("Ctrl+C");
     }
   }
@@ -171,7 +162,7 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
       return;
     }
     // Remove the beats only once they are on the clipboard.
-    if (!(await this.writeClipboard(text))) {
+    if (!(await writeClipboardText(text))) {
       this.announceClipboardBlocked("Ctrl+X");
       return;
     }
@@ -180,44 +171,13 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   async onPasteClicked(): Promise<void> {
-    const text = await this.readClipboard();
+    const text = await readClipboardText();
     if (text === undefined) {
       this.announceClipboardBlocked("Ctrl+V");
       return;
     }
     if (this._notationComponent.trackController.paste(text)) {
       this._renderFunc();
-    }
-  }
-
-  /** Returns false when the browser blocks the write. */
-  private async writeClipboard(text: string): Promise<boolean> {
-    if (!clipboardAvailable()) {
-      return false;
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (error) {
-      if (isClipboardBlocked(error)) {
-        return false;
-      }
-      throw error;
-    }
-  }
-
-  /** Returns undefined when the browser blocks the read. */
-  private async readClipboard(): Promise<string | undefined> {
-    if (!clipboardAvailable()) {
-      return undefined;
-    }
-    try {
-      return await navigator.clipboard.readText();
-    } catch (error) {
-      if (isClipboardBlocked(error)) {
-        return undefined;
-      }
-      throw error;
     }
   }
 

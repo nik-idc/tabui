@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { clickSvgText, hoverSvgText } from "./helpers";
 
 test("time signature hover and click use the clicked bar", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
@@ -58,7 +59,11 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   const image = first.locator('[id^="tempo-img-"]');
   const text = first.locator('[id^="tempo-text-"]');
   const hitArea = first.locator(".tu-tempo-hit-area");
-  const original = await text.evaluate((node) => getComputedStyle(node).fill);
+  // The tempo marker is rebuilt right after the first render, and a replaced
+  // element has no computed fill. Wait for a real one.
+  const readFill = () => text.evaluate((node) => getComputedStyle(node).fill);
+  await expect.poll(readFill).not.toBe("");
+  const original = await readFill();
 
   // Even empty space around the asset belongs to the same pointer target.
   await hitArea.hover({ position: { x: 5, y: 5 } });
@@ -150,9 +155,9 @@ test("complete tuplet click selects all beats and opens its existing dialog", as
   await editor.locator('[id^="note-rect-"]').first().click();
   const label = editor.locator('[id^="tuplet-complete-text-"]').first();
   const original = await label.evaluate((node) => getComputedStyle(node).fill);
-  await label.hover();
+  await hoverSvgText(label);
   await expect(label).not.toHaveCSS("fill", original);
-  await label.click();
+  await clickSvgText(label);
   const dialog = editor.getByRole("dialog", { name: "Tuplet" });
   await expect(dialog.locator(".tu-number-stepper-value").first()).toHaveText(
     "3"
@@ -176,7 +181,7 @@ test("incomplete tuplet label opens only its beat context", async ({
   await page.goto("/tabui/?fixture=empty");
   await addTuplet(page, true);
   const editor = page.locator("#tabui-editor");
-  await editor.locator('[id^="tuplet-complete-text-"]').click();
+  await clickSvgText(editor.locator('[id^="tuplet-complete-text-"]'));
   const dialog = editor.getByRole("dialog", { name: "Tuplet" });
   await dialog
     .getByRole("button", { name: "Increase normal notes by 1" })
@@ -187,11 +192,11 @@ test("incomplete tuplet label opens only its beat context", async ({
   const original = await labels
     .nth(1)
     .evaluate((node) => getComputedStyle(node).fill);
-  await labels.nth(1).hover();
+  await hoverSvgText(labels.nth(1));
   await expect(labels.nth(1)).not.toHaveCSS("fill", original);
   await page.mouse.move(0, 0);
   await expect(labels.nth(1)).toHaveCSS("fill", original);
-  await labels.nth(1).click();
+  await clickSvgText(labels.nth(1));
   await expect(dialog.locator(".tu-number-stepper-value").first()).toHaveText(
     "4"
   );
@@ -214,7 +219,9 @@ test("notation clicks do not open dialogs in view-only mode or playback", async 
 
   await page.goto("/tabui/?fixture=empty");
   const tempo = editor.locator(".tu-tempo-hit-area").first();
-  await tempo.scrollIntoViewIfNeeded();
+  // The tempo marker is rebuilt right after the first render. This check
+  // retries, so it doesn't fail on the replaced element.
+  await expect(tempo).toBeInViewport();
   await editor.getByRole("button", { name: "Play", exact: true }).click();
   await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
     "aria-pressed",

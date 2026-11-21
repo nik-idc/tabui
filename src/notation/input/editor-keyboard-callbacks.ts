@@ -16,7 +16,11 @@ import {
 import type { SetTechniqueOptions } from "../model/editor/set-technique-options";
 import { SelectedMoveDirection } from "../controller";
 import { NotationComponent } from "../notation-component";
-import { KeyChecker } from "../../shared";
+import {
+  KeyChecker,
+  readClipboardText,
+  writeClipboardText,
+} from "../../shared";
 import { UIComponent } from "../../ui";
 import { PlaybackState } from "../../player";
 import { RenderType } from "./render-type";
@@ -36,6 +40,7 @@ export enum EditorKey {
   // Redo also accepts Ctrl/Command+Shift+Z; Y stays Ctrl-only.
   SelectAll = "a",
   Copy = "c",
+  Cut = "x",
   Paste = "v",
   Undo = "z",
   Redo = "y",
@@ -156,6 +161,8 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   private _announce: (previous?: NotationCursorPosition) => void;
 
   private _bound: boolean = false;
+  /** Set when any clipboard event fires; see `fallBackIfNoClipboardEvent`. */
+  private _clipboardEventFired: boolean = false;
   private _prevKeyPress?: { time: number; key: string; note: Note | null };
   private _boundOnKeyDown: (event: KeyboardEvent) => void;
   /** Stable document copy listener owned by this editor instance. */
@@ -789,8 +796,96 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       return;
     }
 
+    if (notationFocused && this.isClipboardShortcut(event)) {
+      this.fallBackIfNoClipboardEvent(event.key.toLowerCase());
+      return;
+    }
+
     if (this.dispatchShortcut(event)) {
       event.preventDefault();
+    }
+  }
+
+  /** True for Ctrl or Command with C, X, or V, and no other modifier. */
+  private isClipboardShortcut(event: KeyboardEvent): boolean {
+    const key = event.key.toLowerCase();
+    return (
+      (key === EditorKey.Copy ||
+        key === EditorKey.Cut ||
+        key === EditorKey.Paste) &&
+      Boolean(event.ctrlKey) !== Boolean(event.metaKey) &&
+      !event.shiftKey &&
+      !event.altKey
+    );
+  }
+
+  /**
+   * Lets the browser handle a clipboard shortcut with a clipboard event, and
+   * falls back to the Clipboard API when no event fires.
+   *
+   * This exists only because of WebKit (Safari). The clipboard spec says
+   * browsers fire copy, cut, and paste even when nothing is selected, and
+   * Chromium and Firefox do. WebKit doesn't when a non-editable element, such
+   * as notation, has focus and no text is selected. No reliable check tells
+   * ahead of time, so this waits until the key is fully handled and checks
+   * whether an event fired. In other browsers one always does, so the
+   * fallback never runs there.
+   */
+  private fallBackIfNoClipboardEvent(key: string): void {
+    this._clipboardEventFired = false;
+    // The browser fires the clipboard event only after all keydown listeners
+    // return, so check in a later task. A sync check or a microtask would run
+    // before the event and always fall back.
+    setTimeout(() => {
+      if (!this._clipboardEventFired && this._bound) {
+        this.clipboardShortcutFallback(key);
+      }
+    }, 0);
+  }
+
+  /**
+   * Copies, cuts, or pastes with the Clipboard API. Before a read, Safari may
+   * ask the user to confirm with a Paste button.
+   */
+  private clipboardShortcutFallback(key: string): void {
+    const controller = this._notationComponent.trackController;
+    if (
+      document.activeElement !== this._notationComponent.rootDiv ||
+      this._uiComponent.dialogEnforcer?.activeDialog ||
+      (key !== EditorKey.Copy && !controller.canEdit)
+    ) {
+      return;
+    }
+    if (key === EditorKey.Paste) {
+      void this.pasteFromClipboard();
+      return;
+    }
+    const text = controller.copy();
+    if (text !== undefined) {
+      void this.writeToClipboard(text, key === EditorKey.Cut);
+    }
+  }
+
+  /** Writes text for the fallback, then removes the beats for a cut. */
+  private async writeToClipboard(text: string, cut: boolean): Promise<void> {
+    if (!(await writeClipboardText(text))) {
+      this._uiComponent.announce("The browser blocked clipboard access.");
+      return;
+    }
+    if (cut) {
+      this.deleteSelectionEvent();
+    }
+  }
+
+  /** Reads and pastes text for the fallback. */
+  private async pasteFromClipboard(): Promise<void> {
+    const text = await readClipboardText();
+    if (text === undefined) {
+      this._uiComponent.announce("The browser blocked clipboard access.");
+      return;
+    }
+    if (this._notationComponent.trackController.paste(text)) {
+      this._renderFunc();
     }
   }
 
@@ -839,7 +934,9 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     const unsupportedMeta =
       event.metaKey &&
       (event.ctrlKey ||
-        (key !== EditorKey.SelectAll && key !== EditorKey.Undo));
+        (key !== EditorKey.SelectAll &&
+          key !== EditorKey.Undo &&
+          !this.isClipboardShortcut(event)));
     if (
       event.defaultPrevented ||
       (event.altKey && !this.isStaffShortcut(event)) ||
@@ -1041,6 +1138,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   private onCopy(event: ClipboardEvent): void {
+    this._clipboardEventFired = true;
     if (!this.clipboardEventEligible(event) || event.clipboardData === null) {
       return;
     }
@@ -1056,6 +1154,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
 
   /** Writes the selection before using the same beat removal action as Delete. */
   private onCut(event: ClipboardEvent): void {
+    this._clipboardEventFired = true;
     if (!this.clipboardEventEligible(event) || event.clipboardData === null) {
       return;
     }
@@ -1075,6 +1174,7 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
   }
 
   private onPaste(event: ClipboardEvent): void {
+    this._clipboardEventFired = true;
     if (!this.clipboardEventEligible(event) || event.clipboardData === null) {
       return;
     }

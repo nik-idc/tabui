@@ -28,6 +28,7 @@ Useful commands:
 | `npm run test:vue-integration`     | Test the Vue demo                                          |
 | `npm run demo:vue`                 | Build TabUI and launch the Vue demo                        |
 | `npm run test:e2e`                 | Build and run browser tests in Chromium and Firefox        |
+| `npm run test:e2e:docker`          | Run the browser tests in the CI image                      |
 | `npm run benchmark:updates`        | Compare local layout and update performance                |
 | `npm run build:package`            | Build the library into `dist/`                             |
 | `npm run build:demo`               | Build the demo into `demo/dist/`; requires a package build |
@@ -52,6 +53,19 @@ npx playwright test --grep @clipboard --workers=1
 Run clipboard tests one at a time so they do not overwrite each other's copied
 data. The last command does this with `--workers=1`. `npm run test:e2e` runs both
 browser test groups automatically.
+
+### Browser tests in Docker
+
+`npm run test:e2e:docker` runs the browser tests in the CI image, so browsers,
+fonts, and system libraries match CI. Use it when a test fails only in CI.
+`npm run test:e2e:webkit:docker` adds WebKit, the closest engine to Safari.
+Playwright's WebKit build supports only Ubuntu and Debian, so on other
+systems this is the way to run it. Run it before each release.
+
+Both commands call `scripts/e2e-docker.sh`. The container keeps its own
+`node_modules` in `~/.cache/tabui-e2e-docker` and runs as your user. The script
+uses `sudo docker` by default. To use another command, such as Podman, set
+`CONTAINER_ENGINE=podman`.
 
 ## Framework demos
 
