@@ -1,18 +1,11 @@
 import { Score } from "@atikincode/tabui";
-import { createEmptyScoreFixture } from "../../../fixtures/empty-score";
 import { createFeatureShowcaseScoreFixture } from "../../../fixtures/feature-showcase-score";
-import {
-  createMultiVoiceSingleStaffScoreFixture,
-  createMultiVoiceTwoStaffScoreFixture,
-} from "../../../fixtures/multi-voice-score";
 import { createPerformanceStressScoreFixture } from "../../../fixtures/performance-stress-score";
 
 export type EditorFixtureKey =
   | "feature_showcase"
   | "empty"
-  | "performance_stress"
-  | "multi_voice_single_staff"
-  | "multi_voice_two_staff";
+  | "performance_stress";
 
 export interface EditorFixtureOption {
   key: EditorFixtureKey;
@@ -29,22 +22,12 @@ const EDITOR_FIXTURES: EditorFixtureOption[] = [
   {
     key: "empty",
     label: "Empty Score",
-    createScore: createEmptyScoreFixture,
+    createScore: () => new Score(),
   },
   {
     key: "performance_stress",
     label: "Performance Stress",
     createScore: createPerformanceStressScoreFixture,
-  },
-  {
-    key: "multi_voice_single_staff",
-    label: "Multi Voice: Single Staff",
-    createScore: createMultiVoiceSingleStaffScoreFixture,
-  },
-  {
-    key: "multi_voice_two_staff",
-    label: "Multi Voice: Two Staffs",
-    createScore: createMultiVoiceTwoStaffScoreFixture,
   },
 ];
 
@@ -56,17 +39,8 @@ export function resolveEditorFixtureKey(
   searchParams: URLSearchParams
 ): EditorFixtureKey {
   const fixture = searchParams.get("fixture");
-  if (
-    fixture === "empty" ||
-    fixture === "feature_showcase" ||
-    fixture === "performance_stress" ||
-    fixture === "multi_voice_single_staff" ||
-    fixture === "multi_voice_two_staff"
-  ) {
-    return fixture;
-  }
-
-  return "feature_showcase";
+  const option = EDITOR_FIXTURES.find((v) => v.key === fixture);
+  return option?.key ?? "feature_showcase";
 }
 
 export function resolveEditorFixture(searchParams: URLSearchParams): Score {

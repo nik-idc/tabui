@@ -108,7 +108,7 @@ test("publishes the final full selection after tempo confirmation", async ({
 
   await expect(dialog).toBeHidden();
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 121 BPM, " +
+    "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 91 BPM, " +
       "Beat 1, quarter, String 1, empty."
   );
 });
@@ -183,7 +183,7 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(status).toHaveText(
       fixture === "empty"
         ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty."
+        : "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 
@@ -206,7 +206,7 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(status).toHaveText(
       fixture === "empty"
         ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty."
+        : "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 }
@@ -223,7 +223,7 @@ test("announces the selected context when entering notation with the mouse", asy
 
   await expect(notation).toBeFocused();
   await expect(editor.getByRole("status")).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
+    "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, " +
       "Beat 1, quarter, String 1, empty."
   );
 });
@@ -386,10 +386,11 @@ test("basic controls expose accessible names and native behavior", async ({
   }
 
   for (const name of [
-    "Rhythm track",
-    "Lead track",
-    "Bass track",
-    "Solo track",
+    "Clean rhythm",
+    "Bass",
+    "Clean lead",
+    "Distortion rhythm",
+    "Distortion lead",
   ]) {
     await expect(
       editor.getByRole("group", { name: `Track: ${name}`, exact: true })
@@ -403,20 +404,20 @@ test("basic controls expose accessible names and native behavior", async ({
   }
 
   const rhythmTrack = editor.getByRole("group", {
-    name: "Track: Rhythm track",
+    name: "Track: Clean rhythm",
     exact: true,
   });
   await expect(rhythmTrack).toHaveAttribute("aria-current", "true");
   await expect(
-    editor.getByRole("textbox", { name: "Rhythm track name", exact: true })
+    editor.getByRole("textbox", { name: "Clean rhythm name", exact: true })
   ).toBeVisible();
   await expect(
-    editor.getByRole("button", { name: "Move Rhythm track up" })
+    editor.getByRole("button", { name: "Move Clean rhythm up" })
   ).toBeDisabled();
   await rhythmTrack.focus();
   await page.keyboard.press("Tab");
   await expect(
-    editor.getByRole("button", { name: "Move Rhythm track down" })
+    editor.getByRole("button", { name: "Move Clean rhythm down" })
   ).toBeFocused();
 });
 
@@ -528,7 +529,7 @@ test("announces tuning changes without moving keyboard focus", async ({
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
   await editor.getByRole("button", { name: /^Tracks ·/ }).click();
-  for (const opener of ["New track", "Rhythm track settings"]) {
+  for (const opener of ["New track", "Clean rhythm settings"]) {
     await editor.getByRole("button", { name: /^Tracks ·/ }).click();
     await editor.getByRole("button", { name: opener, exact: true }).click();
     const dialog = editor.getByRole("dialog");
@@ -537,7 +538,7 @@ test("announces tuning changes without moving keyboard focus", async ({
       name: "Raise string 1 by 1 semitone",
       exact: true,
     });
-    if (opener === "Rhythm track settings") {
+    if (opener === "Clean rhythm settings") {
       const keepFrets = dialog.getByRole("button", {
         name: "Keep frets",
         exact: true,
@@ -573,8 +574,10 @@ test("announces tuning changes without moving keyboard focus", async ({
         exact: true,
       })
       .click();
+    // The showcase rhythm track is in drop D; a new track uses standard tuning.
+    const lowString = opener === "New track" ? "D sharp" : "C sharp";
     await expect(region).toHaveText(
-      "Tuning, strings 6 to 1: D sharp, G sharp, C sharp, F sharp, A sharp, E"
+      `Tuning, strings 6 to 1: ${lowString}, G sharp, C sharp, F sharp, A sharp, E`
     );
     await page.keyboard.press("Escape");
   }
@@ -587,19 +590,19 @@ test("names a delete confirmation with the track being deleted", async ({
   const editor = page.locator("#tabui-editor");
   await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   const removeRhythm = editor.getByRole("button", {
-    name: "Remove Rhythm track",
+    name: "Remove Clean rhythm",
     exact: true,
   });
   await removeRhythm.click();
   const dialog = editor.getByRole("dialog");
   await expect(dialog).toHaveAccessibleName(
-    'Are you sure you want to delete track "Rhythm track"?'
+    'Are you sure you want to delete track "Clean rhythm"?'
   );
   await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(dialog).toHaveCount(0);
   await expect(removeRhythm).toBeVisible();
   await expect(editor.locator('.tu-track-controls[role="group"]')).toHaveCount(
-    4
+    5
   );
 });

@@ -13,22 +13,21 @@ import {
 } from "../../../demo/raw/data/theme";
 import {
   Bar,
-  Beat,
   deserializeScore,
-  GuitarNote,
   NoteDuration,
   serializeScore,
   VoiceNumber,
 } from "../../../src/notation/model";
+import showcaseDocument from "../../../fixtures/feature-showcase-score.json";
 
 // Keys are fixture identifiers defined by the demo data contract.
 /* eslint-disable @typescript-eslint/naming-convention */
 const FIXTURE_EXPECTATIONS = {
   feature_showcase: {
-    name: "Feature Showcase Score",
-    tracks: 4,
-    bars: 14,
-    voicesByTrack: [[[1], [1]], [[1, 2]], [[1]], [[1]]],
+    name: "Sample song",
+    tracks: 5,
+    bars: 34,
+    voicesByTrack: [[[1]], [[1]], [[1]], [[1]], [[1]]],
   },
   empty: { name: "Unknown", tracks: 1, bars: 1, voicesByTrack: [[[1]]] },
   performance_stress: {
@@ -36,23 +35,6 @@ const FIXTURE_EXPECTATIONS = {
     tracks: 1,
     bars: 1000,
     voicesByTrack: [[[1]]],
-  },
-  multi_voice_single_staff: {
-    name: "Multi Voice Single Staff",
-    tracks: 1,
-    bars: 3,
-    voicesByTrack: [[[1, 2]]],
-  },
-  multi_voice_two_staff: {
-    name: "Multi Voice Two Staff",
-    tracks: 1,
-    bars: 3,
-    voicesByTrack: [
-      [
-        [1, 2],
-        [1, 3],
-      ],
-    ],
   },
 } as const;
 /* eslint-enable @typescript-eslint/naming-convention */
@@ -72,25 +54,11 @@ function requireVoice(bar: Bar, voiceNumber: VoiceNumber) {
   return voice;
 }
 
-function guitarNotes(beat: Beat): GuitarNote[] {
-  if (beat.notes === null) {
-    throw new Error("Expected fixture notes, received a rest");
-  }
-  return beat.notes.map((n) => {
-    if (!(n instanceof GuitarNote)) {
-      throw new Error("Expected a guitar note in the fixture");
-    }
-    return n;
-  });
-}
-
 describe("editor fixture and theme resolution", () => {
   it.each([
     ["feature_showcase", "feature_showcase"],
     ["empty", "empty"],
     ["performance_stress", "performance_stress"],
-    ["multi_voice_single_staff", "multi_voice_single_staff"],
-    ["multi_voice_two_staff", "multi_voice_two_staff"],
     ["unknown", "feature_showcase"],
     ["", "feature_showcase"],
   ])("resolves fixture=%s to %s", (key, expected) => {
@@ -108,17 +76,16 @@ describe("editor fixture and theme resolution", () => {
     const params = new URLSearchParams("fixture=feature_showcase");
     const firstScore = resolveEditorFixture(params);
     const secondScore = resolveEditorFixture(params);
-    const firstLead = requireVoice(firstScore.tracks[1].staves[0].bars[0], 1);
-    const secondLead = requireVoice(secondScore.tracks[1].staves[0].bars[0], 1);
+    const untouched = serializeScore(secondScore);
 
+    // Editing one copy must not change the next one.
     firstScore.masterBars[0].tempo = 87;
-    firstScore.tracks[1].name = "Edited lead";
-    guitarNotes(firstLead.beats[0])[0].setFret(7);
+    firstScore.tracks[1].name = "Edited track";
+    requireVoice(firstScore.tracks[1].staves[0].bars[0], 1).beats[0].makeRest();
 
     expect(firstScore).not.toBe(secondScore);
-    expect(secondScore.masterBars[0].tempo).toBe(120);
-    expect(secondScore.tracks[1].name).toBe("Lead track");
-    expect(guitarNotes(secondLead.beats[0])[0].fret).toBe(12);
+    expect(serializeScore(secondScore)).toEqual(untouched);
+    expect(serializeScore(firstScore)).not.toEqual(untouched);
   });
 
   it("exposes fixture options for demo UI", () => {
@@ -126,8 +93,6 @@ describe("editor fixture and theme resolution", () => {
       "feature_showcase",
       "empty",
       "performance_stress",
-      "multi_voice_single_staff",
-      "multi_voice_two_staff",
     ]);
   });
 
@@ -176,34 +141,9 @@ describe("editor fixture and theme resolution", () => {
     });
   }
 
-  it("provides split fingerstyle, two-voice lead and simple bass parts in the showcase", () => {
+  it("loads the showcase from its saved file, with full bars", () => {
     const score = resolveEditorFixture(new URLSearchParams());
-    const parts = score.tracks.slice(0, 3).map((t) => {
-      const voice = requireVoice(t.staves[0].bars[0], 1);
-      return guitarNotes(voice.beats[0]).map((n) => n.fret);
-    });
-
-    expect(parts).toEqual([
-      [null, 0, null, null, null, null],
-      [12, null, null, null, null, null],
-      [null, null, null, 0],
-    ]);
-    const accompaniment = requireVoice(score.tracks[0].staves[1].bars[0], 1);
-    expect(
-      accompaniment.beats.map((b) => guitarNotes(b).map((n) => n.fret))
-    ).toEqual([
-      [null, null, null, null, null, 0],
-      [null, null, null, 2, null, null],
-      [null, null, null, null, 2, null],
-      [null, null, null, 2, null, null],
-    ]);
-    const lead = score.tracks[1].staves[0].bars[0];
-    expect(
-      requireVoice(lead, 1).beats.map((b) => guitarNotes(b)[0].fret)
-    ).toEqual([12, 15, 14, 12]);
-    expect(
-      requireVoice(lead, 2).beats.map((b) => guitarNotes(b)[2].fret)
-    ).toEqual([9, 12]);
+    expect(serializeScore(score)).toEqual(showcaseDocument);
     for (const track of score.tracks) {
       for (const staff of track.staves) {
         for (const bar of staff.bars) {
@@ -231,63 +171,6 @@ describe("editor fixture and theme resolution", () => {
       bar.getVoiceBar(3),
       bar.getVoiceBar(4),
     ]).toEqual([null, null, null]);
-  });
-
-  it.each(["multi_voice_single_staff", "multi_voice_two_staff"])(
-    "provides independent dotted and tuplet voice timing in %s",
-    (key) => {
-      const score = resolveEditorFixture(new URLSearchParams(`fixture=${key}`));
-      const bars = score.tracks[0].staves[0].bars;
-      const melody = requireVoice(bars[0], 1);
-      const accompaniment = requireVoice(bars[0], 2);
-      const triplets = requireVoice(bars[2], 1);
-
-      expect(
-        melody.beats.map((b) => b.startTick / melody.tickResolution)
-      ).toEqual([0, 0.25, 0.5, 0.75]);
-      expect(
-        accompaniment.beats.map((b) => [
-          b.dots,
-          b.startTick / accompaniment.tickResolution,
-          b.endTick / accompaniment.tickResolution,
-        ])
-      ).toEqual([
-        [0, 0, 0.5],
-        [1, 0.5, 0.875],
-        [0, 0.875, 1],
-      ]);
-      expect(triplets.beats.map((b) => b.tupletSettings)).toEqual([
-        { normalCount: 3, tupletCount: 2 },
-        { normalCount: 3, tupletCount: 2 },
-        { normalCount: 3, tupletCount: 2 },
-        null,
-      ]);
-      expect(
-        triplets.beats.map((b) => b.endTick / triplets.tickResolution)
-      ).toEqual([1 / 12, 1 / 6, 0.25, 0.75]);
-      expect(accompaniment.beats.map((b) => guitarNotes(b)[2].fret)).toEqual([
-        2, 4, 5,
-      ]);
-    }
-  );
-
-  it("populates voice three on the second staff with a separate bass line", () => {
-    const score = resolveEditorFixture(
-      new URLSearchParams("fixture=multi_voice_two_staff")
-    );
-    const bar = score.tracks[0].staves[1].bars[0];
-    const bass = requireVoice(bar, 3);
-
-    expect(bass.beats.map((b) => guitarNotes(b)[4].fret)).toEqual([
-      0, 2, 3, 5, 7,
-    ]);
-    expect(bass.beats.map((b) => b.startTick / bass.tickResolution)).toEqual([
-      0, 0.125, 0.25, 0.375, 0.5,
-    ]);
-    expect(
-      requireVoice(bar, 1).beats.map((b) => guitarNotes(b)[1].fret)
-    ).toEqual([5, 7]);
-    expect(bar.getVoiceBar(2)).toBeNull();
   });
 
   it.each([

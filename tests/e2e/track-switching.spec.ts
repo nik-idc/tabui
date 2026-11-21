@@ -60,11 +60,11 @@ test("switches the active track through the track controls", async ({
   const tracksButton = editor.getByRole("button", { name: /^Tracks ·/ });
   await tracksButton.click();
   await expect(tracksButton).toHaveAccessibleName(
-    "Tracks · Rhythm track · 4 tracks"
+    "Tracks · Clean rhythm · 5 tracks"
   );
-  await expect(tracksButton).toHaveText("Rhythm track · 4 tracks");
+  await expect(tracksButton).toHaveText("Clean rhythm · 5 tracks");
   const trackRows = editor.locator(".tu-track-controls");
-  await expect(trackRows).toHaveCount(4);
+  await expect(trackRows).toHaveCount(5);
   await expect(trackRows.nth(0)).toHaveAttribute("aria-current", "true");
 
   await selectTrack(editor, 1);

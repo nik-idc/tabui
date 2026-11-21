@@ -489,7 +489,7 @@ test("opens the track list in the available direction without moving notation", 
   await editor.getByRole("button", { name: "Tracks" }).click();
   const overlay = editor.locator(".tu-track-controls-overlay");
   await expect(overlay).toBeVisible();
-  await expect(overlay.locator(".tu-track-controls")).toHaveCount(4);
+  await expect(overlay.locator(".tu-track-controls")).toHaveCount(5);
   const geometry = await editor.evaluate((root) => {
     const getBox = (selector: string): DOMRect => {
       const element = root.querySelector<HTMLElement>(selector);
@@ -685,50 +685,52 @@ test("configured view-only keeps only track selection, names, and playback", asy
   await expect(editor.getByRole("button", { name: "Tracks" })).toBeVisible();
   await expect(editor.locator(".tu-score-name-input")).toBeDisabled();
   await expect(editor.locator('.tu-track-controls[role="group"]')).toHaveCount(
-    4
+    5
   );
   for (const name of [
-    "Rhythm track",
-    "Lead track",
-    "Bass track",
-    "Solo track",
+    "Clean rhythm",
+    "Bass",
+    "Clean lead",
+    "Distortion rhythm",
+    "Distortion lead",
   ]) {
     await expect(
       editor.getByRole("group", { name: `Track: ${name}`, exact: true })
     ).toBeVisible();
   }
   await expect(
-    editor.getByRole("textbox", { name: "Rhythm track name", exact: true })
+    editor.getByRole("textbox", { name: "Clean rhythm name", exact: true })
   ).toBeDisabled();
-  const lead = editor.getByRole("group", {
-    name: "Track: Lead track",
+  const bass = editor.getByRole("group", {
+    name: "Track: Bass",
     exact: true,
   });
   const rhythm = editor.getByRole("group", {
-    name: "Track: Rhythm track",
+    name: "Track: Clean rhythm",
     exact: true,
   });
   await expect(rhythm).toHaveAttribute("aria-current", "true");
   // Keyboard navigation restores native Space activation after opening Tracks by mouse.
   await rhythm.focus();
   await page.keyboard.press("Tab");
-  await expect(lead).toBeFocused();
+  await expect(bass).toBeFocused();
   await page.keyboard.press("Space");
-  await expect(lead).toHaveAttribute("aria-current", "true");
+  await expect(bass).toHaveAttribute("aria-current", "true");
   await expect(rhythm).toHaveAttribute("aria-current", "false");
   const notation = editor.locator(".tu-notation-viewport");
   await notation.focus();
   await expect(notation).toBeFocused();
   await page.keyboard.press("ArrowRight");
-  await expect(lead).toHaveAttribute("aria-current", "true");
+  await expect(bass).toHaveAttribute("aria-current", "true");
   await expect(rhythm).toHaveAttribute("aria-current", "false");
+  // Each bass bar starts with a whole rest, so the next beat is in bar 2.
   await expect(editor.getByRole("status")).toHaveText(
-    "Beat 2, quarter, String 1, fret 15."
+    "Bar 2, 4/4, 90 BPM, Voice 1, Beat 1, whole, String 1, rest."
   );
   await page.keyboard.press("ArrowLeft");
-  await expect(editor.getByRole("status")).toContainText("Beat 1");
-  await expect(editor.getByRole("status")).toContainText("fret 12.");
-  await expect(lead).toHaveAttribute("aria-current", "true");
+  await expect(editor.getByRole("status")).toContainText("Bar 1");
+  await expect(editor.getByRole("status")).toContainText("rest.");
+  await expect(bass).toHaveAttribute("aria-current", "true");
   await expect(
     editor.getByRole("button", { name: "Play", exact: true })
   ).toBeEnabled();

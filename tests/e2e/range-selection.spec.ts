@@ -86,7 +86,7 @@ test("announces a mouse range once on release, not during held drag frames", asy
     await page.mouse.move(points[2].x, 1);
     await page.mouse.up();
     const finalText =
-      "Track Rhythm track, Staff 1, voice 1, 3 beats selected, " +
+      "Track Clean rhythm, Staff 1, voice 1, 3 beats selected, " +
       "bar 1 beat 1 to bar 1 beat 3, anchor bar 1 beat 1, active end bar 1 beat 3.";
     await expect(announcement).toHaveText(finalText);
     await page.evaluate(
@@ -126,19 +126,19 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const selectionRect = editor.locator('[id^="selection-rect-"]');
   await expect(selectionRect).toHaveCount(1);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 1 beat selected, " +
+    "Track Clean rhythm, Staff 1, voice 1, 1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
   const selectionWidthBefore = await getSelectionWidth(selectionRect);
   expect(selectionWidthBefore).toBeGreaterThan(0);
 
   // Bar wrappers contain sibling bar, beat, and note renderer groups.
-  // The first staff starts with four quarters, then two eighths and three quarters.
+  // Each bar of the first track has five beats.
   const bars = editor.locator('.tu-root-svg g[id^="bar-"]');
   const firstBar = bars.nth(0).locator("xpath=../..");
   const secondBar = bars.nth(1).locator("xpath=../..");
   const beatGroups = 'g[id^="beat-"]:not([id^="beat-rhythm-"])';
-  await expect(firstBar.locator(beatGroups)).toHaveCount(4);
+  await expect(firstBar.locator(beatGroups)).toHaveCount(5);
   const secondBarBeats = secondBar.locator(beatGroups);
   await expect(secondBarBeats).toHaveCount(5);
   const firstBeatId = await secondBarBeats.first().getAttribute("id");
@@ -154,7 +154,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const selectionWidthAfterBeat = await getSelectionWidth(selectionRect);
   expect(selectionWidthAfterBeat).toBeGreaterThan(selectionWidthBefore);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 5 beats selected, " +
+    "Track Clean rhythm, Staff 1, voice 1, 6 beats selected, " +
       "bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1."
   );
 
@@ -162,7 +162,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const nextBarButton = editor.getByRole("button", { name: "Next bar" });
   await nextBarButton.click();
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 10 beats selected, " +
+    "Track Clean rhythm, Staff 1, voice 1, 11 beats selected, " +
       "bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1."
   );
   await expect
@@ -174,7 +174,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
   await expect(rangeButton).toBeVisible();
   await expect(editor.locator('[id^="selection-rect-"]')).toHaveCount(0);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
+    "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, " +
       "Beat 1, quarter, String 1, empty."
   );
 });
@@ -189,41 +189,43 @@ test("announces keyboard ranges across bars and full context after Escape", asyn
   await page.keyboard.press("Enter");
   await page.keyboard.press("Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 1 beat selected, " +
+    "Track Clean rhythm, Staff 1, voice 1, 1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
   await page.keyboard.press("Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 2 beats selected, " +
+    "Track Clean rhythm, Staff 1, voice 1, 2 beats selected, " +
       "bar 1 beat 1 to bar 1 beat 2, anchor bar 1 beat 1, active end bar 1 beat 2."
   );
   await page.keyboard.press("Control+Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 4 beats selected, " +
-      "bar 1 beat 1 to bar 1 beat 4, anchor bar 1 beat 1, active end bar 1 beat 4."
+    "Track Clean rhythm, Staff 1, voice 1, 5 beats selected, " +
+      "bar 1 beat 1 to bar 1 beat 5, anchor bar 1 beat 1, active end bar 1 beat 5."
   );
   await page.keyboard.press("Control+Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 9 beats selected, " +
+    "Track Clean rhythm, Staff 1, voice 1, 10 beats selected, " +
       "bar 1 beat 1 to bar 2 beat 5, anchor bar 1 beat 1, active end bar 2 beat 5."
   );
   await expect(editor.locator('[id^="selection-rect-"]').first()).toBeVisible();
   await page.keyboard.press("Control+Shift+ArrowLeft");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 4 beats selected, " +
-      "bar 1 beat 1 to bar 1 beat 4, anchor bar 1 beat 1, active end bar 1 beat 4."
+    "Track Clean rhythm, Staff 1, voice 1, 5 beats selected, " +
+      "bar 1 beat 1 to bar 1 beat 5, anchor bar 1 beat 1, active end bar 1 beat 5."
   );
   await page.keyboard.press("Control+Shift+ArrowLeft");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 1 beat selected, " +
+    "Track Clean rhythm, Staff 1, voice 1, 1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
   await page.keyboard.press("Escape");
   await expect(editor.locator('[id^="selection-rect-"]')).toHaveCount(0);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
+    "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, " +
       "Beat 1, quarter, String 1, empty."
   );
   await page.keyboard.press("ArrowRight");
-  await expect(announcement).toHaveText("Beat 2, quarter, String 1, empty.");
+  await expect(announcement).toHaveText(
+    "Beat 2, eighth, 1 dot, String 1, empty."
+  );
 });

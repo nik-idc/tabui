@@ -13,7 +13,7 @@ import { ScorePlayer } from "../../../src/player";
 import { trackEvent, TrackEventType } from "../../../src/shared/events";
 import { createBarWithBeats } from "../model/helpers";
 import { createTestLayoutDimensions } from "../controller/helpers";
-import { createMultiVoiceTwoStaffScoreFixture } from "../../../fixtures/multi-voice-score";
+import { createMultiVoiceTwoStaffScoreFixture } from "../multi-voice-score";
 import { installTransportAudio } from "../player/transport-audio";
 import { required } from "../required";
 import { mockSvgViewportBounds } from "./svg-viewport-bounds";
