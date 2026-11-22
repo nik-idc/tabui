@@ -33,10 +33,10 @@ const guidesSidebar = [
   {
     text: "Guides",
     items: [
-      { text: "Embedding TabUI", link: "/embedding" },
-      { text: "Keyboard shortcuts", link: "/keyboard-shortcuts" },
-      { text: "Features", link: "/features" },
       { text: "Domain model and terms", link: "/domain" },
+      { text: "Features", link: "/features" },
+      { text: "Keyboard shortcuts", link: "/keyboard-shortcuts" },
+      { text: "Embedding TabUI", link: "/embedding" },
     ],
   },
 ];
@@ -88,7 +88,7 @@ export default defineConfig({
   themeConfig: {
     nav: [
       { text: "Demo", link: "/demo" },
-      { text: "Guides", link: "/embedding" },
+      { text: "Guides", link: "/domain" },
       { text: "API", link: "/api/" },
     ],
     sidebar: {

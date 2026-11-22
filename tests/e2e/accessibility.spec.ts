@@ -513,14 +513,14 @@ test("new track string-count actions update per-string tuning labels", async ({
       exact: true,
     })
     .press("Space");
-  await expect(dialog.getByRole("status")).toHaveText("String 7: C");
+  await expect(dialog.getByRole("status")).toHaveText("String 7: C2");
   await dialog
     .getByRole("button", {
       name: "Raise string 1 by 1 semitone",
       exact: true,
     })
     .press("Space");
-  await expect(dialog.getByRole("status")).toHaveText("String 1: F");
+  await expect(dialog.getByRole("status")).toHaveText("String 1: F4");
 });
 
 test("announces tuning changes without moving keyboard focus", async ({
@@ -564,9 +564,9 @@ test("announces tuning changes without moving keyboard focus", async ({
       await expect(transpose).toBeDisabled();
     }
     await raise.focus();
-    await expect(region).toHaveText("String 1: E");
+    await expect(region).toHaveText("String 1: E4");
     await page.keyboard.press("Space");
-    await expect(region).toHaveText("String 1: F");
+    await expect(region).toHaveText("String 1: F4");
     await expect(raise).toBeFocused();
     await dialog
       .getByRole("button", {
@@ -575,9 +575,9 @@ test("announces tuning changes without moving keyboard focus", async ({
       })
       .click();
     // The showcase rhythm track is in drop D; a new track uses standard tuning.
-    const lowString = opener === "New track" ? "D sharp" : "C sharp";
+    const lowString = opener === "New track" ? "D sharp 2" : "C sharp 2";
     await expect(region).toHaveText(
-      `Tuning, strings 6 to 1: ${lowString}, G sharp, C sharp, F sharp, A sharp, E`
+      `Tuning, strings 6 to 1: ${lowString}, G sharp 2, C sharp 3, F sharp 3, A sharp 3, E4`
     );
     await page.keyboard.press("Escape");
   }

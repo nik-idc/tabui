@@ -116,24 +116,24 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     controls.template.instrTonesButtons[1].click();
     controls.template.stringCountDownButton.click();
     expect(controls.stringCount).toBe(5);
-    expect(controls.tuning).toBe("E A D G B");
+    expect(controls.tuning).toBe("E2 A2 D3 G3 B3");
     controls.template.stringCountUpButton.click();
     expect(controls.stringCount).toBe(6);
-    expect(controls.tuning).toBe("E A D G B E");
+    expect(controls.tuning).toBe("E2 A2 D3 G3 B3 E4");
     controls.template.stringCountUpButton.click();
     expect(controls.stringCount).toBe(7);
-    expect(controls.tuning).toBe("B E A D G B E");
+    expect(controls.tuning).toBe("B1 E2 A2 D3 G3 B3 E4");
     // The seventh tuning control was created by the string-count render.
     controls.template.tuningUpButtons[6].click();
-    expect(controls.tuning).toBe("B E A D G B F");
+    expect(controls.tuning).toBe("B1 E2 A2 D3 G3 B3 F4");
     controls.template.tuningUpButtons[1].click();
-    expect(controls.tuning).toBe("B F A D G B F");
+    expect(controls.tuning).toBe("B1 F2 A2 D3 G3 B3 F4");
     controls.template.tuningDownButtons[2].click();
-    expect(controls.tuning).toBe("B F G# D G B F");
+    expect(controls.tuning).toBe("B1 F2 G#2 D3 G3 B3 F4");
     controls.template.wholeTuningUpButton.click();
-    expect(controls.tuning).toBe("C F# A D# G# C F#");
+    expect(controls.tuning).toBe("C2 F#2 A2 D#3 G#3 C4 F#4");
     controls.template.wholeTuningDownButton.click();
-    expect(controls.tuning).toBe("B F G# D G B F");
+    expect(controls.tuning).toBe("B1 F2 G#2 D3 G3 B3 F4");
 
     controls.template.confirmButton.click();
     expect(score.tracks).toHaveLength(2);
@@ -162,7 +162,7 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     controls.setType(StringInstrumentType.Other);
     controls.setTone(OtherStringTone.Ukulele);
     expect(controls.stringCount).toBe(4);
-    expect(controls.tuning).toBe("G C E A");
+    expect(controls.tuning).toBe("G4 C4 E4 A4");
 
     controls.template.confirmButton.click();
     const instrument = score.tracks[1].context.instrument as Guitar;
@@ -180,18 +180,18 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     controls.setType(StringInstrumentType.AcousticGuitar);
     controls.template.tuningDownButtons[0].click();
     controls.template.tuningDownButtons[0].click();
-    expect(controls.tuning).toBe("D A D G B E");
+    expect(controls.tuning).toBe("D2 A2 D3 G3 B3 E4");
     controls.setTone(AcousticGuitarTone.Nylon);
-    expect(controls.tuning).toBe("D A D G B E");
+    expect(controls.tuning).toBe("D2 A2 D3 G3 B3 E4");
     controls.setType(StringInstrumentType.BassGuitar);
-    expect(controls.tuning).toBe("E A D G");
+    expect(controls.tuning).toBe("E1 A1 D2 G2");
   });
 
   test("raising B carries into the next octave", () => {
     const { controls, score } = fixture;
     // Second string, B3.
     controls.template.tuningUpButtons[4].click();
-    expect(controls.tuning).toBe("E A D G C E");
+    expect(controls.tuning).toBe("E2 A2 D3 G3 C4 E4");
     controls.template.confirmButton.click();
     const instrument = score.tracks[1].context.instrument as Guitar;
     expect(instrument.tuning[1]).toEqual({ noteValue: "C", octave: 4 });

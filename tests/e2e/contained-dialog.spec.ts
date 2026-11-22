@@ -128,7 +128,7 @@ test("keeps one announcement region inside the active modal before focus", async
       exact: true,
     });
     await raise.focus();
-    await expect(region).toHaveText("String 1: E");
+    await expect(region).toHaveText("String 1: E4");
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect(opener).toBeFocused();
