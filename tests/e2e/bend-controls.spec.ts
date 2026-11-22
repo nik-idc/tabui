@@ -266,6 +266,10 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
   const graph = dialog.locator(".tu-bend-controls-svg");
   await expect(dialog).toHaveAttribute("open", "");
   await expect(graph).toBeVisible();
+  // Screen readers pass arrow keys through to an application region.
+  await expect(
+    dialog.getByRole("application", { name: "Bend curve editor" })
+  ).toBeVisible();
 
   // Record the handle position and notation scroll state before dragging.
   const handle = graph.locator('circle[aria-label="Bend point"]');
