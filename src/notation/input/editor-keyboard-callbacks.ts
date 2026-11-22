@@ -26,6 +26,7 @@ import { PlaybackState } from "../../player";
 import { RenderType } from "./render-type";
 import {
   captureSelectionCursor,
+  formatSelectionRecap,
   notationSelectionsEqual,
   NotationCursorPosition,
 } from "../accessibility/notation-selection-announcement";
@@ -105,6 +106,7 @@ export enum EditorKey {
   // Also during playback.
   Loop = "o",
   Metronome = "n",
+  WhereAmI = "w",
 
   // Ctrl only.
   FirstBar = "home",
@@ -585,6 +587,15 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
     const controller = this._notationComponent.trackController;
     const key = event.key.toLowerCase();
+    if (key === EditorKey.WhereAmI) {
+      // Changes nothing, so it also works in view-only mode.
+      const recap = formatSelectionRecap(controller);
+      if (recap === undefined) {
+        return false;
+      }
+      this._uiComponent.announce(recap, true);
+      return true;
+    }
     let message: string;
     if (key === EditorKey.Loop) {
       controller.toggleLoop();

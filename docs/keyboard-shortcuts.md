@@ -155,6 +155,16 @@ section (Fret, Duration, Beat, Voices, Techniques, Measure, and Staff), the
 score details, and the notation. Focus moves to the first control of a section,
 and sections with no available control are skipped. The order wraps around.
 
+## Where am I
+
+| Action                     | Shortcut |
+| -------------------------- | -------- |
+| Read where you are in full | W        |
+
+W reads the score title and artist, the track, staff, and voice, then the bar,
+beat, and note under the cursor, or the selected range. It works in the
+notation, also during playback, and changes nothing.
+
 ## Dialogs
 
 Tab and Shift+Tab move between controls. Enter or Space activates a button.

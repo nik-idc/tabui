@@ -345,7 +345,6 @@ export function formatNotationSelection(
     const selected = `${beats.length} beat${beats.length === 1 ? "" : "s"} selected`;
     return (
       joinParts([
-        `Track ${formatTrackName(staff.track)}`,
         formatStaff(staff),
         formatVoice(voiceBar),
         selected,
@@ -397,4 +396,79 @@ export function formatNotationSelection(
     return joinParts([beat, slot]);
   }
   return previousText.slot === slot ? undefined : slot;
+}
+
+/** Describes the score and track for a full recap. */
+function formatScoreAndTrack(track: Track): string[] {
+  const score = track.score;
+  const title = score.name.trim();
+  const artist = score.artist.trim();
+  const parts: string[] = [];
+  if (title !== "" && artist !== "") {
+    parts.push(`${title} by ${artist}.`);
+  } else if (title !== "" || artist !== "") {
+    parts.push(`${title}${artist}.`);
+  }
+  const index = score.tracks.indexOf(track);
+  parts.push(
+    `Track ${formatTrackName(track)}, ${index + 1} of ${score.tracks.length}.`
+  );
+  return parts;
+}
+
+/** Names the staff and voice, always, with the staff count. */
+function formatStaffAndVoice(voiceBar: VoiceBar): string {
+  const staff = voiceBar.bar.staff;
+  const staves = staff.track.staves;
+  return (
+    `Staff ${staves.indexOf(staff) + 1} of ${staves.length},` +
+    ` voice ${voiceBar.voiceNumber}.`
+  );
+}
+
+/**
+ * Describes everything about the current selection, for a "where am I"
+ * shortcut: the score title and artist, the track, staff, and voice, then the
+ * cursor's bar, beat, and note, or the selected range. Unlike navigation
+ * announcements, it always names the staff, voice, and current dynamic.
+ */
+export function formatSelectionRecap(
+  source: NotationSelectionSource
+): string | undefined {
+  const cursor = source.selectionCursor;
+  if (cursor === undefined) {
+    const beats = source.selectionAsBeats;
+    const activeEnd = source.selectionEndBeat;
+    if (beats.length === 0 || activeEnd === undefined) {
+      return undefined;
+    }
+    const start = beats[0];
+    const end = beats[beats.length - 1];
+    const voiceBar = start.voiceBar;
+    return [
+      ...formatScoreAndTrack(voiceBar.bar.staff.track),
+      formatStaffAndVoice(voiceBar),
+      `${beats.length} beat${beats.length === 1 ? "" : "s"} selected,` +
+        ` ${formatRangeEndpoint(start)} to ${formatRangeEndpoint(end)},` +
+        ` active end ${formatRangeEndpoint(activeEnd)}.`,
+    ].join(" ");
+  }
+
+  const beat = cursor.beat;
+  const voiceBar = beat.voiceBar;
+  const bar = voiceBar.bar;
+  const staff = bar.staff;
+  const masterBar = bar.masterBar;
+  const beatIndex = voiceBar.beats.indexOf(beat);
+  const dynamic = DYNAMIC_NAMES[beat.dynamic].toLowerCase();
+  return [
+    ...formatScoreAndTrack(staff.track),
+    formatStaffAndVoice(voiceBar),
+    `Bar ${staff.bars.indexOf(bar) + 1} of ${staff.bars.length},` +
+      ` ${masterBar.beatsCount}/${1 / masterBar.duration},` +
+      ` ${masterBar.tempo} BPM${formatRepeats(beat)}.`,
+    `Beat ${beatIndex + 1} of ${voiceBar.beats.length},` +
+      ` ${formatRhythm(beat)}, ${dynamic}${formatBeatTechniques(beat)}.`,
+    formatNoteSlot(cursor),
+  ].join(" ");
 }

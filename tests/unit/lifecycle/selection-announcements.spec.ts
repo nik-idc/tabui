@@ -192,7 +192,7 @@ describe("selection announcement behavior", () => {
     callbacks.announceSelection(true);
     callbacks.announceSelection(true);
     const description =
-      "Track Guitar, 2 beats selected, bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1.";
+      "2 beats selected, bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1.";
     expect(announce.mock.calls).toEqual([[description, false]]);
     viewport.focus();
     viewport.blur();
@@ -292,7 +292,7 @@ describe("selection announcement behavior", () => {
     expect(fixture.announce).not.toHaveBeenCalled();
     jest.advanceTimersByTime(20);
     const description =
-      "Track Guitar, 3 beats selected, bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1.";
+      "3 beats selected, bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1.";
     expect(fixture.announce.mock.calls).toEqual([[description, false]]);
     expect(fixture.region.textContent).toBe(description);
 
