@@ -54,17 +54,17 @@ export const DEFAULT_TUNINGS: DefaultTunings = {
     UkuleleStandard: [
       { noteValue: NoteValue.A, octave: 4 },
       { noteValue: NoteValue.E, octave: 4 },
-      { noteValue: NoteValue.C, octave: 3 },
+      { noteValue: NoteValue.C, octave: 4 },
       { noteValue: NoteValue.G, octave: 4 },
     ],
   },
   5: {
     BanjoStandard: [
       { noteValue: NoteValue.D, octave: 4 },
-      { noteValue: NoteValue.B, octave: 4 },
+      { noteValue: NoteValue.B, octave: 3 },
       { noteValue: NoteValue.G, octave: 3 },
       { noteValue: NoteValue.D, octave: 3 },
-      { noteValue: NoteValue.G, octave: 3 },
+      { noteValue: NoteValue.G, octave: 4 },
     ],
   },
   6: {

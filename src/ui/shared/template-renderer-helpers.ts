@@ -1,5 +1,6 @@
 import { ResolvedAssetConfig, resolveAssetUrl } from "../../assets";
 import type { MasterBar } from "../../notation/model/master-bar";
+import type { NoteType } from "../../notation/model/note";
 import type { Score } from "../../notation/model/score";
 
 /** Describes the score-wide bar span affected by a settings dialog. */
@@ -21,6 +22,11 @@ export interface DialogSection {
 }
 
 /** Describes tuning in displayed string order, with spoken accidentals. */
+/** Note names of a tuning, joined with spaces, without octaves. */
+export function getTuningText(tuning: readonly NoteType[]): string {
+  return tuning.map((note) => note.noteValue).join(" ");
+}
+
 export function getTuningValueText(
   tuning: string,
   stringIndex?: number

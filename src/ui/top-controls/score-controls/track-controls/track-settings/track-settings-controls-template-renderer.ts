@@ -26,7 +26,7 @@ export class TrackSettingsControlsTemplateRenderer {
   private _currentType: InstrumentType = StringInstrumentType.ElectricGuitar;
   private _currentTone: string = INSTRUMENT_TONES[this._currentType]?.[0] ?? "";
   private _currentStringCount: number = 6;
-  private _originalTuning: string = "E A D G B E";
+  private _tuningChanged: boolean = false;
   private _currentTuning: string = "E A D G B E";
   private _currentTuningChangeMode: TrackInstrumentChangeMode =
     TrackInstrumentChangeMode.KeepFrets;
@@ -157,7 +157,7 @@ export class TrackSettingsControlsTemplateRenderer {
     this.template.tuningModeContainer.classList.add(
       "tu-ts-tuning-mode-container"
     );
-    const isTuningUnchanged = this._currentTuning === this._originalTuning;
+    const isTuningUnchanged = !this._tuningChanged;
     this.template.tuningModeContainer.style.visibility = "visible";
     this.template.keepFretsButton.disabled = isTuningUnchanged;
     this.template.transposeButton.disabled = isTuningUnchanged;
@@ -269,7 +269,7 @@ export class TrackSettingsControlsTemplateRenderer {
     currentTone: string,
     currentStringCount: number,
     currentTuning: string,
-    originalTuning: string,
+    tuningChanged: boolean,
     currentTuningChangeMode: TrackInstrumentChangeMode
   ): void {
     if (this._currentFamily !== currentFamily) {
@@ -285,7 +285,7 @@ export class TrackSettingsControlsTemplateRenderer {
     this._currentTone = currentTone;
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
-    this._originalTuning = originalTuning;
+    this._tuningChanged = tuningChanged;
     this._currentTuningChangeMode = currentTuningChangeMode;
 
     this.renderInstrumentTypesButtons();
