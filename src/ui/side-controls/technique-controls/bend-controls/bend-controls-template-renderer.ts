@@ -92,7 +92,10 @@ export class BendControlsTemplateRenderer {
   private renderSVGGraph(): void {
     const cssClass = "tu-bend-controls-svg";
     this.template.bendSelectorGraphSVG.classList.add(cssClass);
-    this.template.bendSelectorGraphSVG.setAttribute("role", "group");
+    // Screen readers in browse mode keep arrow keys for reading, and a bend
+    // point has no widget role that makes them switch to focus mode. An
+    // application region passes the arrows through to the points.
+    this.template.bendSelectorGraphSVG.setAttribute("role", "application");
     this.template.bendSelectorGraphSVG.setAttribute(
       "aria-label",
       "Bend curve editor"
