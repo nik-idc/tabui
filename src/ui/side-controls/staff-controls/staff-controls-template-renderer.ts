@@ -1,5 +1,10 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { StaffControlsTemplate } from "./staff-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 
@@ -25,6 +30,7 @@ export class StaffControlsTemplateRenderer {
 
   private assembleContainer(): void {
     this.template.container.classList.add("tu-staff-controls");
+    labelGroup(this.template.container, "Staff");
     this.template.container.append(
       this.template.addStaffButton,
       this.template.removeStaffButton

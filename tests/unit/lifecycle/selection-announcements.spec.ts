@@ -108,7 +108,7 @@ describe("selection announcement behavior", () => {
   }
 
   const initial =
-    "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty.";
+    "Track Guitar, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty.";
 
   test("announces once on initial focus and after one rebind", () => {
     const { callbacks, viewport, announce } = createCallbacks();
@@ -135,8 +135,8 @@ describe("selection announcement behavior", () => {
     callbacks.announceSelection(true);
     callbacks.announceSelection(true);
 
-    const description =
-      "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, fret 5.";
+    // The cursor stayed in place, so only the changed note slot is read.
+    const description = "String 1, fret 5.";
     expect(announce.mock.calls).toEqual([[description, false]]);
     expect(region.textContent).toBe(description);
   });
@@ -147,8 +147,7 @@ describe("selection announcement behavior", () => {
     callbacks.announceSelection(true);
     callbacks.announceSelection(true);
 
-    const description =
-      "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, 1 dot, String 1, empty.";
+    const description = "Beat 1, quarter, 1 dot, String 1, empty.";
     expect(announce.mock.calls).toEqual([[description, false]]);
     expect(region.textContent).toBe(description);
   });
@@ -161,12 +160,7 @@ describe("selection announcement behavior", () => {
 
     selection.setSelectedNoteFret(7);
     callbacks.announceSelection(true);
-    expect(announce.mock.calls).toEqual([
-      [
-        "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, fret 7.",
-        false,
-      ],
-    ]);
+    expect(announce.mock.calls).toEqual([["String 1, fret 7.", false]]);
   });
 
   test("seeds the automatic cache after explicit focus and arrow output", () => {
@@ -198,7 +192,7 @@ describe("selection announcement behavior", () => {
     callbacks.announceSelection(true);
     callbacks.announceSelection(true);
     const description =
-      "Track Guitar, Staff 1, voice 1, 2 beats selected, bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1.";
+      "Track Guitar, 2 beats selected, bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1.";
     expect(announce.mock.calls).toEqual([[description, false]]);
     viewport.focus();
     viewport.blur();
@@ -298,7 +292,7 @@ describe("selection announcement behavior", () => {
     expect(fixture.announce).not.toHaveBeenCalled();
     jest.advanceTimersByTime(20);
     const description =
-      "Track Guitar, Staff 1, voice 1, 3 beats selected, bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1.";
+      "Track Guitar, 3 beats selected, bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1.";
     expect(fixture.announce.mock.calls).toEqual([[description, false]]);
     expect(fixture.region.textContent).toBe(description);
 
@@ -335,9 +329,9 @@ describe("selection announcement behavior", () => {
         expect(output).toEqual([]);
       } else {
         expect(output).toEqual([
-          action === "refresh"
-            ? "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, fret 5."
-            : initial,
+          // The range was never spoken, and the cursor is back where it was
+          // last announced, so only the changed note slot is read.
+          action === "refresh" ? "String 1, fret 5." : initial,
         ]);
       }
 
@@ -411,14 +405,14 @@ describe("selection announcement behavior", () => {
     expect(states).toHaveBeenCalled();
     expect(region.textContent).toBe("");
 
-    editor.score.tracks[0].name = "Latest name";
+    editor.score.masterBars[0].tempo = 90;
     editor.refreshLayout();
     const observer = new MutationObserver(() => {});
     observer.observe(region, { childList: true });
     try {
       jest.runAllTicks();
       expect(region.textContent).toBe(
-        "Track Latest name, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty."
+        "Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
       );
       expect(observer.takeRecords()).toHaveLength(1);
     } finally {
@@ -428,14 +422,14 @@ describe("selection announcement behavior", () => {
 
   test("does not publish automatic selection announcements after disposal", () => {
     const { editor, region } = createEditor();
-    editor.score.tracks[0].name = "Live name";
+    editor.score.masterBars[0].tempo = 90;
     editor.refreshLayout();
     jest.runAllTicks();
     expect(region.textContent).toBe(
-      "Track Live name, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, empty."
+      "Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
     );
 
-    editor.score.tracks[0].name = "Pending name";
+    editor.score.masterBars[0].tempo = 100;
     editor.refreshLayout();
     editor.dispose();
     jest.runAllTicks();

@@ -725,7 +725,7 @@ test("configured view-only keeps only track selection, names, and playback", asy
   await expect(rhythm).toHaveAttribute("aria-current", "false");
   // Each bass bar starts with a whole rest, so the next beat is in bar 2.
   await expect(editor.getByRole("status")).toHaveText(
-    "Bar 2, 4/4, 90 BPM, Voice 1, Beat 1, whole, String 1, rest."
+    "Bar 2, 4/4, 90 BPM, Beat 1, whole, String 1, rest."
   );
   await page.keyboard.press("ArrowLeft");
   await expect(editor.getByRole("status")).toContainText("Bar 1");

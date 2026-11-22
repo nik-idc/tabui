@@ -1,5 +1,10 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { ScoreControlsTemplate } from "./score-controls-template";
 import { Score } from "../../../notation";
 import type { ResolvedAssetConfig } from "../../../assets";
@@ -43,6 +48,7 @@ export class ScoreControlsTemplateRenderer {
     const settingsCSSClass = "tu-settings";
 
     this.template.container.classList.add(containerCSSClass);
+    labelGroup(this.template.container, "Score and editing");
     this.template.masterContainer.classList.add(masterCSSClass);
     this.template.settingsContainer.classList.add(settingsCSSClass);
     this.template.tracksContainer.classList.add(
@@ -80,8 +86,18 @@ export class ScoreControlsTemplateRenderer {
 
     this.parentDiv.appendChild(this.template.container);
     this.template.trackList.classList.add("tu-track-list");
+    labelGroup(this.template.trackList, "Tracks");
     this.template.tracksContainer.append(this.template.trackList);
-    this.overlayParent.appendChild(this.template.tracksContainer);
+    // Place the track list right after the score panel, so Tab reaches it
+    // after the last top bar button and before the side panel.
+    const scorePanel = Array.from(this.overlayParent.children).find((child) =>
+      child.contains(this.parentDiv)
+    );
+    if (scorePanel === undefined) {
+      this.overlayParent.appendChild(this.template.tracksContainer);
+    } else {
+      scorePanel.after(this.template.tracksContainer);
+    }
   }
 
   private renderShowButton(score: Score, tracksAreDisplayed: boolean): void {

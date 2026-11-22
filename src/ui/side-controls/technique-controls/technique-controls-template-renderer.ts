@@ -1,4 +1,9 @@
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
 import {
   AccentType,
@@ -33,6 +38,7 @@ export class TechniqueControlsTemplateRenderer {
   private assembleContainer(): void {
     const t = this.template;
     t.container.classList.add("tu-technique-controls");
+    labelGroup(t.container, "Techniques");
 
     // DOM order is also the Tab key order.
     t.styleGroup.append(

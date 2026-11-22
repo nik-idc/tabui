@@ -55,8 +55,8 @@ staves play together. See [Domain model and terms](domain.md#staff).
   moves the cursor into it.
 - **Remove staff** (Alt+Delete) removes the selected staff and its content. A
   track always keeps one staff. Undo brings the staff back.
-- Alt+Up and Alt+Down move the cursor to the same moment in the staff above or
-  below.
+- Ctrl+Up and Ctrl+Down move the cursor to the same moment in the staff above
+  or below.
 
 ## Tuplets
 
