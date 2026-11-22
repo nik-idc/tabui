@@ -86,7 +86,7 @@ test("announces a mouse range once on release, not during held drag frames", asy
     await page.mouse.move(points[2].x, 1);
     await page.mouse.up();
     const finalText =
-      "Track Clean rhythm, 3 beats selected, " +
+      "3 beats selected, " +
       "bar 1 beat 1 to bar 1 beat 3, anchor bar 1 beat 1, active end bar 1 beat 3.";
     await expect(announcement).toHaveText(finalText);
     await page.evaluate(
@@ -126,7 +126,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const selectionRect = editor.locator('[id^="selection-rect-"]');
   await expect(selectionRect).toHaveCount(1);
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 1 beat selected, " +
+    "1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
   const selectionWidthBefore = await getSelectionWidth(selectionRect);
@@ -154,7 +154,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const selectionWidthAfterBeat = await getSelectionWidth(selectionRect);
   expect(selectionWidthAfterBeat).toBeGreaterThan(selectionWidthBefore);
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 6 beats selected, " +
+    "6 beats selected, " +
       "bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1."
   );
 
@@ -162,7 +162,7 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const nextBarButton = editor.getByRole("button", { name: "Next bar" });
   await nextBarButton.click();
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 11 beats selected, " +
+    "11 beats selected, " +
       "bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1."
   );
   await expect
@@ -189,33 +189,33 @@ test("announces keyboard ranges across bars and full context after Escape", asyn
   await page.keyboard.press("Enter");
   await page.keyboard.press("Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 1 beat selected, " +
+    "1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
   await page.keyboard.press("Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 2 beats selected, " +
+    "2 beats selected, " +
       "bar 1 beat 1 to bar 1 beat 2, anchor bar 1 beat 1, active end bar 1 beat 2."
   );
   await page.keyboard.press("Control+Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 5 beats selected, " +
+    "5 beats selected, " +
       "bar 1 beat 1 to bar 1 beat 5, anchor bar 1 beat 1, active end bar 1 beat 5."
   );
   await page.keyboard.press("Control+Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 10 beats selected, " +
+    "10 beats selected, " +
       "bar 1 beat 1 to bar 2 beat 5, anchor bar 1 beat 1, active end bar 2 beat 5."
   );
   await expect(editor.locator('[id^="selection-rect-"]').first()).toBeVisible();
   await page.keyboard.press("Control+Shift+ArrowLeft");
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 5 beats selected, " +
+    "5 beats selected, " +
       "bar 1 beat 1 to bar 1 beat 5, anchor bar 1 beat 1, active end bar 1 beat 5."
   );
   await page.keyboard.press("Control+Shift+ArrowLeft");
   await expect(announcement).toHaveText(
-    "Track Clean rhythm, 1 beat selected, " +
+    "1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
   await page.keyboard.press("Escape");

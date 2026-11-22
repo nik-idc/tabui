@@ -16,8 +16,8 @@ export class UIComponent {
   readonly sideComponent: SideControlsComponent;
   /** Score title and details at the top of the notation. */
   readonly headerComponent: ScoreHeaderComponent;
-  /** Speaks text to screen readers. */
-  readonly announce: (text: string) => void;
+  /** Speaks text to screen readers; repeat replays identical text. */
+  readonly announce: (text: string, repeat?: boolean) => void;
 
   constructor(
     topHost: HTMLDivElement,
@@ -26,7 +26,7 @@ export class UIComponent {
     dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
     config: ResolvedTabUIConfig,
-    announce: (text: string) => void
+    announce: (text: string, repeat?: boolean) => void
   ) {
     this.topHost = topHost;
     this.sideHost = sideHost;

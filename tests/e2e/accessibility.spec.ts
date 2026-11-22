@@ -696,3 +696,16 @@ test("Alt+Up and Alt+Down move focus between editor sections", async ({
   await page.keyboard.press("Alt+ArrowDown");
   expect(await focusedSection()).toBe("Track: Clean rhythm");
 });
+
+test("W reads a full recap of the selection", async ({ page }) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.locator('[id^="note-rect-"]').first().click();
+  const status = editor.getByRole("status");
+
+  await page.keyboard.press("w");
+  await expect(status).toContainText("Track Clean rhythm, 1 of");
+  await expect(status).toContainText("Staff 1 of 1, voice 1.");
+  await expect(status).toContainText("Bar 1 of");
+  await expect(status).toContainText("String 1, empty.");
+});

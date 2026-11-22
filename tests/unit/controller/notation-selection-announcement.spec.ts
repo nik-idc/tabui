@@ -3,6 +3,7 @@ import {
   captureSelectionText,
   formatActiveDynamic,
   formatNotationSelection,
+  formatSelectionRecap,
   notationSelectionsEqual,
 } from "../../../src/notation/accessibility/notation-selection-announcement";
 import { SelectionManager } from "../../../src/notation/controller/selection/selection-manager";
@@ -53,7 +54,7 @@ describe("notation selection announcements", () => {
       selection.selectBeat(beats[backward ? 3 : 1]);
       selection.selectBeat(beats[backward ? 1 : 3]);
       expect(formatNotationSelection(selection)).toBe(
-        "Track Guitar, 3 beats selected, " +
+        "3 beats selected, " +
           "bar 1 beat 2 to bar 2 beat 2, anchor " +
           (backward
             ? "bar 2 beat 2, active end bar 1 beat 2."
@@ -68,7 +69,7 @@ describe("notation selection announcements", () => {
     selection.selectBeat(beats[3]);
     selection.selectBeat(beats[2]);
     expect(formatNotationSelection(selection)).toBe(
-      "Track Guitar, 1 beat selected, " +
+      "1 beat selected, " +
         "bar 2 beat 1 to bar 2 beat 1, anchor bar 2 beat 1, active end bar 2 beat 1."
     );
   });
@@ -139,6 +140,33 @@ describe("notation selection announcements", () => {
       );
     }
   );
+
+  test("recaps the score, track, and cursor in full", () => {
+    const { selection, beats } = createSelection();
+    const track = beats[0].voiceBar.bar.staff.track;
+    track.score.name = "Song";
+    track.score.artist = "Band";
+    selection.selectBeatCursor(beats[1], 0);
+    expect(formatSelectionRecap(selection)).toBe(
+      "Song by Band. Track Guitar, 1 of 1. Staff 1 of 1, voice 1. " +
+        "Bar 1 of 2, 4/4, 120 BPM. Beat 2 of 2, half, mezzo forte. " +
+        "String 1, empty."
+    );
+  });
+
+  test("recaps a range without a title, and with no selection says nothing", () => {
+    const { selection, beats } = createSelection();
+    const score = beats[0].voiceBar.bar.staff.track.score;
+    score.name = "";
+    score.artist = "";
+    expect(formatSelectionRecap(selection)).toBeUndefined();
+    selection.selectBeat(beats[0]);
+    selection.selectBeat(beats[2]);
+    expect(formatSelectionRecap(selection)).toBe(
+      "Track Guitar, 1 of 1. Staff 1 of 1, voice 1. " +
+        "3 beats selected, bar 1 beat 1 to bar 2 beat 1, active end bar 2 beat 1."
+    );
+  });
 
   test("names the staff only when the track has more than one", () => {
     const { selection, beats } = createSelection();
