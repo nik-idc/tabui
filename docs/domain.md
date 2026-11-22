@@ -1,6 +1,6 @@
 # Domain Model and Terms
 
-This file explains the concepts TabUI uses to describe music. It is written for
+This page explains the concepts TabUI uses to describe music. It is written for
 readers with some musical knowledge who do not know the code. For how these
 concepts behave in TabUI, see [Features](features.md).
 

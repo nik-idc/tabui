@@ -21,12 +21,12 @@ export interface DialogSection {
   children?: Node[];
 }
 
-/** Describes tuning in displayed string order, with spoken accidentals. */
-/** Note names of a tuning, joined with spaces, without octaves. */
+/** Note names of a tuning with octaves, such as "E2 A2", joined with spaces. */
 export function getTuningText(tuning: readonly NoteType[]): string {
-  return tuning.map((note) => note.noteValue).join(" ");
+  return tuning.map((note) => `${note.noteValue}${note.octave}`).join(" ");
 }
 
+/** Describes tuning in displayed string order, with spoken accidentals. */
 export function getTuningValueText(
   tuning: string,
   stringIndex?: number
@@ -34,7 +34,7 @@ export function getTuningValueText(
   const notes = tuning
     .trim()
     .split(/\s+/)
-    .map((note) => note.replace(/#/g, " sharp").replace(/b/g, " flat"));
+    .map((note) => note.replace("#", " sharp "));
   if (stringIndex !== undefined) {
     return `String ${notes.length - stringIndex}: ${notes[stringIndex]}`;
   }

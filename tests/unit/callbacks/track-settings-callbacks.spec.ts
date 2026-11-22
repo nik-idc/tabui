@@ -91,7 +91,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
       callbacks.bind();
       controls.template.tuningDownButtons[0].click();
       controls.template.tuningDownButtons[0].click();
-      expect(controls.tuning).toBe("D A D G B E");
+      expect(controls.tuning).toBe("D2 A2 D3 G3 B3 E4");
       controls.template.transposeButton.click();
       if (mode === TrackInstrumentChangeMode.KeepFrets) {
         controls.template.keepFretsButton.click();
@@ -121,20 +121,20 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     );
     expect(controls.makeInstrument().tone).toBe(ElectricGuitarTone.Overdrive);
     controls.template.tuningUpButtons[0].click();
-    expect(controls.tuning).toBe("F A D G B E");
+    expect(controls.tuning).toBe("F2 A2 D3 G3 B3 E4");
     controls.template.tuningDownButtons[1].click();
-    expect(controls.tuning).toBe("F G# D G B E");
+    expect(controls.tuning).toBe("F2 G#2 D3 G3 B3 E4");
     controls.template.wholeTuningUpButton.click();
-    expect(controls.tuning).toBe("F# A D# G# C F");
+    expect(controls.tuning).toBe("F#2 A2 D#3 G#3 C4 F4");
     controls.template.wholeTuningDownButton.click();
-    expect(controls.tuning).toBe("F G# D G B E");
+    expect(controls.tuning).toBe("F2 G#2 D3 G3 B3 E4");
 
     callbacks.unbind();
     controls.template.tuningUpButtons[0].click();
     controls.template.dialogContent.dispatchEvent(
       new Event("submit", { cancelable: true })
     );
-    expect(controls.tuning).toBe("F G# D G B E");
+    expect(controls.tuning).toBe("F2 G#2 D3 G3 B3 E4");
     expect(track.context.instrument.getTuningStrSimple()).toBe("E A D G B E");
     expect(controls.dialog.open).toBe(true);
   });
@@ -148,7 +148,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     );
     controls.setTrack(track);
     controls.shiftTuningString(0, 2);
-    expect(controls.tuning).toBe("A C E A");
+    expect(controls.tuning).toBe("A4 C4 E4 A4");
 
     const instrument = controls.makeInstrument();
     // First string first; only the G4 string moved, to A4.
