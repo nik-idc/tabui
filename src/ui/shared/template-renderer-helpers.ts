@@ -41,6 +41,12 @@ export function getTuningValueText(
   return `Tuning, strings ${notes.length} to 1: ${notes.join(", ")}`;
 }
 
+/** Marks an element as a named group, such as a panel section. */
+export function labelGroup(element: HTMLElement, label: string): void {
+  element.setAttribute("role", "group");
+  element.setAttribute("aria-label", label);
+}
+
 export function renderOnce(
   isAssembled: boolean,
   assemble: () => void

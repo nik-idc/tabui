@@ -1,6 +1,11 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { createDiv } from "../../../shared";
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { PlayControlsTemplate } from "./play-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 import { PlaybackState } from "../../../player";
@@ -32,6 +37,7 @@ export class PlayControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-play-controls";
     this.template.container.classList.add(cssClass);
+    labelGroup(this.template.container, "Playback");
     const leftGroup = createDiv();
     leftGroup.className = "tu-play-controls-left";
     leftGroup.append(

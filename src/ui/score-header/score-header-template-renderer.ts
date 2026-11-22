@@ -1,6 +1,6 @@
 import { NotationComponent } from "../../notation/notation-component";
 import { Score } from "../../notation/model";
-import { renderOnce } from "../shared";
+import { labelGroup, renderOnce } from "../shared";
 import { ScoreHeaderTemplate } from "./score-header-template";
 
 /** True when the browser sizes text fields to their content in CSS. */
@@ -44,6 +44,7 @@ export class ScoreHeaderTemplateRenderer {
   private assemble(): void {
     const t = this.template;
     t.container.classList.add("tu-score-header");
+    labelGroup(t.container, "Score details");
     t.titleInput.classList.add("tu-score-name-input");
     t.artistInput.classList.add("tu-score-artist-input");
     t.detailsContainer.classList.add("tu-score-details");

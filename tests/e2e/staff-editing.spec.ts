@@ -23,9 +23,9 @@ test("Alt shortcuts add, move between, and remove staves with undo", async ({
   await expect(slots).toHaveCount(SLOTS_PER_STAFF * 2);
   await expect(status).toContainText("Staff 2");
 
-  await page.keyboard.press("Alt+ArrowUp");
+  await page.keyboard.press("Control+ArrowUp");
   await expect(status).toContainText("Staff 1");
-  await page.keyboard.press("Alt+ArrowDown");
+  await page.keyboard.press("Control+ArrowDown");
   await expect(status).toContainText("Staff 2");
 
   await page.keyboard.press("Alt+Delete");

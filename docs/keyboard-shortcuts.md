@@ -47,7 +47,7 @@ one. Some of these will get their own shortcut in later versions.
 | --------------------------- | ---------------------------------- | -------------------------------------------------- |
 | Move between beats          | Left / Right arrow                 | Click a beat                                       |
 | Move between strings        | Up / Down arrow                    | Click a note slot                                  |
-| Move between staves         | Alt+Up / Alt+Down                  | Click a note slot in the other staff               |
+| Move between staves         | Ctrl+Up / Ctrl+Down                | Click a note slot in the other staff               |
 | Move by bar                 | Ctrl+Left / Ctrl+Right             | **Prev bar** / **Next bar**                        |
 | Go to the first or last bar | Ctrl+Home / Ctrl+End               | **First bar** / **Last bar**                       |
 | Select or extend by beat    | Shift+Left / Shift+Right           | Drag, or **Set selection anchor** and click a beat |
@@ -139,6 +139,22 @@ such as 12.
 
 See [Features](features.md#guitar-techniques) for what each technique does.
 
+## Moving between sections
+
+These keys work anywhere in the editor, except in dialogs.
+
+| Action                                      | Shortcut |
+| ------------------------------------------- | -------- |
+| Move focus to the next section              | Alt+Down |
+| Move focus to the previous section          | Alt+Up   |
+| Return focus to the notation from a control | Escape   |
+
+The sections, in order, are: playback controls, score and editing controls,
+the track list (when it is open), the side panel button, each side panel
+section (Fret, Duration, Beat, Voices, Techniques, Measure, and Staff), the
+score details, and the notation. Focus moves to the first control of a section,
+and sections with no available control are skipped. The order wraps around.
+
 ## Dialogs
 
 Tab and Shift+Tab move between controls. Enter or Space activates a button.
@@ -151,6 +167,12 @@ Escape closes a dialog and returns focus to the control that opened it.
   screen reader intercepts arrow keys, use its focus or interaction mode there.
 - TabUI announces the current position, the selected beat and its techniques,
   dynamic changes, range changes, and changes made in dialogs.
+- Announcements read only what changed. Moving to the next beat reads the beat,
+  and changing a fret reads the string and fret. The staff and voice are named
+  only when the track has more than one staff or the staff has more than one
+  voice.
+- In the track list, Up and Down Arrow move focus between tracks without
+  selecting one. Enter or Space selects the focused track.
 - TabUI is tested with NVDA on Windows and Orca on Linux. macOS is not tested
   yet. Please [report problems](https://github.com/nik-idc/tabui/issues) with
   your browser, screen reader, and steps.

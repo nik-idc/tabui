@@ -404,9 +404,8 @@ test("announces a fret change but not an unchanged fret DOM write", async ({
   });
   try {
     await page.keyboard.press("5");
-    await expect(announcement).toHaveText(
-      /Track .*Staff .*Bar .*Beat .*String 1, fret 5\./
-    );
+    // The cursor stayed in place, so only the edited slot is read.
+    await expect(announcement).toHaveText("String 1, fret 5.");
     // Finish the first edit and digit window before observing the unchanged edit.
     await page.clock.runFor(300);
     const changedMutations = await observation.evaluate((state) => {
@@ -557,17 +556,17 @@ test("removing a voice's only beat makes every voice 1 slot selectable again", a
 
   // Voice 2 owns the empty slots; voice 1 keeps only its played note.
   await page.keyboard.press("Shift+V");
-  await expect(status).toContainText("voice 2");
+  await expect(status).toContainText(/voice 2/i);
 
   // Removing voice 2's only beat switches back to voice 1 as a side effect.
   await page.keyboard.press("Delete");
-  await expect(status).toContainText("voice 1");
+  await expect(status).toContainText(/voice 1/i);
   await expect(slots).toHaveCount(6);
   await slots.nth(2).click();
   await expect(status).toContainText("String 3, empty");
 
   // Undo brings voice 2 back, and its slots are selectable too.
   await page.keyboard.press("Control+z");
-  await expect(status).toContainText("voice 2");
+  await expect(status).toContainText(/voice 2/i);
   await expect(slots).toHaveCount(6);
 });

@@ -1,4 +1,9 @@
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "../../../notation/notation-component";
 import type { ResolvedAssetConfig } from "../../../assets";
@@ -93,6 +98,10 @@ export class NoteControlsTemplateRenderer {
     this.template.voiceSection.append("Voices:", this.template.voiceGrid);
     this.template.voiceGrid.append(...this.template.voiceButtons);
 
+    labelGroup(this.template.fretSection, "Fret");
+    labelGroup(this.template.durationSection, "Duration");
+    labelGroup(this.template.beatSection, "Beat");
+    labelGroup(this.template.voiceSection, "Voices");
     this.template.container.append(
       this.template.fretSection,
       this.template.durationSection,

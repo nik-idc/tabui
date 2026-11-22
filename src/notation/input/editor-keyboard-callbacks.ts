@@ -64,6 +64,9 @@ export enum EditorKey {
   // event.key on macOS.
   AddStaffBelow = "KeyN",
   RemoveStaff = "Delete",
+
+  // Ctrl with Up or Down, also on macOS, like bar navigation. Alt+Up and
+  // Alt+Down move focus between editor sections instead.
   StaffUp = "ArrowUp",
   StaffDown = "ArrowDown",
 
@@ -635,13 +638,11 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     return true;
   }
 
-  /** True for Alt+key with no other modifier on one of the staff keys. */
+  /** True for Alt+key with no other modifier on a staff add or remove key. */
   private isStaffShortcut(event: KeyboardEvent): boolean {
     const staffCodes: readonly string[] = [
       EditorKey.AddStaffBelow,
       EditorKey.RemoveStaff,
-      EditorKey.StaffUp,
-      EditorKey.StaffDown,
     ];
     return (
       event.altKey &&
@@ -716,6 +717,10 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
     }
 
     if (KeyChecker.isArrow(key)) {
+      // Alt+arrows belong to section focus and browser history.
+      if (event.altKey) {
+        return false;
+      }
       const horizontal =
         key === EditorKey.MoveLeft || key === EditorKey.MoveRight;
 
@@ -725,6 +730,11 @@ export class EditorKeyboardDefCallbacks implements EditorKeyboardCallbacks {
       }
       if (horizontal && ctrlKey) {
         return this.moveSelectionByBarEvent(key);
+      }
+      if (!horizontal && ctrlKey && !shiftKey) {
+        return this.staffShortcutEvent(
+          key === EditorKey.MoveUp ? EditorKey.StaffUp : EditorKey.StaffDown
+        );
       }
       if (!ctrlKey && !shiftKey) {
         this.moveSelectionEvent(key);

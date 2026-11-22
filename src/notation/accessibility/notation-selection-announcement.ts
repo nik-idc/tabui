@@ -11,6 +11,9 @@ import {
   GuitarTechnique,
   GuitarTechniqueType,
   NoteValue,
+  type Staff,
+  type Track,
+  type VoiceBar,
 } from "../model";
 import { SelectionCursor } from "../controller";
 import { describeStroke } from "./stroke-description";
@@ -232,10 +235,99 @@ function formatRepeats(beat: Beat): string {
     : `, repeat end ${bar.repeatCount} ${bar.repeatCount === 1 ? "time" : "times"}`;
 }
 
-/** Formats full context or the smallest changed navigation layer. */
+/** Spoken bar, beat, and note slot text, kept to tell what an edit changed. */
+export interface NotationSelectionText {
+  readonly bar: string;
+  readonly beat: string;
+  readonly slot: string;
+}
+
+/** Spoken layers of a cursor selection, outermost first. */
+interface CursorLayers extends NotationSelectionText {
+  readonly track: string;
+  /** Undefined when the track has one staff. */
+  readonly staff: string | undefined;
+  /** Undefined when voice 1 is the staff's only voice with notes. */
+  readonly voice: string | undefined;
+  readonly voiceNumber: number;
+}
+
+function formatTrackName(track: Track): string {
+  return track.name.trim() === ""
+    ? `${track.score.tracks.indexOf(track) + 1}`
+    : track.name;
+}
+
+/** Names the staff unless the track has only one. */
+function formatStaff(staff: Staff): string | undefined {
+  const staves = staff.track.staves;
+  return staves.length === 1 ? undefined : `Staff ${staves.indexOf(staff) + 1}`;
+}
+
+/** Names the voice unless it is voice 1 and no other voice has notes. */
+function formatVoice(voiceBar: VoiceBar): string | undefined {
+  const voiceNumber = voiceBar.voiceNumber;
+  const onlyVoice =
+    voiceNumber === 1 &&
+    voiceBar.bar.staff.nonEmptyVoiceNumbers.every((number) => number === 1);
+  return onlyVoice ? undefined : `voice ${voiceNumber}`;
+}
+
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+/** Joins spoken parts, skipping the ones left out. */
+function joinParts(parts: (string | undefined)[]): string {
+  return parts.filter((part) => part !== undefined).join(", ");
+}
+
+function describeCursor(current: SelectionCursor): CursorLayers {
+  const beat = current.beat;
+  const voiceBar = beat.voiceBar;
+  const bar = voiceBar.bar;
+  const staff = bar.staff;
+  const masterBar = bar.masterBar;
+  return {
+    track: `Track ${formatTrackName(staff.track)}`,
+    staff: formatStaff(staff),
+    voice: formatVoice(voiceBar),
+    voiceNumber: voiceBar.voiceNumber,
+    bar:
+      `Bar ${staff.bars.indexOf(bar) + 1},` +
+      ` ${masterBar.beatsCount}/${1 / masterBar.duration},` +
+      ` ${masterBar.tempo} BPM${formatRepeats(beat)}`,
+    beat:
+      `Beat ${voiceBar.beats.indexOf(beat) + 1},` +
+      ` ${formatRhythm(beat)}${formatDynamicChange(beat)}` +
+      `${formatBeatTechniques(beat)}`,
+    slot: formatNoteSlot(current),
+  };
+}
+
+/** Captures the spoken bar, beat, and slot text of the cursor, if any. */
+export function captureSelectionText(
+  source: NotationSelectionSource
+): NotationSelectionText | undefined {
+  const cursor = source.selectionCursor;
+  if (cursor === undefined || cursor.beat === undefined) {
+    return undefined;
+  }
+  const { bar, beat, slot } = describeCursor(cursor);
+  return { bar, beat, slot };
+}
+
+/**
+ * Formats full context, or only the layers that changed since `previous`.
+ * When the cursor stayed in place, `previousText` tells whether an edit
+ * changed the bar, the beat, or the note slot. If none of them changed, for
+ * example after a track rename, it returns undefined. Without
+ * `previousText`, only the note slot is read.
+ */
 export function formatNotationSelection(
   source: NotationSelectionSource,
-  previous?: NotationCursorPosition
+  previous?: NotationCursorPosition,
+  previousText?: NotationSelectionText
 ): string | undefined {
   const current = source.selectionCursor;
   if (current === undefined) {
@@ -250,62 +342,59 @@ export function formatNotationSelection(
     const anchor = activeEnd === start ? end : start;
     const voiceBar = start.voiceBar;
     const staff = voiceBar.bar.staff;
-    const track = staff.track;
-    const name =
-      track.name.trim() === ""
-        ? `${track.score.tracks.indexOf(track) + 1}`
-        : track.name;
+    const selected = `${beats.length} beat${beats.length === 1 ? "" : "s"} selected`;
     return (
-      `Track ${name}, Staff ${track.staves.indexOf(staff) + 1},` +
-      ` voice ${voiceBar.voiceNumber},` +
-      ` ${beats.length} beat${beats.length === 1 ? "" : "s"} selected,` +
-      ` ${formatRangeEndpoint(start)} to ${formatRangeEndpoint(end)},` +
-      ` anchor ${formatRangeEndpoint(anchor)},` +
-      ` active end ${formatRangeEndpoint(activeEnd)}.`
+      joinParts([
+        `Track ${formatTrackName(staff.track)}`,
+        formatStaff(staff),
+        formatVoice(voiceBar),
+        selected,
+        `${formatRangeEndpoint(start)} to ${formatRangeEndpoint(end)}`,
+        `anchor ${formatRangeEndpoint(anchor)}`,
+        `active end ${formatRangeEndpoint(activeEnd)}`,
+      ]) + "."
     );
   }
 
-  const beat = current.beat;
-  const voiceBar = beat.voiceBar;
-  const bar = voiceBar.bar;
-  const staff = bar.staff;
+  const layers = describeCursor(current);
+  const { bar, beat, slot } = layers;
+  const staff = current.beat.voiceBar.bar.staff;
   const track = staff.track;
-  const barIndex = staff.bars.indexOf(bar);
-  const voiceNumber = voiceBar.voiceNumber;
-  const masterBar = bar.masterBar;
-  const beatText =
-    `Beat ${voiceBar.beats.indexOf(beat) + 1},` +
-    ` ${formatRhythm(beat)}${formatDynamicChange(beat)}` +
-    `${formatBeatTechniques(beat)},` +
-    ` ${formatNoteSlot(current)}`;
-  const voiceText = `Voice ${voiceNumber}, ${beatText}`;
-  const barPrefix =
-    `Bar ${barIndex + 1}, ${masterBar.beatsCount}/${1 / masterBar.duration},` +
-    ` ${masterBar.tempo} BPM${formatRepeats(beat)}`;
-  const barText = `${barPrefix}, ${voiceText}`;
-  const staffText =
-    `Staff ${track.staves.indexOf(staff) + 1}, voice ${voiceNumber}, ` +
-    `${barPrefix}, ${beatText}`;
 
   if (previous?.trackUuid !== track.uuid) {
-    const name =
-      track.name.trim() === ""
-        ? `${track.score.tracks.indexOf(track) + 1}`
-        : track.name;
-    return `Track ${name}, ${staffText}`;
+    return joinParts([
+      layers.track,
+      layers.staff,
+      layers.voice,
+      bar,
+      beat,
+      slot,
+    ]);
   }
   if (previous.staffUuid !== staff.uuid) {
-    return staffText;
+    // Moving between staves means the track has more than one.
+    return joinParts([layers.staff, layers.voice, bar, beat, slot]);
   }
-  if (previous.barUuid !== bar.uuid) {
-    return barText;
+  const voice =
+    layers.voice === undefined ? undefined : capitalize(layers.voice);
+  if (previous.barUuid !== current.beat.voiceBar.bar.uuid) {
+    return joinParts([bar, voice, beat, slot]);
   }
-  if (previous.voiceNumber !== voiceNumber) {
-    return voiceText;
+  if (previous.voiceNumber !== layers.voiceNumber) {
+    // Always name the voice the cursor moved to.
+    return joinParts([`Voice ${layers.voiceNumber}`, beat, slot]);
   }
-  if (previous.beatUuid !== beat.uuid) {
-    return beatText;
+  if (previous.beatUuid !== current.beat.uuid) {
+    return joinParts([beat, slot]);
   }
-
-  return formatNoteSlot(current);
+  if (previousText === undefined) {
+    return slot;
+  }
+  if (previousText.bar !== bar) {
+    return joinParts([bar, beat, slot]);
+  }
+  if (previousText.beat !== beat) {
+    return joinParts([beat, slot]);
+  }
+  return previousText.slot === slot ? undefined : slot;
 }

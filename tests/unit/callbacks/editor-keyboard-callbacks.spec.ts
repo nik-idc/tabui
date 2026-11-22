@@ -1766,15 +1766,18 @@ describe("EditorKeyboardDefCallbacks", () => {
     expect(press("˜", { altKey: true, code: "KeyN" })).toBe(true);
     expect(track.staves).toHaveLength(2);
     expect(controller.selectionCursor?.bar.staff).toBe(track.staves[1]);
-    expect(press("ArrowUp", { altKey: true, code: "ArrowUp" })).toBe(true);
-    expect(controller.selectionCursor?.bar.staff).toBe(track.staves[0]);
+    // Alt+Up moves between editor sections, not staves.
     expect(press("ArrowUp", { altKey: true, code: "ArrowUp" })).toBe(false);
+    expect(controller.selectionCursor?.bar.staff).toBe(track.staves[1]);
+    expect(press("ArrowUp", { ctrlKey: true, code: "ArrowUp" })).toBe(true);
+    expect(controller.selectionCursor?.bar.staff).toBe(track.staves[0]);
+    expect(press("ArrowUp", { ctrlKey: true, code: "ArrowUp" })).toBe(false);
 
     controller.setEditingEnabled(false);
     expect(press("n", { altKey: true, code: "KeyN" })).toBe(false);
     expect(press("Delete", { altKey: true, code: "Delete" })).toBe(false);
     expect(track.staves).toHaveLength(2);
-    expect(press("ArrowDown", { altKey: true, code: "ArrowDown" })).toBe(true);
+    expect(press("ArrowDown", { ctrlKey: true, code: "ArrowDown" })).toBe(true);
     expect(controller.selectionCursor?.bar.staff).toBe(track.staves[1]);
   });
 

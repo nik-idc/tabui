@@ -80,6 +80,9 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   private onTrackRowKeyDown(event: KeyboardEvent): void {
+    if (this.focusAdjacentRow(event)) {
+      return;
+    }
     if (event.target !== this._trackComponent.template.container) {
       return;
     }
@@ -88,6 +91,34 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     }
     event.preventDefault();
     this.onTrackSelected();
+  }
+
+  /**
+   * Moves focus to the previous or next track row on Up or Down, from the row
+   * or any control in it except the sliders, which use those keys. Focus does
+   * not select the track; Enter or Space does. True means the key was used.
+   */
+  private focusAdjacentRow(event: KeyboardEvent): boolean {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+      return false;
+    }
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return false;
+    }
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.type === "range") {
+      return false;
+    }
+    const row = this._trackComponent.template.container;
+    const sibling =
+      event.key === "ArrowUp"
+        ? row.previousElementSibling
+        : row.nextElementSibling;
+    event.preventDefault();
+    if (sibling instanceof HTMLElement) {
+      sibling.focus();
+    }
+    return true;
   }
 
   onTrackMoveUpClicked(): void {

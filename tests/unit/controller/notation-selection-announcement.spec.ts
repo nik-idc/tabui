@@ -1,5 +1,6 @@
 import {
   captureSelectionCursor,
+  captureSelectionText,
   formatActiveDynamic,
   formatNotationSelection,
   notationSelectionsEqual,
@@ -52,7 +53,7 @@ describe("notation selection announcements", () => {
       selection.selectBeat(beats[backward ? 3 : 1]);
       selection.selectBeat(beats[backward ? 1 : 3]);
       expect(formatNotationSelection(selection)).toBe(
-        "Track Guitar, Staff 1, voice 1, 3 beats selected, " +
+        "Track Guitar, 3 beats selected, " +
           "bar 1 beat 2 to bar 2 beat 2, anchor " +
           (backward
             ? "bar 2 beat 2, active end bar 1 beat 2."
@@ -67,7 +68,7 @@ describe("notation selection announcements", () => {
     selection.selectBeat(beats[3]);
     selection.selectBeat(beats[2]);
     expect(formatNotationSelection(selection)).toBe(
-      "Track Guitar, Staff 1, voice 1, 1 beat selected, " +
+      "Track Guitar, 1 beat selected, " +
         "bar 2 beat 1 to bar 2 beat 1, anchor bar 2 beat 1, active end bar 2 beat 1."
     );
   });
@@ -80,8 +81,7 @@ describe("notation selection announcements", () => {
     selection.clearRange();
     const cursor = required(captureSelectionCursor(selection.selectionCursor));
     expect(formatNotationSelection(selection, range)).toBe(
-      "Track Guitar, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
-        "Beat 1, half, String 1, empty."
+      "Track Guitar, Bar 1, 4/4, 120 BPM, " + "Beat 1, half, String 1, empty."
     );
     selection.selectBeatCursor(beats[1], 0);
     const next = required(captureSelectionCursor(selection.selectionCursor));
@@ -139,6 +139,52 @@ describe("notation selection announcements", () => {
       );
     }
   );
+
+  test("names the staff only when the track has more than one", () => {
+    const { selection, beats } = createSelection();
+    const track = beats[0].voiceBar.bar.staff.track;
+    track.insertStaff(1);
+    selection.selectBeatCursor(beats[0], 0);
+    expect(formatNotationSelection(selection)).toBe(
+      "Track Guitar, Staff 1, Bar 1, 4/4, 120 BPM, Beat 1, half, String 1, empty."
+    );
+  });
+
+  test("names voice 1 only when another voice has beats", () => {
+    const { selection, beats } = createSelection();
+    const bar = beats[0].voiceBar.bar;
+    bar.insertVoiceBar(2);
+    selection.selectBeatCursor(beats[0], 0);
+    expect(formatNotationSelection(selection)).toBe(
+      "Track Guitar, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, half, String 1, empty."
+    );
+    const position = captureSelectionCursor(selection.selectionCursor);
+    selection.selectBeatCursor(beats[2], 0);
+    expect(formatNotationSelection(selection, position)).toBe(
+      "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, empty."
+    );
+  });
+
+  test("reads only what an edit changed when the cursor stays in place", () => {
+    const { selection, beats } = createSelection();
+    selection.selectBeatCursor(beats[0], 0);
+    const position = captureSelectionCursor(selection.selectionCursor);
+    const text = captureSelectionText(selection);
+    const track = beats[0].voiceBar.bar.staff.track;
+
+    track.name = "Lead";
+    expect(formatNotationSelection(selection, position, text)).toBeUndefined();
+
+    beats[0].dots = 1;
+    expect(formatNotationSelection(selection, position, text)).toBe(
+      "Beat 1, half, 1 dot, String 1, empty."
+    );
+
+    beats[0].voiceBar.bar.masterBar.tempo = 90;
+    expect(formatNotationSelection(selection, position, text)).toBe(
+      "Bar 1, 4/4, 90 BPM, Beat 1, half, 1 dot, String 1, empty."
+    );
+  });
 
   test("names a dynamic only on the beat where it changes, also across bars", () => {
     const { selection, beats } = createSelection();

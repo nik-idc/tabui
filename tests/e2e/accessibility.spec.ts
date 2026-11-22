@@ -95,7 +95,7 @@ test("announces the tempo when it opens and changes", async ({ page }) => {
   await expect(region).toHaveText("Tempo 121 beats per minute");
 });
 
-test("publishes the final full selection after tempo confirmation", async ({
+test("announces only the changed bar after tempo confirmation", async ({
   page,
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
@@ -108,8 +108,7 @@ test("publishes the final full selection after tempo confirmation", async ({
 
   await expect(dialog).toBeHidden();
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 91 BPM, " +
-      "Beat 1, quarter, String 1, empty."
+    "Bar 1, 4/4, 91 BPM, Beat 1, quarter, String 1, empty."
   );
 });
 
@@ -182,8 +181,8 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(notation).toBeFocused();
     await expect(status).toHaveText(
       fixture === "empty"
-        ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
+        ? "Track Track 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
+        : "Track Clean rhythm, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 
@@ -205,8 +204,8 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(notation).toBeFocused();
     await expect(status).toHaveText(
       fixture === "empty"
-        ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
+        ? "Track Track 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
+        : "Track Clean rhythm, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 }
@@ -223,7 +222,7 @@ test("announces the selected context when entering notation with the mouse", asy
 
   await expect(notation).toBeFocused();
   await expect(editor.getByRole("status")).toHaveText(
-    "Track Clean rhythm, Staff 1, voice 1, Bar 1, 4/4, 90 BPM, " +
+    "Track Clean rhythm, Bar 1, 4/4, 90 BPM, " +
       "Beat 1, quarter, String 1, empty."
   );
 });
@@ -605,4 +604,95 @@ test("names a delete confirmation with the track being deleted", async ({
   await expect(editor.locator('.tu-track-controls[role="group"]')).toHaveCount(
     5
   );
+});
+
+test("reaches the track list after Paste and moves between rows with arrows", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  const rows = editor.locator(".tu-track-controls");
+  await expect(rows.nth(1)).toBeVisible();
+  await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
+
+  await editor.getByRole("button", { name: "Paste", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  await expect(rows.nth(0)).toBeFocused();
+
+  // Arrows move focus between rows without selecting a track.
+  await page.keyboard.press("ArrowDown");
+  await expect(rows.nth(1)).toBeFocused();
+  await expect(rows.nth(1)).toHaveAttribute("aria-current", "false");
+  await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
+
+  // They also work from a button inside a row.
+  await rows.nth(1).locator(".tu-track-mute-button").focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(rows.nth(0)).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(rows.nth(0)).toBeFocused();
+});
+
+test("Alt+Up and Alt+Down move focus between editor sections", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const notation = editor.locator(".tu-notation-viewport");
+  await editor.locator('[id^="note-rect-"]').first().click();
+  await expect(notation).toBeFocused();
+
+  // Names the labeled group, or the control, that holds focus.
+  const focusedSection = () =>
+    page.evaluate(() => {
+      const active = document.activeElement;
+      if (active?.classList.contains("tu-notation-viewport")) {
+        return "Notation";
+      }
+      return (
+        active
+          ?.closest("[role=group][aria-label]")
+          ?.getAttribute("aria-label") ??
+        active?.getAttribute("aria-label") ??
+        ""
+      );
+    });
+
+  const visited: string[] = [];
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press("Alt+ArrowDown");
+    visited.push(await focusedSection());
+  }
+  expect(visited).toEqual([
+    "Playback",
+    "Score and editing",
+    "Collapse side panel",
+    "Fret",
+    "Duration",
+    "Beat",
+    "Voices",
+    "Techniques",
+    "Measure",
+    "Staff",
+    "Score details",
+    "Notation",
+  ]);
+
+  await page.keyboard.press("Alt+ArrowUp");
+  expect(await focusedSection()).toBe("Score details");
+  await page.keyboard.press("Alt+ArrowUp");
+  expect(await focusedSection()).toBe("Staff");
+
+  // Escape returns to the notation and reads the position.
+  await page.keyboard.press("Escape");
+  await expect(notation).toBeFocused();
+  await expect(editor.getByRole("status")).toContainText("Track Clean rhythm");
+
+  // An open track list is a section too.
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await editor.getByRole("button", { name: "Set selection anchor" }).focus();
+  // Focus lands on the first track row.
+  await page.keyboard.press("Alt+ArrowDown");
+  expect(await focusedSection()).toBe("Track: Clean rhythm");
 });
