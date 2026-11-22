@@ -6,6 +6,7 @@ import {
   ElectricGuitarTone,
   BassGuitarTone,
   OtherStringTone,
+  StringInstrumentTone,
 } from "./instrument-tone";
 import { StringInstrumentType } from "./instrument-type";
 
@@ -110,3 +111,26 @@ export const DEFAULT_OTHER_STRING: Record<OtherStringTone, MusicInstrument> = {
     15
   ),
 };
+
+const DEFAULT_STRING_INSTRUMENTS: Record<
+  StringInstrumentTone,
+  MusicInstrument
+> = {
+  ...DEFAULT_ACOUSTIC_GUITARS,
+  ...DEFAULT_ELECTRIC_GUITARS,
+  ...DEFAULT_BASS_GUITARS,
+  ...DEFAULT_OTHER_STRING,
+};
+
+/**
+ * Returns the preset for a tone. The preset is shared, so copy its tuning
+ * before changing it.
+ * @throws If the preset is not a guitar-like string instrument.
+ */
+export function getDefaultStringInstrument(tone: StringInstrumentTone): Guitar {
+  const instrument = DEFAULT_STRING_INSTRUMENTS[tone];
+  if (!(instrument instanceof Guitar)) {
+    throw new Error(`No string instrument preset for ${tone}`);
+  }
+  return instrument;
+}

@@ -3,8 +3,10 @@
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import {
+  AcousticGuitarTone,
   ElectricGuitarTone,
   Guitar,
+  OtherStringTone,
   Score,
   StringInstrumentType,
 } from "../../../src/notation/model";
@@ -114,7 +116,7 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     controls.template.instrTonesButtons[1].click();
     controls.template.stringCountDownButton.click();
     expect(controls.stringCount).toBe(5);
-    expect(controls.tuning).toBe("G D G B D");
+    expect(controls.tuning).toBe("E A D G B");
     controls.template.stringCountUpButton.click();
     expect(controls.stringCount).toBe(6);
     expect(controls.tuning).toBe("E A D G B E");
@@ -143,6 +145,55 @@ describe("NewTrackControlsDefaultCallbacks", () => {
     expect(instrument.type).toBe(StringInstrumentType.ElectricGuitar);
     expect(instrument.tone).toBe(ElectricGuitarTone.Overdrive);
     expect(instrument.stringsCount).toBe(7);
-    expect(instrument.getTuningStrSimple()).toBe("B F G# D G B F");
+    // First string first; the added seventh string is a fourth below E2.
+    expect(instrument.tuning.map((n) => `${n.noteValue}${n.octave}`)).toEqual([
+      "F4",
+      "B3",
+      "G3",
+      "D3",
+      "G#2",
+      "F2",
+      "B1",
+    ]);
+  });
+
+  test("an instrument with a different preset takes its strings and tuning", () => {
+    const { controls, score } = fixture;
+    controls.setType(StringInstrumentType.Other);
+    controls.setTone(OtherStringTone.Ukulele);
+    expect(controls.stringCount).toBe(4);
+    expect(controls.tuning).toBe("G C E A");
+
+    controls.template.confirmButton.click();
+    const instrument = score.tracks[1].context.instrument as Guitar;
+    expect(instrument.tuning.map((n) => `${n.noteValue}${n.octave}`)).toEqual([
+      "A4",
+      "E4",
+      "C4",
+      "G4",
+    ]);
+    expect(instrument.fretsCount).toBe(15);
+  });
+
+  test("a tone with the same preset keeps the edited tuning", () => {
+    const { controls } = fixture;
+    controls.setType(StringInstrumentType.AcousticGuitar);
+    controls.template.tuningDownButtons[0].click();
+    controls.template.tuningDownButtons[0].click();
+    expect(controls.tuning).toBe("D A D G B E");
+    controls.setTone(AcousticGuitarTone.Nylon);
+    expect(controls.tuning).toBe("D A D G B E");
+    controls.setType(StringInstrumentType.BassGuitar);
+    expect(controls.tuning).toBe("E A D G");
+  });
+
+  test("raising B carries into the next octave", () => {
+    const { controls, score } = fixture;
+    // Second string, B3.
+    controls.template.tuningUpButtons[4].click();
+    expect(controls.tuning).toBe("E A D G C E");
+    controls.template.confirmButton.click();
+    const instrument = score.tracks[1].context.instrument as Guitar;
+    expect(instrument.tuning[1]).toEqual({ noteValue: "C", octave: 4 });
   });
 });

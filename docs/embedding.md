@@ -236,7 +236,7 @@ it to transpose the recording to each played note. If omitted, it defaults to
 E2. Set it explicitly when your recording has a different pitch. Tones without
 a configured sample use synthesized audio.
 
-The [raw demo source](https://github.com/nik-idc/tabui/blob/master/demo/raw/main.ts) includes configurations for several
+The [raw demo source](https://github.com/nik-idc/tabui/blob/master/demo/raw/demo-app.ts) includes configurations for several
 guitar and bass tones.
 
 Set `playback.preloadAudio` to `true` to prepare configured `playback.samples` in the

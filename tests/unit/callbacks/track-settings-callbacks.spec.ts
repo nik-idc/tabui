@@ -3,8 +3,11 @@
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import {
+  DEFAULT_OTHER_STRING,
   ElectricGuitarTone,
+  Guitar,
   GuitarNote,
+  OtherStringTone,
   StringInstrumentType,
   TrackInstrumentChangeMode,
 } from "../../../src/notation/model";
@@ -134,6 +137,27 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     expect(controls.tuning).toBe("F G# D G B E");
     expect(track.context.instrument.getTuningStrSimple()).toBe("E A D G B E");
     expect(controls.dialog.open).toBe(true);
+  });
+
+  test("a tuning edit keeps each string's octave", () => {
+    const { controls } = fixture;
+    const { track } = createScoreGraph();
+    track.setInstrument(
+      DEFAULT_OTHER_STRING[OtherStringTone.Ukulele] as Guitar,
+      TrackInstrumentChangeMode.KeepFrets
+    );
+    controls.setTrack(track);
+    controls.shiftTuningString(0, 2);
+    expect(controls.tuning).toBe("A C E A");
+
+    const instrument = controls.makeInstrument();
+    // First string first; only the G4 string moved, to A4.
+    expect(instrument.tuning.map((n) => `${n.noteValue}${n.octave}`)).toEqual([
+      "A4",
+      "E4",
+      "C4",
+      "A4",
+    ]);
   });
 
   test("tuning mode buttons stay visible and enable only for changed tuning", () => {

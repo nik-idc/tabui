@@ -4,6 +4,7 @@ import {
   ElectricGuitarTone,
   InstrumentTone,
   NoteValue,
+  OtherStringTone,
   PlaybackConfig,
   Score,
   TabUIConfig,
@@ -178,6 +179,17 @@ const FLUIDR3_SAMPLES: DemoSample[] = [
   [AcousticGuitarTone.Steel, "fluidr3/steel-acoustic-B3.wav", NoteValue.B, 3],
 ];
 
+/**
+ * Tones without their own sample play the closest one instead of a synth.
+ * The ukulele and banjo picks match TabUI's MIDI mapping for these tones.
+ */
+const SHARED_SAMPLES: [tone: InstrumentTone, sampleTone: InstrumentTone][] = [
+  [OtherStringTone.Ukulele, AcousticGuitarTone.Nylon],
+  [OtherStringTone.Banjo, AcousticGuitarTone.Steel],
+  [BassGuitarTone.Acoustic, BassGuitarTone.Clean],
+  [BassGuitarTone.Distortion, BassGuitarTone.Clean],
+];
+
 function createPlayback(
   source: DemoSoundSource,
   baseUrl: string
@@ -192,6 +204,9 @@ function createPlayback(
       url: `${baseUrl}samples/${file}`,
       rootNote: { noteValue, octave },
     };
+  }
+  for (const [tone, sampleTone] of SHARED_SAMPLES) {
+    samples[tone] = samples[sampleTone];
   }
   return { preloadAudio: true, samples };
 }
