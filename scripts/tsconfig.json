@@ -5,8 +5,8 @@
     "rootDir": "..",
     "types": ["node"],
     "paths": {
-      "@atikincode/tabui": ["../src/notation/model/index.ts"]
+      "@atikincode/tabui": ["../src/index.ts"]
     }
   },
-  "include": ["./**/*.ts", "../fixtures/**/*.ts"]
+  "include": ["./**/*.ts", "../fixtures/**/*.ts", "../src/vite-env.d.ts"]
 }
