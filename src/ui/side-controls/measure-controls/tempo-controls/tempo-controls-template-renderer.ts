@@ -8,6 +8,7 @@ import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
+  getBarEditScopeText,
 } from "../../../shared";
 import { TempoControlsTemplate } from "./tempo-controls-template";
 
@@ -57,7 +58,7 @@ export class TempoControlsTemplateRenderer {
     this.template.valueControl.append(
       this.template.decreaseTenButton,
       this.template.decreaseButton,
-      this.template.value,
+      this.template.valueInput,
       this.template.increaseButton,
       this.template.increaseTenButton
     );
@@ -66,25 +67,40 @@ export class TempoControlsTemplateRenderer {
   private renderTextContainer(): void {
     const cssClass = "tu-tempo-text";
     this.template.textContainer.classList.add(cssClass);
-    this.template.textContainer.textContent = "Edit tempo:";
+    const controller = this.notationComponent.trackController;
+    const bars = controller.getTempoEditBars();
+    const scope = getBarEditScopeText(controller.track.score, bars);
+    const mixed = bars.some((v) => v.tempo !== bars[0].tempo);
+    this.template.textContainer.textContent =
+      `Edit tempo.${scope}` +
+      (mixed
+        ? " Mixed tempos; confirm to apply the displayed value to all selected bars."
+        : "");
   }
 
   private renderInputs(): void {
-    const selectionCursor =
-      this.notationComponent.trackController.selectionCursor;
+    const first =
+      this.notationComponent.trackController.selectionAsBeats[0]?.voiceBar.bar
+        .masterBar;
 
     const tempoInitValue =
-      selectionCursor !== undefined
-        ? `${selectionCursor.bar.masterBar.tempo}`
-        : `${DEFAULT_MASTER_BAR.tempo}`;
+      first !== undefined ? `${first.tempo}` : `${DEFAULT_MASTER_BAR.tempo}`;
 
     this.template.valueControl.classList.add("tu-number-stepper");
     this.template.decreaseTenButton.textContent = "-10";
     this.template.decreaseTenButton.ariaLabel = "Decrease tempo by 10 BPM";
     this.template.decreaseButton.textContent = "-";
     this.template.decreaseButton.ariaLabel = "Decrease tempo by 1 BPM";
-    this.template.value.classList.add("tu-number-stepper-value");
-    this.template.value.textContent = tempoInitValue;
+    this.template.valueInput.classList.add("tu-number-stepper-value");
+    this.template.valueInput.classList.add("tu-tempo-input");
+    this.template.valueInput.classList.add("tu-tempo-value");
+    this.template.valueInput.type = "number";
+    this.template.valueInput.name = "tempo";
+    this.template.valueInput.ariaLabel = "Tempo in beats per minute";
+    this.template.valueInput.min = `${MIN_MASTER_BAR_TEMPO}`;
+    this.template.valueInput.max = `${MAX_MASTER_BAR_TEMPO}`;
+    this.template.valueInput.step = "1";
+    this.template.valueInput.value = tempoInitValue;
     this.template.increaseButton.textContent = "+";
     this.template.increaseButton.ariaLabel = "Increase tempo by 1 BPM";
     this.template.increaseTenButton.textContent = "+10";
@@ -96,6 +112,8 @@ export class TempoControlsTemplateRenderer {
     this.template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
     const beatsErrorCSSClass = "tu-tempo-error";
     this.template.errorText.classList.add(beatsErrorCSSClass);
+    this.template.errorText.textContent = " ";
+    this.template.confirmButton.disabled = false;
   }
 
   private renderButtons(): void {

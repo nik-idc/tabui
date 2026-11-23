@@ -360,7 +360,8 @@ describe("musical beat layout", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
 
-    expect(barElement.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.width);
+    // The first line reserves 18px for tuning and 61.875px for appending a bar.
+    expect(barElement.boundingBox.width).toBeCloseTo(1120.125);
 
     const elements = beats.map((b) =>
       required(findBeatElement(trackElement, b))
@@ -631,7 +632,9 @@ describe("wrapped and intrinsic bar widths", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements;
     expect(bars).toHaveLength(2);
-    expect(bars[0].lineLocalBoundingBox.x).toBe(0);
+    expect(bars[0].lineLocalBoundingBox.x).toBe(
+      TEST_LAYOUT_DIMENSIONS.noteTextSize * 1.5
+    );
     expect(bars[1].lineLocalBoundingBox.x).toBeCloseTo(
       bars[0].lineLocalBoundingBox.right
     );
@@ -665,7 +668,7 @@ describe("wrapped and intrinsic bar widths", () => {
     expect(intrinsicBar.boundingBox.width).toBeGreaterThan(
       TEST_LAYOUT_DIMENSIONS.width
     );
-    expect(wrappedBar.boundingBox.width).toBe(TEST_LAYOUT_DIMENSIONS.width);
+    expect(wrappedBar.boundingBox.width).toBeCloseTo(1120.125);
     const attacks = beats.map(
       (b) => required(findBeatElement(singleLine, b)).globalCoords.x
     );
@@ -851,8 +854,8 @@ describe("single-line score layout", () => {
     first.update();
     second.update();
 
-    // Sixteen attacks need 576 px plus 24 px padding and 110.25 px
-    // structure. The sparse bar needs 187.2 + 24 + 74.25 px.
+    // Sixteen attacks need 576 px plus 6 px padding and 110.25 px
+    // structure. The sparse bar needs 187.2 + 6 + 74.25 px.
     for (const element of [first, second]) {
       expect(element.trackLineElements).toHaveLength(1);
       const placements = element.trackLineElements[0].trackLineBars;
@@ -860,10 +863,10 @@ describe("single-line score layout", () => {
         score.masterBars.map((b) => b.uuid)
       );
       expect(placements.map((b) => b.masterBarIndex)).toEqual([0, 1]);
-      expect(placements.map((b) => b.x)).toEqual([0, 710.25]);
-      expect(placements[0].finalizedWidth).toBeCloseTo(710.25);
-      expect(placements[1].finalizedWidth).toBeCloseTo(285.45);
-      expect(element.width).toBeCloseTo(995.7);
+      expect(placements.map((b) => b.x)).toEqual([18, 710.25]);
+      expect(placements[0].finalizedWidth).toBeCloseTo(692.25);
+      expect(placements[1].finalizedWidth).toBeCloseTo(267.45);
+      expect(element.width).toBeCloseTo(1039.575);
     }
   });
 

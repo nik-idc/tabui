@@ -37,11 +37,14 @@ export function withNotationDialog(
   try {
     action(createFixture());
   } finally {
-    keys.forEach((k, i) => {
+    for (const [i, k] of keys.entries()) {
       const descriptor = previous[i];
-      if (descriptor) Object.defineProperty(globalThis, k, descriptor);
-      else Reflect.deleteProperty(globalThis, k);
-    });
+      if (descriptor) {
+        Object.defineProperty(globalThis, k, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, k);
+      }
+    }
     dom.window.close();
   }
 }
@@ -88,6 +91,7 @@ function createFixture() {
   );
   technique.bendControlsComponent.render();
   const ui = {
+    dialogEnforcer: enforcer,
     sideComponent: {
       measureControlsComponent: measure,
       noteControlsComponent: note,

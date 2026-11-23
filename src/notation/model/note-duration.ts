@@ -1,3 +1,4 @@
+/** Written note lengths expressed as fractions of a whole note, before dots and tuplets. */
 export enum NoteDuration {
   Whole = 1,
   Half = 1 / 2,
@@ -8,7 +9,7 @@ export enum NoteDuration {
   SixtyFourth = 1 / 64,
 }
 
-/** Duration to name map */
+/** Shared mutable map from whole-note duration values to printed denominators (Quarter maps to "4"). */
 export const DURATION_TO_NAME: Record<NoteDuration, string> = {
   [NoteDuration.Whole]: "1",
   [NoteDuration.Half]: "2",

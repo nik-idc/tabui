@@ -9,7 +9,8 @@ export interface PlayControlsCallbacks {
   onNextClicked(): void;
   onLastClicked(): void;
   onLoopClicked(): void;
-  onRangeClicked(): void;
+  onMetronomeClicked(): void;
+  onPitchShiftChanged(delta: number): boolean;
   bind(): void;
   unbind(): void;
 }
@@ -18,23 +19,17 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
   private _playComponent: PlayControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
 
   constructor(
     playComponent: PlayControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._playComponent = playComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   onFirstClicked(): void {
@@ -70,14 +65,17 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
     this._notationComponent.trackController.toggleLoop();
     this._renderFunc();
   }
-  onRangeClicked(): void {
+  onMetronomeClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.hasSelectionAnchor) {
-      controller.clearSelectionRange();
-    } else {
-      controller.setSelectionAnchor();
+    controller.setMetronomeEnabled(!controller.metronomeEnabled);
+    this._renderFunc();
+  }
+  onPitchShiftChanged(delta: number): boolean {
+    if (!this._notationComponent.trackController.shiftPlaybackPitch(delta)) {
+      return false;
     }
     this._renderFunc();
+    return true;
   }
 
   bind(): void {
@@ -113,14 +111,18 @@ export class PlayControlsDefaultCallbacks implements PlayControlsCallbacks {
         handler: () => this.onLoopClicked(),
       },
       {
-        element: this._playComponent.template.rangeButton,
+        element: this._playComponent.template.metronomeButton,
         event: "click",
-        handler: () => this.onRangeClicked(),
+        handler: () => this.onMetronomeClicked(),
       },
     ]);
+    this._playComponent.template.pitchShiftControl.bind((delta) =>
+      this.onPitchShiftChanged(delta)
+    );
   }
 
   unbind(): void {
     this._listeners.unbindAll();
+    this._playComponent.template.pitchShiftControl.unbind();
   }
 }

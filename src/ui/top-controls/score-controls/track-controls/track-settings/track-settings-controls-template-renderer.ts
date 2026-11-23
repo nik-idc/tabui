@@ -2,7 +2,6 @@ import { NotationComponent } from "../../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
-  setImageAsset,
   setupDialogActionButtons,
 } from "../../../../shared";
 import { TrackSettingsControlsTemplate } from "./track-settings-controls-template";
@@ -27,7 +26,7 @@ export class TrackSettingsControlsTemplateRenderer {
   private _currentType: InstrumentType = StringInstrumentType.ElectricGuitar;
   private _currentTone: string = INSTRUMENT_TONES[this._currentType]?.[0] ?? "";
   private _currentStringCount: number = 6;
-  private _originalTuning: string = "E A D G B E";
+  private _tuningChanged: boolean = false;
   private _currentTuning: string = "E A D G B E";
   private _currentTuningChangeMode: TrackInstrumentChangeMode =
     TrackInstrumentChangeMode.KeepFrets;
@@ -60,7 +59,6 @@ export class TrackSettingsControlsTemplateRenderer {
           element: this.template.settingsContainer,
           className: "tu-ts-settings-container",
           children: [
-            this.template.instrFamiliesContainer,
             this.template.instrSelectContainer,
             this.template.trackInfoContainer,
           ],
@@ -72,9 +70,6 @@ export class TrackSettingsControlsTemplateRenderer {
         },
       ]
     );
-    this.template.instrFamiliesContainer.classList.add(
-      "tu-ts-families-container"
-    );
     this.template.instrSelectContainer.classList.add(
       "tu-ts-instr-settings-container"
     );
@@ -84,9 +79,6 @@ export class TrackSettingsControlsTemplateRenderer {
       "tu-ts-track-info-container"
     );
 
-    this.template.instrFamiliesContainer.append(
-      ...this.template.instrFamiliesButtons
-    );
     this.template.instrSelectContainer.append(
       this.template.instrTypesContainer,
       this.template.instrTonesContainer
@@ -111,34 +103,6 @@ export class TrackSettingsControlsTemplateRenderer {
       this.template.keepFretsButton,
       this.template.transposeButton
     );
-  }
-
-  private renderInstrumentFamiliesButtons(): void {
-    const families = Object.values(InstrumentFamily);
-    if (this.template.instrFamiliesButtons.length === 0) {
-      for (let i = 0; i < families.length; i++) {
-        this.template.instrFamiliesButtons.push(createButton());
-      }
-    }
-
-    for (let i = 0; i < families.length; i++) {
-      const imageButton = this.template.instrFamiliesButtons[i];
-      const family = families[i];
-      imageButton.classList.toggle(
-        "tu-applied-img",
-        family === this._currentFamily
-      );
-      setImageAsset(
-        imageButton,
-        this.assetsPath,
-        `img/ui/${family.toLowerCase()}.svg`,
-        family
-      );
-      imageButton.setAttribute(
-        "aria-pressed",
-        `${family === this._currentFamily}`
-      );
-    }
   }
 
   private renderInstrumentTypesButtons(): void {
@@ -193,8 +157,10 @@ export class TrackSettingsControlsTemplateRenderer {
     this.template.tuningModeContainer.classList.add(
       "tu-ts-tuning-mode-container"
     );
-    this.template.tuningModeContainer.style.visibility =
-      this._currentTuning === this._originalTuning ? "hidden" : "visible";
+    const isTuningUnchanged = !this._tuningChanged;
+    this.template.tuningModeContainer.style.visibility = "visible";
+    this.template.keepFretsButton.disabled = isTuningUnchanged;
+    this.template.transposeButton.disabled = isTuningUnchanged;
     this.template.keepFretsButton.textContent = "Keep frets";
     this.template.transposeButton.textContent = "Transpose";
     this.template.keepFretsButton.ariaPressed = `${
@@ -303,7 +269,7 @@ export class TrackSettingsControlsTemplateRenderer {
     currentTone: string,
     currentStringCount: number,
     currentTuning: string,
-    originalTuning: string,
+    tuningChanged: boolean,
     currentTuningChangeMode: TrackInstrumentChangeMode
   ): void {
     if (this._currentFamily !== currentFamily) {
@@ -319,10 +285,9 @@ export class TrackSettingsControlsTemplateRenderer {
     this._currentTone = currentTone;
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
-    this._originalTuning = originalTuning;
+    this._tuningChanged = tuningChanged;
     this._currentTuningChangeMode = currentTuningChangeMode;
 
-    this.renderInstrumentFamiliesButtons();
     this.renderInstrumentTypesButtons();
     this.renderInstrumentTonesButtons();
     this.renderInputs();

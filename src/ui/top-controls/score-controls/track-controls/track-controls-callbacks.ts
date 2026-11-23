@@ -1,6 +1,7 @@
 import { NotationComponent } from "../../../../notation/notation-component";
 import { TrackControlsComponent } from "../../..";
 import { ListenerManager } from "../../../../shared/misc";
+import { readVolumeSlider, showVolume } from "../../../shared/volume-slider";
 
 export interface TrackControlsCallbacks {
   onTrackRemoveClicked(): void;
@@ -8,8 +9,6 @@ export interface TrackControlsCallbacks {
   onTrackMoveUpClicked(): void;
   onTrackMoveDownClicked(): void;
   onTrackNameChanged(): void;
-  onTrackNameFocusGained(): void;
-  onTrackNameFocusLost(): void;
   onTrackVolumeChanged(event: InputEvent): void;
   onTrackPanningChanged(event: InputEvent): void;
   onMuteButtonClicked(): void;
@@ -23,8 +22,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   private _trackComponent: TrackControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _showTrackSettings: () => void;
   private _showTrackRemove: () => void;
 
@@ -35,36 +32,94 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
     trackComponent: TrackControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void,
     showTrackSettings: () => void,
     showTrackRemove: () => void
   ) {
     this._trackComponent = trackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
     this._showTrackSettings = showTrackSettings;
     this._showTrackRemove = showTrackRemove;
   }
 
   onTrackRemoveClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (
-      controller.isPlaybackActive ||
-      !controller.editingEnabled ||
-      this._notationComponent.score.tracks.length <= 1
-    ) {
+    if (!controller.canRemoveTrack(this._notationComponent.score)) {
       return;
     }
-    this._captureKeyboard();
     this._showTrackRemove();
   }
 
+  /** Loads the track and keeps keyboard focus on its row. */
   onTrackSelected(): void {
+    this.selectTrack();
+    this._trackComponent.template.container.focus();
+  }
+
+  private selectTrack(): void {
     this._notationComponent.loadTrack(this._trackComponent.track);
     this._renderFunc();
+  }
+
+  private onTrackRowClicked(event: Event): void {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+    const interactive = target.closest(
+      `button, input, select, textarea, a, [contenteditable='true']` +
+        `, .tu-track-volume-controls, .tu-track-panning-controls`
+    );
+    if (
+      interactive &&
+      interactive !== this._trackComponent.template.container
+    ) {
+      return;
+    }
+    // A mouse click leaves focus to the editor, which returns it to notation.
+    this.selectTrack();
+  }
+
+  private onTrackRowKeyDown(event: KeyboardEvent): void {
+    if (this.focusAdjacentRow(event)) {
+      return;
+    }
+    if (event.target !== this._trackComponent.template.container) {
+      return;
+    }
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+    event.preventDefault();
+    this.onTrackSelected();
+  }
+
+  /**
+   * Moves focus to the previous or next track row on Up or Down, from the row
+   * or any control in it except the sliders, which use those keys. Focus does
+   * not select the track; Enter or Space does. True means the key was used.
+   */
+  private focusAdjacentRow(event: KeyboardEvent): boolean {
+    if (event.key !== "ArrowUp" && event.key !== "ArrowDown") {
+      return false;
+    }
+    if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
+      return false;
+    }
+    const target = event.target;
+    if (target instanceof HTMLInputElement && target.type === "range") {
+      return false;
+    }
+    const row = this._trackComponent.template.container;
+    const sibling =
+      event.key === "ArrowUp"
+        ? row.previousElementSibling
+        : row.nextElementSibling;
+    event.preventDefault();
+    if (sibling instanceof HTMLElement) {
+      sibling.focus();
+    }
+    return true;
   }
 
   onTrackMoveUpClicked(): void {
@@ -76,10 +131,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   private moveTrack(offset: number): void {
-    const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
-      return;
-    }
     const track = this._trackComponent.track;
     const trackIndex = this._notationComponent.score.tracks.indexOf(track);
     const targetIndex = trackIndex + offset;
@@ -89,30 +140,21 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
   }
 
   onTrackNameChanged(): void {
-    const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
-      return;
-    }
-    this._notationComponent.trackController.setTrackName(
+    const changed = this._notationComponent.trackController.setTrackName(
       this._trackComponent.track,
       this._trackComponent.template.trackNameInput.value
     );
-  }
-
-  onTrackNameFocusGained(): void {
-    this._captureKeyboard();
-  }
-
-  onTrackNameFocusLost(): void {
-    this._freeKeyboard();
+    if (changed) {
+      this._renderFunc();
+    }
   }
 
   onTrackVolumeChanged(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this._notationComponent.trackController.setTrackVolume(
-      this._trackComponent.track,
-      Number(input.value) / 100
-    );
+    const track = this._trackComponent.track;
+    const volume = readVolumeSlider(input);
+    showVolume(input, volume, `${track.name} volume`);
+    this._notationComponent.trackController.setTrackVolume(track, volume);
   }
 
   onTrackPanningChanged(event: Event): void {
@@ -145,10 +187,9 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
   onTrackSettingsClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       return;
     }
-    this._captureKeyboard();
     this._showTrackSettings();
   }
 
@@ -164,9 +205,15 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
         handler: () => this.onTrackRemoveClicked(),
       },
       {
-        element: this._trackComponent.template.selectButton,
+        element: this._trackComponent.template.container,
         event: "click",
-        handler: () => this.onTrackSelected(),
+        handler: (event: Event) => this.onTrackRowClicked(event),
+      },
+      {
+        element: this._trackComponent.template.container,
+        event: "keydown",
+        handler: (event: Event) =>
+          this.onTrackRowKeyDown(event as KeyboardEvent),
       },
       {
         element: this._trackComponent.template.moveUpButton,
@@ -182,16 +229,6 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
         element: this._trackComponent.template.trackNameInput,
         event: "input",
         handler: () => this.onTrackNameChanged(),
-      },
-      {
-        element: this._trackComponent.template.trackNameInput,
-        event: "focus",
-        handler: () => this.onTrackNameFocusGained(),
-      },
-      {
-        element: this._trackComponent.template.trackNameInput,
-        event: "focusout",
-        handler: () => this.onTrackNameFocusLost(),
       },
       {
         element: this._trackComponent.template.volumeInput,

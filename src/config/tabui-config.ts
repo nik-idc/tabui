@@ -6,43 +6,52 @@ import {
   getFrequencyFromNoteType,
 } from "../notation/model";
 
+/** Sample recording used for a playback tone; omitted tones use synthesized audio. */
 export interface PlaybackSampleConfig {
+  /** Audio URL fetched and decoded for playback. */
   url: string;
   /**
-   * Pitch recorded in the sample file.
-   * This is sample-dependent metadata: a C3 sample should use C3, an E2 sample
-   * should use E2, etc. TabUI resolves this to frequency internally so playback
-   * can transpose the recording to other notes with playbackRate.
+   * Recorded sample pitch, default E2; converted to Hz to set playbackRate for other notes.
+   * Use the recording's actual pitch. Tones without a sample use synthesized audio.
    */
   rootNote?: NoteType;
 }
 
+/** Optional sample recordings keyed by instrument tone. */
 export type PlaybackSampleConfigs = Partial<
   Record<InstrumentTone, PlaybackSampleConfig>
 >;
 
+/** Playback preparation and per-tone samples supplied at editor construction. */
 export interface PlaybackConfig {
-  /** Loads configured score samples during editor initialization. */
+  /** Starts background preparation of audio and score samples during initialization; defaults to false, preparing on playback instead. */
   preloadAudio?: boolean;
   /** Sample configuration keyed by instrument tone. */
   samples?: PlaybackSampleConfigs;
 }
 
+/** Sample URL and recorded pitch after resolving the input root note (E2 by default). */
 export interface ResolvedPlaybackSampleConfig {
+  /** Audio URL fetched and decoded for playback. */
   url: string;
-  /** Frequency of the pitch recorded in the sample file. */
+  /** Recorded sample pitch in Hz, resolved from rootNote (E2 by default). */
   rootFrequency: number;
 }
 
+/** Resolved per-tone samples; absent tones use synthesized audio. */
 export type ResolvedPlaybackSampleConfigs = Partial<
   Record<InstrumentTone, ResolvedPlaybackSampleConfig>
 >;
 
+/** Playback settings after applying construction-time defaults. */
 export interface ResolvedPlaybackConfig {
+  /** Whether initialization prepares samples; defaults to false. */
   preloadAudio: boolean;
+  /** Sample URLs and recorded root frequencies keyed by tone. */
   samples: ResolvedPlaybackSampleConfigs;
 }
 
+/** Selects interactive editing or read-only score viewing. */
 export enum TabUIEditorMode {
   Edit = "edit",
   ViewOnly = "view-only",
@@ -54,116 +63,202 @@ export enum TabUILayoutMode {
   SingleLine = "single-line",
 }
 
+/** Places the score controls above or below the notation. */
 export enum TabUIScorePanelPlacement {
   Top = "top",
   Bottom = "bottom",
 }
 
+/** Places editing controls to the left or right of the notation. */
 export enum TabUISidePanelPlacement {
   Left = "left",
   Right = "right",
 }
 
+/** Optional construction-time editor settings; omitted values use built-in defaults. */
 export interface TabUIConfig {
+  /** Icon source and color variant. */
   assets?: {
     /** Optional public icon folder URL. Omit or leave empty to use bundled icons. */
     baseUrl?: string;
     /** Selects the light (default) or dark icon set. */
     variant?: "light" | "dark";
   };
+  /** Editing permission applied when constructing the editor. */
   interaction?: {
+    /** Edit by default; ViewOnly hides editing controls. */
     mode?: TabUIEditorMode;
   };
+  /** Notation geometry and responsive widths, measured in CSS pixels. */
   layout?: {
+    /** Wrapped by default; SingleLine keeps bars on one horizontal line. */
     mode?: TabUILayoutMode;
+    /** Finite fixed width at least the view-only threshold; omit to measure the host. */
     width?: number;
+    /** Minimum viewport width before an auto-width editor is blocked; finite and non-negative, default 500. */
     viewOnlyModeWidthThreshold?: number;
+    /** Minimum viewport width for editing in auto-width mode; finite and greater than the view-only threshold, default 560. */
     unrestrictedModeWidthThreshold?: number;
+    /** Positive finite fret-text font size; defaults to 12. */
     noteTextSize?: number;
+    /** Positive finite time-signature font size; defaults to 48. */
     timeSigTextSize?: number;
+    /** Positive finite tempo-label font size; defaults to 24. */
     tempoTextSize?: number;
+    /** Positive finite duration-symbol height; defaults to 30. */
     durationsHeight?: number;
+    /** Finite non-negative margin on each horizontal side; defaults to 12. */
     horizontalPadding?: number;
   };
+  /** Sample preparation and playback sources. */
   playback?: PlaybackConfig;
+  /** Visibility and placement of the score and editing controls. */
   panels?: {
+    /** Score-wide controls, visible at the top by default. */
     score?: {
+      /** Whether to display score controls; defaults to true. */
       visible?: boolean;
+      /** Defaults to Top. */
       placement?: TabUIScorePanelPlacement;
     };
+    /** Editing controls, visible on the left in Edit mode by default. */
     side?: {
+      /** Defaults to true; ViewOnly mode always hides this panel. */
       visible?: boolean;
+      /** Defaults to Left. */
       placement?: TabUISidePanelPlacement;
+      /** Whether the user can collapse the panel; defaults to true. */
       collapsible?: boolean;
+      /** Starts collapsed only when collapsible; defaults to false. */
       initiallyCollapsed?: boolean;
     };
   };
+  /** CSS color, font-family, font-size, and border-radius values overriding the built-in theme. */
   theme?: {
+    /** Host interface theme, including controls and panels. */
     ui?: {
+      /** CSS colors for interface surfaces and interaction states. */
       colors?: {
+        /** Editor background. */
         background?: string;
+        /** Primary control and panel surface. */
         surface?: string;
+        /** Secondary surface. */
         surfaceAlt?: string;
+        /** Control borders and bend-editor grid. */
         border?: string;
+        /** Interface text and bend-editor labels. */
         text?: string;
+        /** Hovered control background. */
         hover?: string;
+        /** Active or applied control background. */
         applied?: string;
       };
+      /** Interface and score title fonts. Body defaults to Segoe UI and 1rem. */
       fonts?: {
-        body?: string;
+        default?: {
+          family?: string;
+          size?: string;
+        };
+        scoreName?: {
+          family?: string;
+          size?: string;
+        };
       };
+      /** CSS border-radius value for controls and panels. */
       radius?: string;
     };
+    /** SVG notation and note-selection theme. */
     notation?: {
+      /** CSS colors for notation and editing overlays. */
       colors?: {
+        /** Notation strokes and bend-editor curves and handles. */
         ink?: string;
+        /** Notation labels and fret text. */
         text?: string;
+        /** Bar number labels; defaults to a subdued version of notation text. */
+        barNumber?: string;
+        /** Background behind fret numbers. */
         noteBackground?: string;
+        /** Selection outline. */
         selectionStroke?: string;
+        /** Selection fill, including block selection. */
         selectionFill?: string;
+        /** Editing cursor. */
         cursor?: string;
+        /** Invalid-content indicators. */
         danger?: string;
       };
+      /** CSS font-family values used in notation. */
       fonts?: {
+        /** Font family for rendered notation text. */
         notation?: string;
       };
     };
   };
 }
 
+/** Construction-time settings after defaults and validation; width may remain automatic. */
 export interface ResolvedTabUIConfig {
+  /** Resolved icon source and variant. */
   assets: {
+    /** Normalized icon folder URL; empty means bundled icons. */
     baseUrl: string;
+    /** Icon color set. */
     variant: "light" | "dark";
   };
+  /** Requested editing mode, before responsive width restrictions. */
   interaction: {
+    /** Editing or view-only permission. */
     mode: TabUIEditorMode;
   };
+  /** Validated notation geometry, in CSS pixels. */
   layout: {
+    /** Wrapped bars or a single horizontal line. */
     mode: TabUILayoutMode;
+    /** Fixed width; undefined means measure the host. */
     width?: number;
+    /** Minimum viewport width for view-only interaction in auto-width mode. */
     viewOnlyModeWidthThreshold: number;
+    /** Minimum viewport width for editing in auto-width mode. */
     unrestrictedModeWidthThreshold: number;
+    /** Fret-text font size. */
     noteTextSize: number;
+    /** Time-signature font size. */
     timeSigTextSize: number;
+    /** Tempo-label font size. */
     tempoTextSize: number;
+    /** Reserved duration-symbol height. */
     durationsHeight: number;
+    /** Margin on each horizontal side. */
     horizontalPadding: number;
   };
+  /** Resolved sample sources and initialization behavior. */
   playback: ResolvedPlaybackConfig;
+  /** Effective panel visibility and placement. */
   panels: {
+    /** Score-wide controls. */
     score: {
+      /** Whether the score panel is shown. */
       visible: boolean;
+      /** Above or below the notation. */
       placement: TabUIScorePanelPlacement;
     };
+    /** Editing controls, hidden in ViewOnly mode. */
     side: {
+      /** Whether editing controls are enabled for display. */
       visible: boolean;
+      /** Left or right of the notation. */
       placement: TabUISidePanelPlacement;
+      /** Whether the user can collapse the panel. */
       collapsible: boolean;
+      /** Initial collapse state; false when collapse is disabled. */
       initiallyCollapsed: boolean;
     };
   };
+  /** Built-in theme combined with supplied overrides. */
   theme: {
+    /** Resolved CSS custom-property names and values, including built-in defaults. */
     cssVars: Record<string, string>;
   };
 }
@@ -171,7 +266,9 @@ export interface ResolvedTabUIConfig {
 const DEFAULT_LAYOUT = {
   mode: TabUILayoutMode.Wrapped,
   viewOnlyModeWidthThreshold: 500,
-  unrestrictedModeWidthThreshold: 1000,
+  // Editing fits down to about 540px, so a 1280px screen zoomed to 200%
+  // (640 CSS px) can still edit, as WCAG 1.4.4 requires.
+  unrestrictedModeWidthThreshold: 560,
   noteTextSize: 12,
   timeSigTextSize: 48,
   tempoTextSize: 24,
@@ -189,9 +286,15 @@ const DEFAULT_THEME_CSS_VARS = {
   "--tu-applied-color": "#21212114",
   "--tu-border-radius": "8px",
   "--tu-font-body": '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+  "--tu-font-body-size": "1rem",
   "--tu-font-notation": '"Roboto", sans-serif',
+  "--tu-score-name-font-family":
+    '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif',
+  "--tu-score-name-font-size": "2.25rem",
   "--tu-notation-ink": "#000000",
   "--tu-notation-text": "#000000",
+  "--tu-notation-bar-number":
+    "color-mix(in srgb, var(--tu-notation-text) 55%, transparent)",
   "--tu-notation-note-background": "#ffffff",
   "--tu-notation-selection-stroke": "#f97316",
   "--tu-notation-selection-fill": "#ffffff80",
@@ -226,6 +329,18 @@ function isValidInstrumentTone(value: string): value is InstrumentTone {
 
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function resolveCssValue(
+  value: string | undefined,
+  defaultValue: string,
+  name: string
+): string {
+  const resolved = value === undefined ? defaultValue : value;
+  if (typeof resolved !== "string" || resolved.trim() === "") {
+    throw new Error(`TabUIEditor theme ${name} must be a non-empty string`);
+  }
+  return resolved;
 }
 
 /** Resolves a layout number and rejects values outside its public contract. */
@@ -286,6 +401,27 @@ function resolvePlaybackConfig(
 }
 
 function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
+  const bodyFamily = resolveCssValue(
+    config.theme?.ui?.fonts?.default?.family,
+    DEFAULT_THEME_CSS_VARS["--tu-font-body"],
+    "fonts.default.family"
+  );
+  const bodySize = resolveCssValue(
+    config.theme?.ui?.fonts?.default?.size,
+    DEFAULT_THEME_CSS_VARS["--tu-font-body-size"],
+    "fonts.default.size"
+  );
+  const scoreNameFamily = resolveCssValue(
+    config.theme?.ui?.fonts?.scoreName?.family,
+    bodyFamily,
+    "fonts.scoreName.family"
+  );
+  const scoreNameSize = resolveCssValue(
+    config.theme?.ui?.fonts?.scoreName?.size,
+    config.theme?.ui?.fonts?.default?.size ??
+      DEFAULT_THEME_CSS_VARS["--tu-score-name-font-size"],
+    "fonts.scoreName.size"
+  );
   return {
     ...DEFAULT_THEME_CSS_VARS,
     ...(config.theme?.ui?.colors?.background !== undefined
@@ -315,9 +451,10 @@ function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
     ...(config.theme?.ui?.colors?.applied !== undefined
       ? { "--tu-applied-color": config.theme.ui.colors.applied }
       : {}),
-    ...(config.theme?.ui?.fonts?.body !== undefined
-      ? { "--tu-font-body": config.theme.ui.fonts.body }
-      : {}),
+    "--tu-font-body": bodyFamily,
+    "--tu-font-body-size": bodySize,
+    "--tu-score-name-font-family": scoreNameFamily,
+    "--tu-score-name-font-size": scoreNameSize,
     ...(config.theme?.notation?.fonts?.notation !== undefined
       ? { "--tu-font-notation": config.theme.notation.fonts.notation }
       : {}),
@@ -333,6 +470,11 @@ function resolveThemeCssVars(config: TabUIConfig = {}): Record<string, string> {
       : {}),
     ...(config.theme?.notation?.colors?.text !== undefined
       ? { "--tu-notation-text": config.theme.notation.colors.text }
+      : {}),
+    ...(config.theme?.notation?.colors?.barNumber !== undefined
+      ? {
+          "--tu-notation-bar-number": config.theme.notation.colors.barNumber,
+        }
       : {}),
     ...(config.theme?.notation?.colors?.noteBackground !== undefined
       ? {

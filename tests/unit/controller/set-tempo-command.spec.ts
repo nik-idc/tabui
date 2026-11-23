@@ -3,8 +3,8 @@ import { createScoreGraph } from "../model/helpers";
 
 describe("SetTempoCommand", () => {
   test("execute, undo, and redo update the selected master bar tempo", () => {
-    const { masterBar } = createScoreGraph();
-    const command = new SetTempoCommand(masterBar, 180, []);
+    const { score, masterBar } = createScoreGraph();
+    const command = new SetTempoCommand(score, [masterBar], 180);
 
     command.execute();
     expect(masterBar.tempo).toBe(180);
@@ -17,14 +17,12 @@ describe("SetTempoCommand", () => {
   });
 
   test("tempo command reports affected bar anchors and tempo visibility", () => {
-    const { bar, masterBar } = createScoreGraph();
-    const command = new SetTempoCommand(masterBar, 180, [
-      { masterBarIndex: 0, modelUUID: bar.uuid },
-    ]);
+    const { score, masterBar } = createScoreGraph();
+    const command = new SetTempoCommand(score, [masterBar], 180);
 
     expect(command.affectsTempoVisibility).toBe(true);
     expect(command.affectedModels).toEqual([
-      { masterBarIndex: 0, modelUUID: bar.uuid },
+      { masterBarIndex: 0, modelUUID: masterBar.uuid },
     ]);
   });
 });

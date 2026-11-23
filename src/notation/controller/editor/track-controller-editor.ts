@@ -1,20 +1,30 @@
 import {
+  AccentType,
   Beat,
+  BeatGuitarTechnique,
+  BeatGuitarTechniqueType,
+  type SetBeatTechniqueOptions,
+  StrokeDirection,
   NoteDuration,
+  Dynamic,
+  DynamicDirection,
   Bar,
   BarRepeatStatusChange,
   TechniqueType,
-  BendTechniqueOptions,
   MasterBarData,
+  MasterBar,
   TupletSettings,
-  DEFAULT_MASTER_BAR,
   VoiceNumber,
   ScoreEditor,
   Score,
+  isReleaseDate,
   Track,
   MusicInstrument,
+  GuitarTechniqueType,
   TrackInstrumentChangeMode,
+  MAX_TRACK_STAVES,
 } from "../../model";
+import type { SetTechniqueOptions } from "../../model/editor/set-technique-options";
 import { TrackElement } from "../element";
 import { BeatElement } from "../element/beat/beat-element";
 import { NoteElement } from "../element/note/note-element";
@@ -32,31 +42,51 @@ import {
   SetFretCommand,
   SetDotsCommand,
   SetDurationCommand,
+  SetDynamicCommand,
+  DynamicEditKind,
+  type DynamicEdit,
   SetTupletCommand,
   SetTempoCommand,
   SetTimeSigCommand,
   SetRepeatStatusCommand,
   SetTechniqueCommand,
+  SetBeatTechniqueCommand,
   InsertBeatsCommand,
   InsertBeatCommand,
   ReplaceBeatsCommand,
-  SetNoteCommand,
   SetRestCommand,
   RemoveBeatsCommand,
   PrependBarCommand,
   InsertBarCommand,
   RemoveBarsCommand,
+  AddStaffCommand,
+  RemoveStaffCommand,
+  ShiftPitchCommand,
   Command,
   AffectedModel,
 } from "./command";
+import { SelectionHistoryCommand } from "./command/selection-history-command";
 import type { Note } from "../../model";
+import type {
+  SelectionCursor,
+  SelectionHistorySnapshot,
+} from "../selection/selection-cursor";
+import {
+  deserializeClipboard,
+  serializeClipboardBeats,
+  serializeClipboardNote,
+} from "../../format/tabui/clipboard-serialization";
+import { GuitarNote } from "../../model/guitar-note";
+import type { Guitar } from "../../model/instrument/guitar/guitar";
 
 /**
  * Class responsible for managing editing & element state
  */
 export class TrackControllerEditor {
   editingEnabled: boolean;
-  /** Command manager */
+  /** Called after every change to the saved score, including undo and redo. */
+  onScoreEdited: () => void = () => {};
+  /** Command manager for model edits wrapped with selection history. */
   private readonly _commandManager: CommandManager;
 
   /** Track element */
@@ -70,10 +100,9 @@ export class TrackControllerEditor {
    */
   constructor(trackElement: TrackElement, editingEnabled: boolean = true) {
     this.editingEnabled = editingEnabled;
-    this._commandManager = new CommandManager();
-
     this._trackElement = trackElement;
     this._selectionManager = new SelectionManager(this._trackElement.track);
+    this._commandManager = new CommandManager();
   }
 
   private getAffectedMasterBarIndices(
@@ -104,13 +133,39 @@ export class TrackControllerEditor {
     this._trackElement.update({ affectedMasterBarIndices: masterBarIndices });
   }
 
-  public executeCommand<T extends Command>(command: T): T {
+  /** Applies the model update and completes the selection change. */
+  private completeCommand(command: Command, completion?: () => void): void {
+    this.applyCommandUpdate(command);
+    completion?.();
+    this.onScoreEdited();
+  }
+
+  public executeCommand<T extends Command>(
+    command: T,
+    completion?: () => void,
+    selectionBefore?: SelectionHistorySnapshot
+  ): T {
     if (!this.editingEnabled) {
       return command;
     }
-    const executedCommand = this._commandManager.execute(command) as T;
-    this.applyCommandUpdate(executedCommand);
-    return executedCommand;
+    const wrappedCommand = new SelectionHistoryCommand(
+      command,
+      this._selectionManager,
+      () => this.completeCommand(command, completion),
+      selectionBefore
+    );
+    this._commandManager.execute(wrappedCommand);
+    return command;
+  }
+
+  /** True when editing is allowed and there is an edit to undo. */
+  public get canUndo(): boolean {
+    return this.editingEnabled && this._commandManager.canUndo;
+  }
+
+  /** True when editing is allowed and there is an edit to redo. */
+  public get canRedo(): boolean {
+    return this.editingEnabled && this._commandManager.canRedo;
   }
 
   public undoCommand(): void {
@@ -119,6 +174,9 @@ export class TrackControllerEditor {
     }
     const command = this._commandManager.undo();
     this.applyCommandUpdate(command);
+    if (command !== undefined) {
+      this.onScoreEdited();
+    }
   }
 
   public redoCommand(): void {
@@ -127,13 +185,66 @@ export class TrackControllerEditor {
     }
     const command = this._commandManager.redo();
     this.applyCommandUpdate(command);
+    if (command !== undefined) {
+      this.onScoreEdited();
+    }
   }
 
   public setScoreName(score: Score, name: string): boolean {
     if (!this.editingEnabled) {
       return false;
     }
+    if (score.name === name) {
+      return true;
+    }
     score.name = name;
+    this.onScoreEdited();
+    return true;
+  }
+
+  public setScoreArtist(score: Score, artist: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    if (score.artist === artist) {
+      return true;
+    }
+    score.artist = artist;
+    this.onScoreEdited();
+    return true;
+  }
+
+  /** Sets the album; an empty name clears it. */
+  public setScoreAlbum(score: Score, album: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const value = album === "" ? null : album;
+    if (score.album === value) {
+      return true;
+    }
+    score.album = value;
+    this.onScoreEdited();
+    return true;
+  }
+
+  /**
+   * Sets the release date; an empty string clears it.
+   * @returns False when editing is off or the date is not an ISO partial date
+   */
+  public setScoreReleaseDate(score: Score, releaseDate: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const value = releaseDate === "" ? null : releaseDate;
+    if (value !== null && !isReleaseDate(value)) {
+      return false;
+    }
+    if (score.releaseDate === value) {
+      return true;
+    }
+    score.releaseDate = value;
+    this.onScoreEdited();
     return true;
   }
 
@@ -141,7 +252,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (score.masterVolume === volume) {
+      return true;
+    }
     score.masterVolume = volume;
+    this.onScoreEdited();
     return true;
   }
 
@@ -149,33 +264,60 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (score.masterPan === pan) {
+      return true;
+    }
     score.masterPan = pan;
+    this.onScoreEdited();
     return true;
   }
 
+  /**
+   * Adds a track at the end of the score.
+   * @param staffCount Number of staves, from 1 through MAX_TRACK_STAVES.
+   */
   public addTrack(
     score: Score,
     instrument: MusicInstrument,
-    name: string
+    name: string,
+    staffCount: number = 1
   ): Track | undefined {
     if (!this.editingEnabled) {
       return undefined;
     }
-    return score.addTrack(instrument, name).tracks[0];
+    if (
+      !Number.isInteger(staffCount) ||
+      staffCount < 1 ||
+      staffCount > MAX_TRACK_STAVES
+    ) {
+      throw Error(`${staffCount} is invalid staff count`);
+    }
+    const track = score.addTrack(instrument, name).tracks[0];
+    while (track.staves.length < staffCount) {
+      track.insertStaff(track.staves.length);
+    }
+    this.onScoreEdited();
+    return track;
   }
 
   public removeTrack(score: Score, track: Track): Track | undefined {
     if (!this.editingEnabled) {
       return undefined;
     }
-    return score.removeTrack(score.tracks.indexOf(track));
+    const nextTrack = score.removeTrack(score.tracks.indexOf(track));
+    this.onScoreEdited();
+    return nextTrack;
   }
 
   public moveTrack(track: Track, targetIndex: number): boolean {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.score.tracks.indexOf(track) === targetIndex) {
+      return true;
+    }
     track.score.moveTrack(track, targetIndex);
+    this.onScoreEdited();
     return true;
   }
 
@@ -183,7 +325,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.name === name) {
+      return true;
+    }
     track.name = name;
+    this.onScoreEdited();
     return true;
   }
 
@@ -191,7 +337,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.volume === volume) {
+      return true;
+    }
     track.volume = volume;
+    this.onScoreEdited();
     return true;
   }
 
@@ -199,7 +349,11 @@ export class TrackControllerEditor {
     if (!this.editingEnabled) {
       return false;
     }
+    if (track.pan === pan) {
+      return true;
+    }
     track.pan = pan;
+    this.onScoreEdited();
     return true;
   }
 
@@ -208,6 +362,7 @@ export class TrackControllerEditor {
       return false;
     }
     track.muted = !track.muted;
+    this.onScoreEdited();
     return true;
   }
 
@@ -216,6 +371,7 @@ export class TrackControllerEditor {
       return false;
     }
     track.soloed = !track.soloed;
+    this.onScoreEdited();
     return true;
   }
 
@@ -228,6 +384,7 @@ export class TrackControllerEditor {
       return false;
     }
     track.setInstrument(instrument, mode);
+    this.onScoreEdited();
     return true;
   }
 
@@ -255,23 +412,16 @@ export class TrackControllerEditor {
     this._selectionManager.selectNote(noteElement.note);
   }
 
-  /**
-   * Selects first note
-   */
-  public selectFirstNote(): void {
-    const firstBar = this._trackElement.track.staves[0].bars[0];
-    const firstBeat = firstBar.getVoiceBar(1)?.beats[0];
-    if (firstBeat === undefined) {
+  /** Selects the first slot in the given beat, or the track's first beat. */
+  public selectFirstNote(beat?: Beat): void {
+    const selectedBeat =
+      beat ??
+      this._trackElement.track.staves[0].bars[0].getVoiceBar(1)?.beats[0];
+    if (selectedBeat === undefined) {
       return;
     }
 
-    const firstNote = firstBeat.notes?.[0];
-    if (firstNote !== undefined) {
-      this._selectionManager.selectNote(firstNote);
-      return;
-    }
-
-    this._selectionManager.selectBeatCursor(firstBeat, 0);
+    this._selectionManager.selectBeatCursor(selectedBeat, 0);
   }
 
   private selectBeatCursor(beat: Beat): void {
@@ -347,19 +497,27 @@ export class TrackControllerEditor {
   /**
    * Handles added beat after moving right
    */
-  private handleAddedBeat(): void {
+  private handleAddedBeat(
+    selectionBefore: SelectionHistorySnapshot | undefined
+  ): void {
     const selectionCursor = this._selectionManager.selectionCursor;
     if (selectionCursor === undefined) {
       throw Error("Handling added beat when selected note undefined");
     }
 
-    this.executeCommand(new AppendBeatCommand(selectionCursor.voiceBar));
+    this.executeCommand(
+      new AppendBeatCommand(selectionCursor.voiceBar),
+      undefined,
+      selectionBefore
+    );
   }
 
   /**
    * Handles added bar after moving right
    */
-  private handleAddedBar(): void {
+  private handleAddedBar(
+    selectionBefore: SelectionHistorySnapshot | undefined
+  ): void {
     const selectionCursor = this._selectionManager.selectionCursor;
     if (selectionCursor === undefined) {
       throw Error("Handling added beat when selected note undefined");
@@ -367,11 +525,12 @@ export class TrackControllerEditor {
     this.executeCommand(
       new AppendBarCommand(
         selectionCursor.bar.staff.track.score,
-        selectionCursor.bar.masterBar.barData,
+        undefined,
         selectionCursor.voiceBar.voiceNumber
-      )
+      ),
+      () => selectionCursor.afterAddedBar(),
+      selectionBefore
     );
-    selectionCursor.afterAddedBar();
   }
 
   /**
@@ -379,15 +538,18 @@ export class TrackControllerEditor {
    * @param moveRightOutput Output of a move right operation
    * @param selectionCursor Selected
    */
-  private handleMoveRight(moveRightOutput: MoveRightOutput): void {
+  private handleMoveRight(
+    moveRightOutput: MoveRightOutput,
+    selectionBefore: SelectionHistorySnapshot | undefined
+  ): void {
     switch (moveRightOutput.result) {
       case MoveRightResult.Nothing:
         break;
       case MoveRightResult.AddedBeat:
-        this.handleAddedBeat();
+        this.handleAddedBeat(selectionBefore);
         break;
       case MoveRightResult.AddedBar:
-        this.handleAddedBar();
+        this.handleAddedBar(selectionBefore);
         break;
       default:
         throw Error("Unexpected outcome after moving note right");
@@ -438,10 +600,13 @@ export class TrackControllerEditor {
       return;
     }
 
+    const selectionBefore = this.editingEnabled
+      ? this._selectionManager.captureHistorySnapshot()
+      : undefined;
     const moveRightResult = this._selectionManager.moveSelectedNoteRight(
       this.editingEnabled
     );
-    this.handleMoveRight(moveRightResult);
+    this.handleMoveRight(moveRightResult, selectionBefore);
     if (!this.editingEnabled) {
       return;
     }
@@ -499,6 +664,39 @@ export class TrackControllerEditor {
     );
   }
 
+  /** Returns the current beat or note selection for a pitch edit. */
+  private getSelectedPitchTargets(): Beat[] | Note | null {
+    const cursor = this._selectionManager.selectionCursor;
+    if (cursor === undefined) {
+      return this._selectionManager.selectionAsBeats;
+    }
+    return cursor.note;
+  }
+
+  /** Returns whether the current cursor or beat range has a valid pitch shift. */
+  public canShiftSelectedPitch(semitones: number): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const target = this.getSelectedPitchTargets();
+    return target !== null && ScoreEditor.canShiftPitch(target, semitones);
+  }
+
+  /** Applies one atomic signed semitone shift to the current selection. */
+  public shiftSelectedPitch(semitones: number): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+    const target = this.getSelectedPitchTargets();
+    if (target === null || !ScoreEditor.canShiftPitch(target, semitones)) {
+      return false;
+    }
+    const command = this.executeCommand(
+      new ShiftPitchCommand(target, semitones)
+    );
+    return command.executed === true;
+  }
+
   /**
    * Set dots
    * @param newDots New dots count
@@ -537,6 +735,49 @@ export class TrackControllerEditor {
     }
 
     this.executeCommand(new SetDurationCommand(selection, newDuration));
+  }
+
+  /**
+   * Sets one dynamic on the selected beats, rests included.
+   * @returns True if any beat changed.
+   */
+  public setSelectedDynamic(dynamic: Dynamic): boolean {
+    const beats = this._selectionManager.selectionAsBeats;
+    const isUnchanged = ScoreEditor.allBeatsHaveDynamic(beats, dynamic);
+    if (!this.editingEnabled || isUnchanged) {
+      return false;
+    }
+    return this.executeDynamicEdit(beats, {
+      kind: DynamicEditKind.Set,
+      dynamic,
+    });
+  }
+
+  /**
+   * Moves each selected beat's own dynamic one level, staying at ppp and fff.
+   * @returns True if any beat changed.
+   */
+  public shiftSelectedDynamics(direction: DynamicDirection): boolean {
+    const beats = this._selectionManager.selectionAsBeats;
+    const canShift = ScoreEditor.canShiftDynamics(beats, direction);
+    if (!this.editingEnabled || !canShift) {
+      return false;
+    }
+    return this.executeDynamicEdit(beats, {
+      kind: DynamicEditKind.Shift,
+      direction,
+    });
+  }
+
+  /** Runs a dynamic edit as one undoable command. */
+  private executeDynamicEdit(beats: Beat[], edit: DynamicEdit): boolean {
+    const command = this.executeCommand(
+      new SetDynamicCommand(
+        beats.map((b) => ScoreEditor.getBeatPosition(b)),
+        edit
+      )
+    );
+    return command.executed;
   }
 
   public setSelectedBeatRest(): void {
@@ -580,39 +821,70 @@ export class TrackControllerEditor {
     this.executeCommand(new SetTupletCommand(selection, settings));
   }
 
-  /**
-   * Set selected bar's tempo
-   * @param newTempo New tempo value
-   */
+  /** Resolves a range, or the cursor's remaining section, before editing it. */
+  private getBarEditTargets(
+    // matches: (bar: MasterBar, first: MasterBar) => boolean
+    isTempoEdit: boolean
+  ): MasterBar[] {
+    const selected = this._selectionManager.selectionAsBeats;
+    if (selected.length === 0) {
+      return [];
+    }
+
+    const bars = this._trackElement.track.score.masterBars;
+    const first = selected[0].voiceBar.bar.masterBar;
+    const startIndex = bars.indexOf(first);
+    if (startIndex < 0) {
+      return [];
+    }
+
+    if (this._selectionManager.selectionCursor === undefined) {
+      const last = selected[selected.length - 1].voiceBar.bar.masterBar;
+      return bars.slice(startIndex, bars.indexOf(last) + 1);
+    }
+
+    const targets: MasterBar[] = [];
+    for (let index = startIndex; index < bars.length; index++) {
+      const bar = bars[index];
+      if (
+        (isTempoEdit && !(bar.tempo === first.tempo)) ||
+        (!isTempoEdit && !bar.isEqualTimeSig(first))
+      ) {
+        break;
+      }
+
+      targets.push(bars[index]);
+    }
+    return targets;
+  }
+
+  /** Bars affected by a tempo edit, stopping at the next original tempo change. */
+  public getTempoEditBars(): MasterBar[] {
+    return this.getBarEditTargets(true);
+  }
+
+  /** Bars affected by a meter edit, comparing numerator and denominator together. */
+  public getTimeSignatureEditBars(): MasterBar[] {
+    return this.getBarEditTargets(false);
+  }
+
+  /** Sets tempo for the selected bars or the cursor's remaining tempo section. */
   public setSelectedBarTempo(newTempo: number): void {
     if (!this.editingEnabled) {
       return;
     }
-    const selectionCursor = this._selectionManager.selectionCursor;
-    if (selectionCursor === undefined) {
+    const bars = this.getTempoEditBars();
+    if (bars.every((v) => v.tempo === newTempo)) {
       return;
     }
 
-    if (selectionCursor.bar.masterBar.tempo === newTempo) {
-      return;
-    }
-
-    const nextBar = selectionCursor.staff.getNextBar(selectionCursor.bar);
-    const masterBarIndex = selectionCursor.bar.staff.bars.indexOf(
-      selectionCursor.bar
-    );
     this.executeCommand(
-      new SetTempoCommand(selectionCursor.bar.masterBar, newTempo, [
-        { masterBarIndex, modelUUID: selectionCursor.bar.uuid },
-        ...(nextBar !== null
-          ? [{ masterBarIndex: masterBarIndex + 1, modelUUID: nextBar.uuid }]
-          : []),
-      ])
+      new SetTempoCommand(this._trackElement.track.score, bars, newTempo)
     );
   }
 
   /**
-   * Set selected bar's time signature
+   * Sets meter for the selected bars or the cursor's remaining meter section.
    * @param beatsCount Beats count
    * @param duration Duration
    */
@@ -627,22 +899,20 @@ export class TrackControllerEditor {
       throw Error("Set bar time signature with both values undefined");
     }
 
-    const selectionCursor = this._selectionManager.selectionCursor;
-    if (selectionCursor === undefined) {
-      return;
-    }
-
-    if (
-      selectionCursor.bar.masterBar.beatsCount === beatsCount &&
-      selectionCursor.bar.masterBar.duration === duration
-    ) {
+    const bars = this.getTimeSignatureEditBars();
+    const isUnchanged = bars.every(
+      (v) =>
+        (beatsCount === undefined || v.beatsCount === beatsCount) &&
+        (duration === undefined || v.duration === duration)
+    );
+    if (isUnchanged) {
       return;
     }
 
     this.executeCommand(
       new SetTimeSigCommand(
-        selectionCursor.staff.track.score,
-        selectionCursor.bar.masterBar,
+        this._trackElement.track.score,
+        bars,
         beatsCount,
         duration
       )
@@ -679,46 +949,190 @@ export class TrackControllerEditor {
     return true;
   }
 
+  /** Checks eligibility using the requested Tie source-search mode. */
+  public canSetTechnique(
+    type: TechniqueType,
+    options: SetTechniqueOptions = {}
+  ): boolean {
+    const cursor = this._selectionManager.selectionCursor;
+    return (
+      this.editingEnabled &&
+      ScoreEditor.canSetTechnique(
+        cursor === undefined
+          ? this._selectionManager.selectionAsBeats
+          : [cursor.beat],
+        type,
+        cursor === undefined ? undefined : cursor.noteIndex + 1,
+        options
+      )
+    );
+  }
+
+  /** Reports whether the cursor note or any selected beat has the technique. */
+  public hasSelectedTechnique(type: TechniqueType): boolean {
+    const cursor = this._selectionManager.selectionCursor;
+    return cursor === undefined
+      ? this._selectionManager.selectionAsBeats.some((b) =>
+          b.hasTechnique(type)
+        )
+      : (cursor.note?.hasTechnique(type) ?? false);
+  }
+
   /**
    * Sets technique
    * @param type Type of technique
-   * @param bendOptions Potenital bend gutiar technique options
+   * @param options Optional Bend settings or Tie source-search mode.
    */
   public setTechnique(
     type: TechniqueType,
-    bendOptions?: BendTechniqueOptions
+    options: SetTechniqueOptions = {}
   ): void {
     if (!this.editingEnabled) {
       return;
     }
     const selectionCursor = this._selectionManager.selectionCursor;
-    const selectionNotes =
-      selectionCursor && selectionCursor.note !== null
-        ? [selectionCursor.note]
-        : this._selectionManager.selectionAsBeats.flatMap((b) => b.notes ?? []);
-
+    if (type === GuitarTechniqueType.Tie) {
+      const beats = this._selectionManager.selectionAsBeats;
+      this.executeCommand(
+        new SetTechniqueCommand(
+          selectionCursor === undefined
+            ? beats.map((b) => ScoreEditor.getBeatPosition(b))
+            : [
+                {
+                  ...ScoreEditor.getBeatPosition(selectionCursor.beat),
+                  stringNumber: selectionCursor.noteIndex + 1,
+                },
+              ],
+          type,
+          options
+        )
+      );
+      return;
+    }
+    const selectionNotes = this.techniqueTargetNotes;
     if (selectionNotes.length === 0) {
       return;
     }
 
     this.executeCommand(
-      new SetTechniqueCommand(selectionNotes, type, bendOptions)
+      new SetTechniqueCommand(
+        ScoreEditor.getTechniqueTargetsForNotes(selectionNotes),
+        type,
+        options
+      )
     );
   }
 
-  /** Removes matching techniques in one command without changing selection. */
-  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
+  /** Note technique targets: the cursor note, or the notes of the selected beats. */
+  private get techniqueTargetNotes(): Note[] {
+    const cursorNote = this._selectionManager.selectionCursor?.note;
+    return cursorNote === null || cursorNote === undefined
+      ? this._selectionManager.selectionAsBeats.flatMap((b) => b.notes ?? [])
+      : [cursorNote];
+  }
+
+  /** Reports whether every target note that can have an accent has one of the kind. */
+  public isSelectedAccentOfKind(kind: AccentType): boolean {
+    return ScoreEditor.isAccentOfKind(this.techniqueTargetNotes, kind);
+  }
+
+  /** Toggles an accent of one kind on the target notes; see ScoreEditor.getAccentToggleOptions. */
+  public toggleAccent(kind: AccentType): void {
+    const options = ScoreEditor.getAccentToggleOptions(
+      this.techniqueTargetNotes,
+      kind
+    );
+    this.setTechnique(GuitarTechniqueType.Accent, options);
+  }
+
+  /** Beat technique targets: the cursor beat, or the selected beats when no cursor is set. */
+  private get beatTechniqueTargets(): Beat[] {
+    const cursor = this._selectionManager.selectionCursor;
+    return cursor === undefined
+      ? this._selectionManager.selectionAsBeats
+      : [cursor.beat];
+  }
+
+  /** Checks whether editing is enabled and any target note beat can take or already has the technique. */
+  public canSetBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return (
+      this.editingEnabled &&
+      ScoreEditor.canSetBeatTechnique(this.beatTechniqueTargets, type)
+    );
+  }
+
+  /** Reports whether any target beat has the beat technique. */
+  public hasSelectedBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return this.beatTechniqueTargets.some((b) => b.hasBeatTechnique(type));
+  }
+
+  /** Returns the technique of the first target beat that has it, to show its settings. */
+  public getSelectedBeatTechnique<T extends BeatGuitarTechniqueType>(
+    type: T
+  ): BeatGuitarTechnique<T> | undefined {
+    for (const beat of this.beatTechniqueTargets) {
+      const technique = beat.getBeatTechnique(type);
+      if (technique !== undefined) {
+        return technique;
+      }
+    }
+    return undefined;
+  }
+
+  /** Removes the beat technique from every target beat that has it. */
+  public removeBeatTechnique(type: BeatGuitarTechniqueType): void {
     if (!this.editingEnabled) {
-      return false;
+      return;
+    }
+    const targets = ScoreEditor.getBeatsWithBeatTechnique(
+      this.beatTechniqueTargets,
+      type
+    );
+    if (targets.length === 0) {
+      return;
     }
 
-    const affectedNotes = notes.filter((note) => note.hasTechnique(type));
-    if (affectedNotes.length === 0) {
-      return false;
+    this.executeCommand(
+      new SetBeatTechniqueCommand(
+        targets.map((b) => ScoreEditor.getBeatPosition(b)),
+        type
+      )
+    );
+  }
+
+  /** Toggles a stroke in one direction on the target beats; see ScoreEditor.getStrokeToggleOptions. */
+  public toggleStroke(direction: StrokeDirection): void {
+    const options = ScoreEditor.getStrokeToggleOptions(
+      this.beatTechniqueTargets,
+      direction
+    );
+    this.setBeatTechnique(BeatGuitarTechniqueType.Stroke, options);
+  }
+
+  /**
+   * Adds, replaces, or removes a beat technique on the cursor beat or the selected beats.
+   * @param type Beat technique type.
+   * @param options Technique settings; omit them to remove the technique when every target beat has it.
+   */
+  public setBeatTechnique(
+    type: BeatGuitarTechniqueType,
+    options: SetBeatTechniqueOptions = {}
+  ): void {
+    if (!this.editingEnabled) {
+      return;
+    }
+    const targets = this.beatTechniqueTargets;
+    if (targets.length === 0) {
+      return;
     }
 
-    this.executeCommand(new SetTechniqueCommand(affectedNotes, type));
-    return true;
+    this.executeCommand(
+      new SetBeatTechniqueCommand(
+        targets.map((b) => ScoreEditor.getBeatPosition(b)),
+        type,
+        options
+      )
+    );
   }
 
   /**
@@ -759,63 +1173,117 @@ export class TrackControllerEditor {
     this._selectionManager.selectBeat(beatElement.beat);
   }
 
-  /**
-   * Copy selected data
-   */
-  public copy(): void {
-    this._selectionManager.copy();
+  /** Returns a serialized snapshot of the current note or beat selection. */
+  public copy(): string | undefined {
+    const note = this._selectionManager.selectionCursor?.note;
+    if (note instanceof GuitarNote) {
+      return serializeClipboardNote(note);
+    }
+
+    return serializeClipboardBeats(
+      this._selectionManager.selectionBeats as Beat<Guitar>[]
+    );
   }
 
-  /**
-   * Paste copied data:
-   * Paste beats after selected note if selected beats OR
-   * Paste note, i.e., set fret value of selected note to that of selected
-   * @returns
-   */
-  public paste(): void {
-    if (!this.editingEnabled) {
-      return;
+  /** Restores a cursor at the replacement destination. */
+  private completeReplacement(
+    destinationBar: Bar,
+    destinationVoiceNumber: VoiceNumber,
+    destinationIndex: number
+  ): void {
+    const voiceBar = destinationBar.getVoiceBar(destinationVoiceNumber);
+    const beat =
+      voiceBar?.beats[Math.min(destinationIndex, voiceBar.beats.length - 1)];
+    if (beat !== undefined) {
+      this._selectionManager.selectBeatCursor(beat, 0);
     }
-    const clipboard = this._selectionManager.clipboard;
-    const selectionCursor = this._selectionManager.selectionCursor;
-    const selectionBeats = this._selectionManager.selectionBeats;
-    if (clipboard instanceof Array) {
-      // Return if nothing to paste
-      if (clipboard.length === 0) {
-        return;
-      }
+  }
 
-      if (selectionCursor !== undefined) {
-        // Insert if currently not selecting
-        this.executeCommand(
-          new InsertBeatsCommand(
-            selectionCursor.bar.staff,
-            selectionCursor.beat,
-            clipboard,
-            this._selectionManager.activeVoiceNumber
-          )
-        );
-      } else {
-        // Replace currently selected
-        this.executeCommand(new ReplaceBeatsCommand(selectionBeats, clipboard));
-        this.clearSelection();
-      }
-    } else if (clipboard !== undefined) {
-      if (selectionCursor === undefined) {
-        throw Error(
-          "Attempting to paste a note value but selected element is undefined"
-        );
-      }
+  private pasteBeats(
+    clipboard: Beat<Guitar>[],
+    selectionCursor: SelectionCursor | undefined,
+    selectionBeats: Beat[]
+  ): boolean {
+    // Return if nothing to paste
+    if (clipboard.length === 0) {
+      return false;
+    }
 
+    if (selectionCursor !== undefined) {
+      // Insert if currently not selecting
       this.executeCommand(
-        new SetNoteCommand(
+        new InsertBeatsCommand(
+          selectionCursor.bar,
           selectionCursor.beat,
-          selectionCursor.noteIndex + 1,
-          clipboard.noteValue,
-          clipboard.octave
+          clipboard,
+          this._selectionManager.activeVoiceNumber
         )
       );
+    } else {
+      // Replace currently selected
+      const firstDestination = selectionBeats[0];
+      const destinationBar = firstDestination.voiceBar.bar;
+      const destinationVoiceNumber = firstDestination.voiceBar.voiceNumber;
+      const destinationIndex =
+        firstDestination.voiceBar.beats.indexOf(firstDestination);
+      this.executeCommand(
+        new ReplaceBeatsCommand(selectionBeats, clipboard),
+        () =>
+          this.completeReplacement(
+            destinationBar,
+            destinationVoiceNumber,
+            destinationIndex
+          )
+      );
     }
+    return true;
+  }
+
+  private pasteNote(
+    clipboard: Pick<GuitarNote, "fret">,
+    selectionCursor: SelectionCursor | undefined
+  ): boolean {
+    if (selectionCursor === undefined) {
+      return false;
+    }
+
+    this.executeCommand(
+      new SetFretCommand(
+        selectionCursor.beat,
+        selectionCursor.noteIndex + 1,
+        clipboard.fret
+      )
+    );
+    return true;
+  }
+
+  /** Pastes supported clipboard text; rejected input leaves the score and history unchanged. */
+  public paste(text: string): boolean {
+    if (!this.editingEnabled) {
+      return false;
+    }
+
+    const selectionCursor = this._selectionManager.selectionCursor;
+    const selectionBeats = this._selectionManager.selectionBeats;
+    const destination = selectionCursor?.beat ?? selectionBeats[0];
+    if (destination === undefined) {
+      return false;
+    }
+
+    const clipboard = deserializeClipboard(text);
+    if (clipboard instanceof Array) {
+      if (
+        clipboard[0].trackContext.instrument.maxPolyphony >
+        destination.trackContext.instrument.maxPolyphony
+      ) {
+        return false;
+      }
+
+      return this.pasteBeats(clipboard, selectionCursor, selectionBeats);
+    } else if (clipboard !== undefined) {
+      return this.pasteNote(clipboard, selectionCursor);
+    }
+    return false;
   }
 
   /**
@@ -831,14 +1299,14 @@ export class TrackControllerEditor {
     const selectedBar = firstBeat.voiceBar.bar;
     const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
 
-    this.executeCommand(new RemoveBeatsCommand(selectionBeats));
-    const targetBeat = this.getBeatAfterRemoval(
-      selectedBar,
-      previousBeat,
-      firstBeat.voiceBar.voiceNumber
+    this.executeCommand(new RemoveBeatsCommand(selectionBeats), () =>
+      this.completeBeatRemoval(
+        selectedBar,
+        previousBeat,
+        firstBeat.voiceBar.voiceNumber,
+        noteIndex
+      )
     );
-    this._selectionManager.clearSelection();
-    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
   }
 
   private getBeatAfterRemoval(
@@ -867,6 +1335,22 @@ export class TrackControllerEditor {
     }
 
     return firstRemainingBeat;
+  }
+
+  /** Selects the recovery beat after removing one or more beats. */
+  private completeBeatRemoval(
+    selectedBar: Bar,
+    previousBeat: Beat | null,
+    removedVoiceNumber: VoiceNumber,
+    noteIndex: number
+  ): void {
+    const targetBeat = this.getBeatAfterRemoval(
+      selectedBar,
+      previousBeat,
+      removedVoiceNumber
+    );
+    this._selectionManager.clearSelection();
+    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
   }
 
   private getSelectedBar(): Bar {
@@ -940,10 +1424,10 @@ export class TrackControllerEditor {
     const firstBeat = this._selectionManager.selectionAsBeats[0];
     const insertIndex = firstBeat.voiceBar.beats.indexOf(firstBeat);
 
-    const command = this.executeCommand(
-      new InsertBeatCommand(firstBeat.voiceBar, insertIndex)
+    const command = new InsertBeatCommand(firstBeat.voiceBar, insertIndex);
+    this.executeCommand(command, () =>
+      this.selectInsertedBeat(command, noteIndex)
     );
-    this.selectInsertedBeat(command, noteIndex);
   }
 
   /** Inserts and selects a beat after the anchor or current selection. */
@@ -959,10 +1443,10 @@ export class TrackControllerEditor {
       ];
     const insertIndex = lastBeat.voiceBar.beats.indexOf(lastBeat) + 1;
 
-    const command = this.executeCommand(
-      new InsertBeatCommand(lastBeat.voiceBar, insertIndex)
+    const command = new InsertBeatCommand(lastBeat.voiceBar, insertIndex);
+    this.executeCommand(command, () =>
+      this.selectInsertedBeat(command, noteIndex)
     );
-    this.selectInsertedBeat(command, noteIndex);
   }
 
   public removeSelectedBeat(): void {
@@ -975,38 +1459,47 @@ export class TrackControllerEditor {
     const selectedBar = firstBeat.voiceBar.bar;
     const previousBeat = firstBeat.voiceBar.bar.staff.getPrevBeat(firstBeat);
 
-    this.executeCommand(new RemoveBeatsCommand(selectionBeats));
-    const targetBeat = this.getBeatAfterRemoval(
-      selectedBar,
-      previousBeat,
-      firstBeat.voiceBar.voiceNumber
-    );
-    this._selectionManager.clearSelection();
-    this._selectionManager.selectBeatCursor(targetBeat, noteIndex);
-  }
-
-  /**
-   * Appends a bar to the track and all the score tracks
-   * @param bar Bar to append
-   */
-  public appendBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
-    if (!this.editingEnabled) {
-      return;
-    }
-    this.executeCommand(
-      new AppendBarCommand(
-        this._trackElement.track.score,
-        masterBarData,
-        this._selectionManager.activeVoiceNumber
+    this.executeCommand(new RemoveBeatsCommand(selectionBeats), () =>
+      this.completeBeatRemoval(
+        selectedBar,
+        previousBeat,
+        firstBeat.voiceBar.voiceNumber,
+        noteIndex
       )
     );
   }
 
   /**
-   * Prepends a bar to the track and all the score tracks
-   * @param bar Bar to prepend
+   * Appends a bar to the track and all the score tracks
+   * @param masterBarData Explicit settings; omitted inherits the last bar's tempo and meter without repeat markers.
    */
-  public prependBar(masterBarData: MasterBarData = DEFAULT_MASTER_BAR): void {
+  public appendBar(masterBarData?: MasterBarData): void {
+    if (!this.editingEnabled) {
+      return;
+    }
+    const command = new AppendBarCommand(
+      this._trackElement.track.score,
+      masterBarData,
+      this._selectionManager.activeVoiceNumber
+    );
+    this.executeCommand(command, () => this.completeAppendedBar(command));
+  }
+
+  /** Selects the first beat in the bar created by an append command. */
+  private completeAppendedBar(command: AppendBarCommand): void {
+    const result = command.appendResult;
+    const staff = this._trackElement.track.staves[0];
+    const bar = result?.bars.get(staff.uuid);
+    if (bar !== undefined) {
+      this.selectFirstBeatInBar(bar);
+    }
+  }
+
+  /**
+   * Prepends a bar to the track and all the score tracks
+   * @param masterBarData Explicit settings; omitted inherits the first bar's tempo and meter without repeats.
+   */
+  public prependBar(masterBarData?: MasterBarData): void {
     if (!this.editingEnabled) {
       return;
     }
@@ -1021,12 +1514,9 @@ export class TrackControllerEditor {
 
   /**
    * Inserts a bar to the track at specified index and all the score tracks
-   * @param bar Bar to insert
+   * @param masterBarData Explicit settings; omitted inherits nearby tempo and meter without repeats.
    */
-  public insertBar(
-    barIndex: number,
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR
-  ): void {
+  public insertBar(barIndex: number, masterBarData?: MasterBarData): void {
     if (!this.editingEnabled) {
       return;
     }
@@ -1105,11 +1595,11 @@ export class TrackControllerEditor {
       new InsertBarCommand(
         selectedBar.staff.track.score,
         insertIndex,
-        DEFAULT_MASTER_BAR,
+        undefined,
         this._selectionManager.activeVoiceNumber
-      )
+      ),
+      () => this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex])
     );
-    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex]);
   }
 
   public insertBarAfterSelected(): void {
@@ -1125,11 +1615,97 @@ export class TrackControllerEditor {
       new InsertBarCommand(
         selectedBar.staff.track.score,
         insertIndex + 1,
-        DEFAULT_MASTER_BAR,
+        undefined,
         this._selectionManager.activeVoiceNumber
-      )
+      ),
+      () => this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1])
     );
-    this.selectFirstBeatInBar(selectedBar.staff.bars[insertIndex + 1]);
+  }
+
+  /** The beat that staff actions start from: the cursor beat, or the range start. */
+  private getStaffActionBeat(): Beat | undefined {
+    return (
+      this._selectionManager.selectionCursor?.beat ??
+      this._selectionManager.selectionAsBeats[0]
+    );
+  }
+
+  /** True when a staff can be added below the selected one. */
+  public get canAddStaff(): boolean {
+    return (
+      this.editingEnabled &&
+      this._trackElement.track.staves.length < MAX_TRACK_STAVES &&
+      this.getStaffActionBeat() !== undefined
+    );
+  }
+
+  /** True when the selected staff can be removed; a track keeps at least one. */
+  public get canRemoveStaff(): boolean {
+    return (
+      this.editingEnabled &&
+      this._trackElement.track.staves.length > 1 &&
+      this.getStaffActionBeat() !== undefined
+    );
+  }
+
+  /**
+   * Adds an empty staff below the selected one and moves the cursor into it.
+   * @returns False when no staff was added.
+   */
+  public addStaffBelowSelected(): boolean {
+    const beat = this.getStaffActionBeat();
+    if (!this.canAddStaff || beat === undefined) {
+      return false;
+    }
+
+    const track = this._trackElement.track;
+    const bar = beat.voiceBar.bar;
+    const barIndex = bar.staff.bars.indexOf(bar);
+    const noteIndex = this._selectionManager.selectionCursor?.noteIndex ?? 0;
+    const command = new AddStaffCommand(
+      track,
+      track.staves.indexOf(bar.staff) + 1,
+      track.score.masterBars.indexOf(bar.masterBar)
+    );
+    this.executeCommand(command, () => {
+      if (command.staff !== null) {
+        this._selectionManager.selectInStaff(
+          command.staff,
+          barIndex,
+          beat,
+          noteIndex
+        );
+      }
+    });
+    return true;
+  }
+
+  /**
+   * Removes the selected staff and moves the cursor to the nearest staff.
+   * @returns False when no staff was removed.
+   */
+  public removeSelectedStaff(): boolean {
+    const beat = this.getStaffActionBeat();
+    if (!this.canRemoveStaff || beat === undefined) {
+      return false;
+    }
+
+    const track = this._trackElement.track;
+    const bar = beat.voiceBar.bar;
+    const staffIndex = track.staves.indexOf(bar.staff);
+    const barIndex = bar.staff.bars.indexOf(bar);
+    const noteIndex = this._selectionManager.selectionCursor?.noteIndex ?? 0;
+    const command = new RemoveStaffCommand(
+      track,
+      bar.staff,
+      track.score.masterBars.indexOf(bar.masterBar)
+    );
+    this.executeCommand(command, () => {
+      const nearest =
+        track.staves[Math.min(staffIndex, track.staves.length - 1)];
+      this._selectionManager.selectInStaff(nearest, barIndex, beat, noteIndex);
+    });
+    return command.executed;
   }
 
   public removeSelectedBar(): void {
@@ -1171,8 +1747,16 @@ export class TrackControllerEditor {
     const firstRemovedBarIndex = removableBarIndices[0];
     const selectedStaff = bars[0].staff;
 
-    this.executeCommand(new RemoveBarsCommand(score, removableBarIndices));
+    this.executeCommand(new RemoveBarsCommand(score, removableBarIndices), () =>
+      this.completeRemovedBars(selectedStaff, firstRemovedBarIndex)
+    );
+  }
 
+  /** Selects the recovery beat after removing the selected bars. */
+  private completeRemovedBars(
+    selectedStaff: Bar["staff"],
+    firstRemovedBarIndex: number
+  ): void {
     const activeVoiceNumber = this._selectionManager.activeVoiceNumber;
     // Anchor bar - bar **before** the first removed bar. Thus it is the last bar
     // whose index hasn't changed after the removal. Hence - anchor

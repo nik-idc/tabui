@@ -4,6 +4,7 @@ import { HorLine, VertLine } from "../../../../shared/rendering/geometry/line";
 import { Circle } from "../../../../shared/rendering/geometry/circle";
 import { TrackElement } from "../track-element";
 import { TabNoteSlotElement } from "../note/tab-note-slot-element";
+import { BeatGuitarTechniqueElement } from "../technique/beat-technique/beat-guitar-technique-element";
 import { BeatElement } from "./beat-element";
 import { BarElement } from "../bar/bar-element";
 
@@ -44,6 +45,8 @@ export class TabBeatElement implements BeatElement {
 
   /** Note elements */
   private _noteElements: TabNoteSlotElement[];
+  /** Elements of techniques that belong to the whole beat, such as a stroke */
+  private _beatTechniqueElements: BeatGuitarTechniqueElement[];
 
   /** This beat's rect */
   private _boundingBox: Rect;
@@ -61,6 +64,7 @@ export class TabBeatElement implements BeatElement {
     this.trackElement = this.voiceBarContainer.trackElement;
 
     this._noteElements = [];
+    this._beatTechniqueElements = [];
 
     this._boundingBox = new Rect();
     this._restRect = null;
@@ -91,6 +95,28 @@ export class TabBeatElement implements BeatElement {
 
       this._noteElements.push(new TabNoteSlotElement(this, i + 1, note));
     }
+
+    this.buildBeatTechniqueElements();
+  }
+
+  /** Reconciles beat technique elements by beat and type, keeping their identity. */
+  private buildBeatTechniqueElements(): void {
+    const prevElements = new Map(
+      this._beatTechniqueElements.map((e) => [e.getStableIdentity(), e])
+    );
+    this._beatTechniqueElements = [];
+    for (const technique of this.beat.beatTechniques) {
+      const identity = BeatGuitarTechniqueElement.createStableIdentity(
+        this,
+        technique.type
+      );
+      const element =
+        prevElements.get(identity) ??
+        new BeatGuitarTechniqueElement(technique, this);
+      element.setTechnique(technique);
+      element.build();
+      this._beatTechniqueElements.push(element);
+    }
   }
 
   /**
@@ -111,6 +137,9 @@ export class TabBeatElement implements BeatElement {
     for (const noteElement of this._noteElements) {
       noteElement.measure();
     }
+    for (const element of this._beatTechniqueElements) {
+      element.measure();
+    }
   }
 
   /**
@@ -128,6 +157,10 @@ export class TabBeatElement implements BeatElement {
 
     for (const noteElement of this._noteElements) {
       noteElement.layout();
+    }
+    // Beat techniques span note slots, so they need the slot positions.
+    for (const element of this._beatTechniqueElements) {
+      element.layout();
     }
   }
 
@@ -161,6 +194,9 @@ export class TabBeatElement implements BeatElement {
     for (const noteElement of this._noteElements) {
       elements.push(...noteElement.refreshOwnedNotationNodes());
     }
+    for (const element of this._beatTechniqueElements) {
+      elements.push(...element.refreshOwnedNotationNodes());
+    }
 
     return elements;
   }
@@ -178,8 +214,36 @@ export class TabBeatElement implements BeatElement {
     return this.voiceBarContainer.barElement;
   }
 
+  /** Attack offset from the box's left edge; the space before it is the beat technique slot. */
   public get attackLocalX(): number {
-    return 0;
+    return this.trackElement.layoutDimensions.beatAttackOffset;
+  }
+
+  /**
+   * Beat-local x where beat technique visuals start, or null when no beat in
+   * this rhythm column, in any voice, has a beat technique. All voices share
+   * the tab lines, so note visuals that come from the left end before it. It
+   * reads the model, so it does not depend on the order of element builds.
+   */
+  public get beatTechniqueX(): number | null {
+    const voiceBar = this.beat.voiceBar;
+    // Voices can use different tick resolutions, so compare start ratios.
+    const startTicks = this.beat.startTick;
+    const hasColumnBeatTechnique = voiceBar.bar.voiceBarsAsArray.some((vb) =>
+      vb.beats.some(
+        (b) =>
+          b.beatTechniques.length > 0 &&
+          b.startTick * voiceBar.tickResolution ===
+            startTicks * vb.tickResolution
+      )
+    );
+    if (!hasColumnBeatTechnique) {
+      return null;
+    }
+
+    return BeatGuitarTechniqueElement.getVisualX(
+      this.trackElement.layoutDimensions
+    );
   }
 
   public get attackX(): number {
@@ -238,6 +302,11 @@ export class TabBeatElement implements BeatElement {
     return this._noteElements;
   }
 
+  /** Elements of techniques that belong to the whole beat */
+  public get beatTechniqueElements(): BeatGuitarTechniqueElement[] {
+    return this._beatTechniqueElements;
+  }
+
   public get restRect(): Rect | null {
     return this._restRect;
   }
@@ -257,8 +326,8 @@ export class TabBeatElement implements BeatElement {
 
   /**
    * Bounds used for selection overlays and beat-level hit testing.
-   * Unlike the layout bounding box, this includes tab note/rest text that can
-   * extend left of the beat attack while centered on the staff line.
+   * Unlike the layout bounding box, this includes the rest rect, which is
+   * centered on the attack and can extend left of the box.
    */
   public getGlobalVisualBounds(): Rect {
     const rect = new Rect(
@@ -272,13 +341,6 @@ export class TabBeatElement implements BeatElement {
     if (restRect !== null) {
       const restLeft = this.barElement.globalCoords.x + restRect.x;
       rect.x = Math.min(rect.x, restLeft);
-    }
-
-    for (const noteElement of this.noteElements) {
-      if (noteElement.note === null) {
-        continue;
-      }
-      rect.x = Math.min(rect.x, noteElement.textRectGlobal.x);
     }
 
     return rect;

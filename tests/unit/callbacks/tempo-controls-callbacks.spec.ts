@@ -24,17 +24,8 @@ function createTempoHarness() {
     notation,
     () => {}
   );
-  let keyboardOwned = true;
-  const callbacks = new TempoControlsDefaultCallbacks(
-    component,
-    notation,
-    () => component.render(),
-    () => {
-      keyboardOwned = true;
-    },
-    () => {
-      keyboardOwned = false;
-    }
+  const callbacks = new TempoControlsDefaultCallbacks(component, notation, () =>
+    component.render()
   );
   component.render();
   callbacks.bind();
@@ -45,7 +36,6 @@ function createTempoHarness() {
     component,
     controller,
     masterBar,
-    keyboardOwned: () => keyboardOwned,
     dispose: () => {
       component.dialog.close();
       callbacks.unbind();
@@ -60,21 +50,33 @@ describe("TempoControlsDefaultCallbacks", () => {
     const template = component.template;
     try {
       template.increaseTenButton.click();
-      expect(template.value.textContent).toBe("130");
+      expect(template.valueInput.value).toBe("130");
       template.decreaseButton.click();
-      expect(template.value.textContent).toBe("129");
-      for (let i = 0; i < 13; i++) template.decreaseTenButton.click();
-      expect(template.value.textContent).toBe("1");
+      expect(template.valueInput.value).toBe("129");
+      for (let i = 0; i < 13; i++) {
+        template.decreaseTenButton.click();
+      }
+      expect(template.valueInput.value).toBe("1");
       expect(template.decreaseButton.disabled).toBe(true);
       expect(template.decreaseTenButton.disabled).toBe(true);
       expect(template.confirmButton.disabled).toBe(false);
       template.increaseButton.click();
-      expect(template.value.textContent).toBe("2");
+      expect(template.valueInput.value).toBe("2");
       expect(template.decreaseButton.disabled).toBe(false);
-      for (let i = 0; i < 100; i++) template.increaseTenButton.click();
-      expect(template.value.textContent).toBe("999");
+      for (let i = 0; i < 100; i++) {
+        template.increaseTenButton.click();
+      }
+      expect(template.valueInput.value).toBe("999");
       expect(template.increaseButton.disabled).toBe(true);
       expect(template.increaseTenButton.disabled).toBe(true);
+      template.valueInput.value = "120";
+      template.valueInput.dispatchEvent(new Event("input", { bubbles: true }));
+      expect(template.increaseButton.disabled).toBe(false);
+      expect(template.increaseTenButton.disabled).toBe(false);
+      template.valueInput.value = "1";
+      template.valueInput.dispatchEvent(new Event("input", { bubbles: true }));
+      expect(template.decreaseButton.disabled).toBe(true);
+      expect(template.decreaseTenButton.disabled).toBe(true);
       expect(masterBar.tempo).toBe(120);
     } finally {
       dispose();
@@ -86,50 +88,91 @@ describe("TempoControlsDefaultCallbacks", () => {
     try {
       const up = new WheelEvent("wheel", { deltaY: -1, cancelable: true });
       component.template.valueControl.dispatchEvent(up);
-      expect(component.template.value.textContent).toBe("121");
+      expect(component.template.valueInput.value).toBe("121");
       expect(up.defaultPrevented).toBe(true);
       const down = new WheelEvent("wheel", { deltaY: 1, cancelable: true });
       component.template.valueControl.dispatchEvent(down);
-      expect(component.template.value.textContent).toBe("120");
+      expect(component.template.valueInput.value).toBe("120");
       expect(down.defaultPrevented).toBe(true);
     } finally {
       dispose();
     }
   });
 
-  test("confirm commits undoable tempo, closes, and frees keyboard", () => {
-    const { component, controller, masterBar, keyboardOwned, dispose } =
-      createTempoHarness();
+  test("steps invalid drafts from a nondefault original tempo", () => {
+    const { component, masterBar, dispose } = createTempoHarness();
     try {
-      for (let i = 0; i < 6; i++) component.template.increaseTenButton.click();
+      masterBar.tempo = 133.5;
+      component.render();
+      component.dialog.showModal();
+      const input = component.template.valueInput;
+      input.value = "not a tempo";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      component.template.increaseButton.click();
+      expect(input.value).toBe("134.5");
+      expect(component.template.confirmButton.disabled).toBe(false);
+    } finally {
+      dispose();
+    }
+  });
+
+  test("validates drafts and keeps the dialog open until corrected", () => {
+    const { component, masterBar, dispose } = createTempoHarness();
+    try {
+      const input = component.template.valueInput;
+      for (const draft of ["", "0", "1000", "1e309"]) {
+        input.value = draft;
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        expect(input.value.trim()).toBe(draft === "1e309" ? "" : draft);
+        expect(component.template.errorText.textContent?.trim()).not.toBe("");
+        expect(component.template.confirmButton.disabled).toBe(true);
+        component.template.dialogContent.dispatchEvent(
+          new Event("submit", { cancelable: true })
+        );
+        expect(masterBar.tempo).toBe(120);
+        expect(component.dialog.open).toBe(true);
+      }
+
+      input.value = "133.5";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      expect(component.template.errorText.textContent?.trim()).toBe("");
+      expect(component.template.confirmButton.disabled).toBe(false);
+    } finally {
+      dispose();
+    }
+  });
+
+  test("confirm commits an undoable fractional tempo and closes", () => {
+    const { component, controller, masterBar, dispose } = createTempoHarness();
+    try {
+      component.template.valueInput.value = "133.5";
+      component.template.valueInput.dispatchEvent(
+        new Event("input", { bubbles: true })
+      );
       component.template.dialogContent.dispatchEvent(
         new Event("submit", { cancelable: true })
       );
-      expect(masterBar.tempo).toBe(180);
+      expect(masterBar.tempo).toBe(133.5);
       expect(component.dialog.open).toBe(false);
-      expect(keyboardOwned()).toBe(false);
       controller.undo();
       expect(masterBar.tempo).toBe(120);
       controller.redo();
-      expect(masterBar.tempo).toBe(180);
+      expect(masterBar.tempo).toBe(133.5);
       component.render();
       component.dialog.showModal();
-      expect(component.template.value.textContent).toBe("180");
+      expect(component.template.valueInput.value).toBe("133.5");
     } finally {
       dispose();
     }
   });
 
   test("dialog clicks close only when clicking outside content", () => {
-    const { component, masterBar, keyboardOwned, dispose } =
-      createTempoHarness();
+    const { component, masterBar, dispose } = createTempoHarness();
     try {
       component.template.increaseButton.click();
       expect(component.dialog.open).toBe(true);
-      expect(keyboardOwned()).toBe(true);
       component.template.dialogContainer.click();
       expect(component.dialog.open).toBe(false);
-      expect(keyboardOwned()).toBe(false);
       expect(masterBar.tempo).toBe(120);
     } finally {
       dispose();
@@ -144,7 +187,7 @@ describe("TempoControlsDefaultCallbacks", () => {
       callbacks.bind();
       callbacks.bind();
       template.increaseButton.click();
-      expect(template.value.textContent).toBe("121");
+      expect(template.valueInput.value).toBe("121");
       template.dialogContent.dispatchEvent(
         new Event("submit", { cancelable: true })
       );
@@ -161,14 +204,14 @@ describe("TempoControlsDefaultCallbacks", () => {
       template.dialogContent.dispatchEvent(
         new Event("submit", { cancelable: true })
       );
-      expect(template.value.textContent).toBe("121");
+      expect(template.valueInput.value).toBe("121");
       expect(masterBar.tempo).toBe(121);
       expect(component.dialog.open).toBe(true);
 
       callbacks.bind();
       callbacks.bind();
       template.increaseTenButton.click();
-      expect(template.value.textContent).toBe("131");
+      expect(template.valueInput.value).toBe("131");
       template.dialogContent.dispatchEvent(
         new Event("submit", { cancelable: true })
       );

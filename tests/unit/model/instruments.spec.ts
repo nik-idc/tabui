@@ -4,10 +4,8 @@ import {
   GuitarNote,
   NoteValue,
   getNoteFrequency,
-  getDefaultTuningStrSimple,
   shiftNoteValue,
-  shiftTuningWhole,
-  shiftTuningString,
+  shiftPitch,
 } from "../../../src/notation/model";
 import { OtherStringTone } from "../../../src/notation/model/instrument/instrument-tone";
 import { createScoreGraph } from "./helpers";
@@ -42,8 +40,23 @@ describe("Default instruments", () => {
     expect(ukulele.tuning).toEqual([
       { noteValue: NoteValue.A, octave: 4 },
       { noteValue: NoteValue.E, octave: 4 },
-      { noteValue: NoteValue.C, octave: 3 },
+      { noteValue: NoteValue.C, octave: 4 },
       { noteValue: NoteValue.G, octave: 4 },
+    ]);
+  });
+
+  test("banjo default uses open G with a high fifth string", () => {
+    const banjo = DEFAULT_OTHER_STRING[OtherStringTone.Banjo];
+
+    if (!(banjo instanceof Guitar)) {
+      throw Error("Expected banjo to be a Guitar");
+    }
+    expect(banjo.tuning.map((n) => `${n.noteValue}${n.octave}`)).toEqual([
+      "D4",
+      "B3",
+      "G3",
+      "D3",
+      "G4",
     ]);
   });
 
@@ -79,36 +92,17 @@ describe("Default instruments", () => {
     expect(getNoteFrequency(fret24)).toBeCloseTo(getNoteFrequency(fret0) * 4);
   });
 
-  test("simple tuning shift helpers preserve conventional string order", () => {
-    expect(shiftNoteValue(NoteValue.E, 1)).toBe(NoteValue.F);
+  test("shifting a pitch carries the octave and stays in range", () => {
     expect(shiftNoteValue(NoteValue.E, -1)).toBe(NoteValue.DSharp);
-    expect(shiftTuningString("E A D G B E", 0, 1)).toBe("F A D G B E");
-    expect(shiftTuningString("E A D G B E", 5, -1)).toBe("E A D G B D#");
-    expect(shiftTuningWhole("E A D G B E", 1)).toBe("F A# D# G# C F");
-  });
-
-  test("default simple tuning strings use conventional string order", () => {
-    const expectedTunings = [
-      "E",
-      "E B",
-      "E B G",
-      "E A D G",
-      "G D G B D",
-      "E A D G B E",
-      "B E A D G B E",
-      "F# B E A D G B E",
-      "C# F# B E A D G B E",
-      "G# C# F# B E A D G B E",
-      "D# G# C# F# B E A D G B E",
-      "A# D# G# C# F# B E A D G B E",
-    ];
-
-    for (let stringCount = 1; stringCount <= 12; stringCount++) {
-      expect(getDefaultTuningStrSimple(stringCount)).toBe(
-        expectedTunings[stringCount - 1]
-      );
-    }
-
-    expect(getDefaultTuningStrSimple(13)).toBeNull();
+    expect(shiftPitch({ noteValue: NoteValue.B, octave: 3 }, 1)).toEqual({
+      noteValue: NoteValue.C,
+      octave: 4,
+    });
+    expect(shiftPitch({ noteValue: NoteValue.C, octave: 4 }, -1)).toEqual({
+      noteValue: NoteValue.B,
+      octave: 3,
+    });
+    const lowest = { noteValue: NoteValue.C, octave: 0 };
+    expect(shiftPitch(lowest, -1)).toBe(lowest);
   });
 });

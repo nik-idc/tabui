@@ -1,11 +1,5 @@
 #!/bin/sh
 
-files=$(mktemp)
-trap 'rm -f "$files"' EXIT
-
-git diff --cached --name-only --diff-filter=ACMR -z > "$files"
-
-if [ -s "$files" ]; then
-  xargs -0 npx prettier --write --ignore-unknown < "$files"
-  xargs -0 git add < "$files"
-fi
+# Lints and formats only the staged changes; unstaged changes stay out of the
+# commit. Tasks run in order, so Prettier formats ESLint's fixes.
+npx lint-staged --concurrent false

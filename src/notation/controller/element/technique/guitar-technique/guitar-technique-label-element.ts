@@ -1,7 +1,9 @@
 import {
+  AccentType,
   BendType,
   GuitarTechnique,
   GuitarTechniqueType,
+  GuitarNote,
 } from "../../../../model";
 import {
   Point,
@@ -102,7 +104,7 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     return techniqueElement.calculateBendCurveEndXs(bendOptions.type);
   }
 
-  /** Creates centered plain-text pitch labels at the bend curve ends. */
+  /** Centers pitch labels on curve ends and omits zero release pitches. */
   private createPitchTexts(pitches: number[]): void {
     const curveEndXs = this.getBendCurveEndXs();
     if (curveEndXs.length !== pitches.length) {
@@ -111,15 +113,28 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
 
     const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     const y = this._boundingBox.y + this._boundingBox.height / 2 - fontSize / 2;
+    // Curve ends are beat-local; descriptors are local to this label box.
+    const beatToLabelX = -this._boundingBox.x;
+    const bendType = this.technique.bendOptions?.type;
     this._pathDescriptors = [];
-    this._textDescriptors = pitches.map((pitch, index) =>
-      GuitarTechniqueDescriptors.createTextDescriptor(
-        curveEndXs[index],
-        y,
-        fontSize,
-        ratioNumsToChar(getPitchRatioNums(pitch))
-      )
-    );
+    this._textDescriptors = pitches.flatMap((pitch, index) => {
+      const isRelease =
+        index === pitches.length - 1 &&
+        (bendType === BendType.BendAndRelease ||
+          bendType === BendType.PrebendAndRelease ||
+          bendType === BendType.Release);
+      if (isRelease && pitch === 0) {
+        return [];
+      }
+      return [
+        GuitarTechniqueDescriptors.createTextDescriptor(
+          curveEndXs[index] + beatToLabelX,
+          y,
+          fontSize,
+          ratioNumsToChar(getPitchRatioNums(pitch))
+        ),
+      ];
+    });
   }
 
   /**
@@ -219,30 +234,48 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
+   * Spans to the next beat's anchor on this line, falling back to the measured width.
+   * @param nextBeatElement Optional line-owned lookup available during first layout.
+   */
+  private getTechniqueWidth(nextBeatElement?: BeatElement | null): number {
+    const currentBeat = this.beatElement.beat;
+    const nextBeat = currentBeat.voiceBar.bar.staff.getNextBeat(currentBeat);
+    if (nextBeat === null) {
+      return this.boundingBox.width;
+    }
+
+    const voiceBarContainer = this.beatElement.voiceBarContainer;
+    if (nextBeat.voiceBar === currentBeat.voiceBar) {
+      const distance =
+        voiceBarContainer.getBeatX(nextBeat) -
+        voiceBarContainer.getBeatX(currentBeat);
+      return distance > 0 ? distance : this.boundingBox.width;
+    }
+
+    nextBeatElement ??= this.beatElement.trackElement.getBeatElement(nextBeat);
+    const nextLine = nextBeatElement?.barElement.owningTrackLineElement;
+    if (nextBeatElement == null || nextLine !== this.owningTrackLineElement) {
+      return this.boundingBox.width;
+    }
+
+    // Tab beats share one attack offset, so the next attack is its box start
+    // plus this label's offset from its own beat box.
+    const nextBeatLineX =
+      nextBeatElement.barElement.lineLocalCoords.x +
+      nextBeatElement.barLocalCoords.x +
+      this._boundingBox.x;
+    const distance = nextBeatLineX - this.lineLocalCoords.x;
+    return distance > 0 ? distance : this.boundingBox.width;
+  }
+
+  /**
    * Generates regular vibrato HTML
    */
   private createVibratoPath(): void {
-    const currentBeat = this.beatElement.beat;
-    const nextBeat = currentBeat.voiceBar.bar.staff.getNextBeat(currentBeat);
-    const nextBeatElement =
-      nextBeat === null
-        ? null
-        : (this.beatElement.trackElement.getBeatElement(nextBeat) ?? null);
-
-    const x = this._boundingBox.x;
+    const x = 0;
     const y = this._boundingBox.y + this._boundingBox.height / 2;
     const vibratoHeight = this.boundingBox.height / 6;
-    const nextBeatLineX =
-      (nextBeatElement?.barElement.lineLocalCoords.x ?? 0) +
-      (nextBeatElement?.barLocalCoords.x ?? 0);
-    const voiceBarContainer = this.beatElement.voiceBarContainer;
-    const nextBeatDistance =
-      nextBeat?.voiceBar === this.beatElement.beat.voiceBar
-        ? voiceBarContainer.getBeatX(nextBeat) -
-          voiceBarContainer.getBeatX(this.beatElement.beat)
-        : nextBeatLineX - this.lineLocalCoords.x;
-    const vibratoWidth =
-      nextBeatDistance > 0 ? nextBeatDistance : this.boundingBox.width;
+    const vibratoWidth = this.getTechniqueWidth();
     const phaseX = this.lineLocalCoords.x;
     this._pathDescriptors = [
       GuitarTechniqueDescriptors.createHorizontalVibratoPath(
@@ -256,18 +289,75 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     this._textDescriptors = [];
   }
 
-  private createRepeatedTextPath(text: string): void {
-    const x = this._boundingBox.x;
-    const y = this._boundingBox.y + this._boundingBox.height / 2;
+  /** Checks whether the previous beat continues this marking on this line. */
+  private continuesOnSameLine(): boolean {
+    const beat = this.beatElement.beat;
+    const previous = beat.voiceBar.bar.staff.getPrevBeat(beat);
+    const previousBarIndex =
+      previous === null
+        ? -1
+        : previous.voiceBar.bar.staff.bars.indexOf(previous.voiceBar.bar);
+    const sameLine = this.owningTrackLineElement.trackLineBars.some(
+      (b) => b.masterBarIndex === previousBarIndex
+    );
+    const continues = previous?.hasTechnique(this.technique.type) === true;
+    return continues && sameLine;
+  }
+
+  /** Builds one beat's text label, centered on the beat attack. */
+  private createTextPath(text: string): void {
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     this._pathDescriptors = [];
     this._textDescriptors = [
       GuitarTechniqueDescriptors.createTextDescriptor(
-        x,
-        y,
-        this.trackElement.layoutDimensions.noteTextSize,
+        0,
+        this._boundingBox.y + this._boundingBox.height / 2,
+        fontSize,
         text
       ),
     ];
+  }
+
+  /** Builds repeated label descriptors, restarting the text after a line break. */
+  private createRepeatedTextPath(text: string): void {
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
+    if (!(this.technique.note instanceof GuitarNote)) {
+      this._pathDescriptors = [];
+      this._textDescriptors = [
+        GuitarTechniqueDescriptors.createTextDescriptor(
+          0,
+          this._boundingBox.y + this._boundingBox.height / 2,
+          fontSize,
+          text
+        ),
+      ];
+      return;
+    }
+
+    const nextBeat = this.beatElement.beat.voiceBar.bar.staff.getNextBeat(
+      this.beatElement.beat
+    );
+    // The track-wide materialized index is populated after the first layout.
+    const nextBeatElement =
+      nextBeat === null
+        ? null
+        : this.beatElement.barElement.notationStyleLineContainer.getBeatElement(
+            nextBeat
+          );
+    const descriptors = GuitarTechniqueDescriptors.createRepeatedLabel(
+      text,
+      new Rect(
+        0,
+        this._boundingBox.y,
+        this.getTechniqueWidth(nextBeatElement),
+        this._boundingBox.height
+      ),
+      fontSize,
+      !this.continuesOnSameLine(),
+      this.lineLocalCoords.x
+    );
+    this._pathDescriptors = descriptors.pathDescriptors;
+    this._textDescriptors = descriptors.textDescriptors;
   }
 
   /**
@@ -278,7 +368,32 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   private createLetRingPath(): void {
-    this.createRepeatedTextPath("LR");
+    this.createRepeatedTextPath("L.R.");
+  }
+
+  /**
+   * Draws one accent mark centered on the beat attack. The beat shows one
+   * mark, so a heavy accent on any string wins.
+   */
+  private createAccentPath(): void {
+    const isHeavy = (this.beatElement.beat.notes ?? []).some(
+      (n) =>
+        n instanceof GuitarNote &&
+        n.techniques.some((t) => t.accentOptions?.kind === AccentType.Heavy)
+    );
+    const fontSize = this.trackElement.layoutDimensions.noteTextSize;
+    // Text labels hang from the row center, so their middle is half a font lower.
+    const y = this._boundingBox.y + this._boundingBox.height / 2 + fontSize / 2;
+    this._pathDescriptors = [
+      GuitarTechniqueDescriptors.createAccentPath(
+        0,
+        y,
+        fontSize * 0.6,
+        fontSize * 0.5,
+        isHeavy
+      ),
+    ];
+    this._textDescriptors = [];
   }
 
   /**
@@ -318,16 +433,16 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
     }
   }
 
+  /** Aligns bend text with pitch labels without stretching it to the beat width. */
   private createBendTypeText(text: string): void {
     const fontSize = this.trackElement.layoutDimensions.noteTextSize;
     this._pathDescriptors = [];
     this._textDescriptors = [
       GuitarTechniqueDescriptors.createTextDescriptor(
         this._boundingBox.width / 2,
-        this._boundingBox.height / 2,
+        this._boundingBox.y + this._boundingBox.height / 2 - fontSize / 2,
         fontSize,
-        text,
-        this._boundingBox.width
+        text
       ),
     ];
   }
@@ -338,11 +453,12 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
   }
 
   /**
-   * Calculates the dimensions of the outer rectangle
+   * Calculates the dimensions of the outer rectangle, from the beat attack to
+   * the beat box right edge
    */
   public measure(): void {
     this._boundingBox.setDimensions(
-      this.beatElement.boundingBox.width,
+      this.beatElement.boundingBox.width - this.beatElement.attackLocalX,
       this.trackElement.layoutDimensions.techLabelHeight
     );
   }
@@ -364,11 +480,9 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
    * Calculates the coordinates of the outer rectangle & the path
    */
   public layout(): void {
-    // Setting to beat element's global coords since
-    // the label element is inside the tech gap line
-    // whose rect is always (0, 0, {track line width}, {gap line height})
-    // this._boundingBox.setCoords(this.beatElement.globalCoords.x, 0);
-    this._boundingBox.setCoords(0, 0);
+    // Start at the attack, so labels do not begin inside the empty beat
+    // technique slot. The x is relative to the beat box (see barLocalCoords).
+    this._boundingBox.setCoords(this.beatElement.attackLocalX, 0);
 
     this.createPath();
   }
@@ -405,6 +519,12 @@ export class GuitarTechniqueLabelElement implements TechniqueLabelElement {
         break;
       case GuitarTechniqueType.LetRing:
         this.createLetRingPath();
+        break;
+      case GuitarTechniqueType.Tap:
+        this.createTextPath("T");
+        break;
+      case GuitarTechniqueType.Accent:
+        this.createAccentPath();
         break;
     }
   }

@@ -1,12 +1,13 @@
 import { File } from "node:buffer";
 import { setImmediate } from "node:timers";
 import { JSDOM } from "jsdom";
-import { deserializeScore, Score } from "../../../src/notation/model";
+import { Score } from "../../../src/notation/model";
+import { deserializeScore } from "../../../src/notation/format";
 import { TabUIEditor } from "../../../src/tabui-editor";
 import {
   bindScorePersistenceControls,
   downloadScoreDocument,
-} from "../../../demo/score-persistence-controls";
+} from "../../../demo/raw/score-persistence-controls";
 import { required } from "../required";
 
 // A known V1 file, independent of the serializer used by the export controls.
@@ -16,7 +17,7 @@ function importedDocument(name = "Imported study", fret = 7): string {
     version: 1,
     name,
     artist: "Ada",
-    song: "Evening",
+    album: "Evening",
     masterVolume: 0.8,
     masterPan: -0.2,
     masterBars: [
@@ -148,13 +149,18 @@ describe("demo score persistence controls", () => {
   });
 
   afterEach(() => {
-    for (const cleanup of cleanups.splice(0).reverse()) cleanup();
+    for (const cleanup of cleanups.splice(0).reverse()) {
+      cleanup();
+    }
     jest.restoreAllMocks();
     jest.useRealTimers();
     dom.window.close();
     for (const [name, descriptor] of originalGlobals) {
-      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
-      else Reflect.deleteProperty(globalThis, name);
+      if (descriptor) {
+        Object.defineProperty(globalThis, name, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, name);
+      }
     }
     originalGlobals.clear();
   });
@@ -175,7 +181,7 @@ describe("demo score persistence controls", () => {
     );
     let editor = new TabUIEditor(
       root,
-      new Score([], "Current score", "Artist", "Song"),
+      new Score([], "Current score", "Artist"),
       {
         layout: { width: 1200 },
       }
@@ -232,7 +238,9 @@ describe("demo score persistence controls", () => {
     cleanups.push(() => jest.runOnlyPendingTimers());
     const blobs: Blob[] = [];
     jest.spyOn(URL, "createObjectURL").mockImplementation((blob) => {
-      if (!(blob instanceof Blob)) throw new Error("Expected a download Blob");
+      if (!(blob instanceof Blob)) {
+        throw new Error("Expected a download Blob");
+      }
       blobs.push(blob);
       return "blob:score";
     });
@@ -266,7 +274,6 @@ describe("demo score persistence controls", () => {
     const restored = deserializeScore(JSON.parse(contents) as unknown);
     expect(restored.name).toBe("Current score");
     expect(restored.artist).toBe("Artist");
-    expect(restored.song).toBe("Song");
     expect(restored.tracks).toHaveLength(1);
     expect(
       restored.tracks[0].staves[0].bars[0].getVoiceBar(1)?.beats[0].notes

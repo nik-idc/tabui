@@ -9,7 +9,7 @@ export class TempoControlsTemplate {
   readonly valueControl: HTMLDivElement = createDiv();
   readonly decreaseTenButton: HTMLButtonElement = createButton();
   readonly decreaseButton: HTMLButtonElement = createButton();
-  readonly value: HTMLDivElement = createDiv();
+  readonly valueInput: HTMLInputElement = document.createElement("input");
   readonly increaseButton: HTMLButtonElement = createButton();
   readonly increaseTenButton: HTMLButtonElement = createButton();
   readonly errorText: HTMLDivElement = createDiv();

@@ -32,8 +32,6 @@ function createTupletHarness(settings: TupletSettings | null = null) {
   const callbacks = new TupletControlsDefaultCallbacks(
     component,
     notationComponent,
-    () => {},
-    () => {},
     () => {}
   );
   component.render();

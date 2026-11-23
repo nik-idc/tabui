@@ -2,7 +2,7 @@
 
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
-import { GuitarNote, NoteDuration } from "../../../src/notation/model";
+import { Dynamic, GuitarNote, NoteDuration } from "../../../src/notation/model";
 import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
 import { NoteControlsComponent } from "../../../src/ui/side-controls/note-controls/note-controls-component";
 import { NoteControlsDefaultCallbacks } from "../../../src/ui/side-controls/note-controls/note-controls-callbacks";
@@ -28,36 +28,28 @@ function createControls() {
     createTestLayoutDimensions()
   );
   const enforcer = new DialogEnforcer(dialogHost, () => {});
+  const announce = jest.fn<void, [string]>();
   const controls = new NoteControlsComponent(
     controlsHost,
     enforcer,
     notation,
-    () => {}
+    announce
   );
-  let keyboardCaptured = false;
   const callbacks = new NoteControlsDefaultCallbacks(
     controls,
     notation,
     () => controls.render(),
-    () => controls.render(),
-    () => {
-      keyboardCaptured = true;
-    },
-    () => {
-      keyboardCaptured = false;
-    }
+    () => controls.render()
   );
   controls.render();
 
   return {
+    announce,
     beat: beats[0],
     controller: notation.trackController,
     controls,
     callbacks,
     enforcer,
-    get keyboardCaptured() {
-      return keyboardCaptured;
-    },
     dispose() {
       controls.tupletComponent.dialog.close();
       controls.fretComponent.dialog.close();
@@ -100,10 +92,25 @@ describe("NoteControlsDefaultCallbacks", () => {
     expect(beat.baseDuration).toBe(NoteDuration.Eighth);
   });
 
+  test("a dynamic button sets and speaks that dynamic on the selected beat, with undo", () => {
+    const { announce, callbacks, controls, beat, controller } = fixture;
+    callbacks.bind();
+
+    controls.template.dynamicButtons[1].click();
+    expect(beat.dynamic).toBe(Dynamic.Pianissimo);
+    expect(announce).toHaveBeenLastCalledWith("Dynamic pianissimo");
+    expect(
+      controls.template.dynamicButtons[1].getAttribute("aria-pressed")
+    ).toBe("true");
+
+    controller.undo();
+    expect(beat.dynamic).toBe(Dynamic.MezzoForte);
+  });
+
   test("repeated binding inserts before and after, then removes one beat per click", () => {
     const { callbacks, controls, beat, controller } = fixture;
     const voiceBar = beat.voiceBar;
-    (required(beat.notes)[0] as GuitarNote).fret = 7;
+    (required(beat.notes)[0] as GuitarNote).setFret(7);
     const frets = () =>
       voiceBar.beats.map((b) => (required(b.notes)[0] as GuitarNote).fret);
     callbacks.bind();
@@ -111,30 +118,28 @@ describe("NoteControlsDefaultCallbacks", () => {
 
     controls.template.insertBeatBeforeButton.click();
     const before = required(controller.selectionCursor).beat;
-    (required(before.notes)[0] as GuitarNote).fret = 1;
     expect(before).not.toBe(beat);
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
 
     controls.template.insertBeatAfterButton.click();
     const after = required(controller.selectionCursor).beat;
-    (required(after.notes)[0] as GuitarNote).fret = 2;
     expect(after).not.toBe(before);
-    expect(frets()).toEqual([1, 2, 7]);
+    expect(frets()).toEqual([null, null, 7]);
 
     controls.template.removeBeatButton.click();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
     controller.undo();
-    expect(frets()).toEqual([1, 2, 7]);
+    expect(frets()).toEqual([null, null, 7]);
     controller.undo();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
     controller.undo();
     expect(frets()).toEqual([7]);
     controller.redo();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
     controller.redo();
-    expect(frets()).toEqual([1, 2, 7]);
+    expect(frets()).toEqual([null, null, 7]);
     controller.redo();
-    expect(frets()).toEqual([1, 7]);
+    expect(frets()).toEqual([null, 7]);
   });
 
   test("unbinding removes duration listeners and leaves edit history unchanged", () => {
@@ -151,7 +156,7 @@ describe("NoteControlsDefaultCallbacks", () => {
     expect(beat.baseDuration).toBe(NoteDuration.Quarter);
   });
 
-  test("custom tuplets open a contained dialog and release keyboard ownership on cancel", () => {
+  test("custom tuplets open a contained dialog", () => {
     const { callbacks, controls, enforcer } = fixture;
     callbacks.bind();
     callbacks.bind();
@@ -159,16 +164,72 @@ describe("NoteControlsDefaultCallbacks", () => {
     controls.template.tupletButton.click();
     expect(controls.tupletComponent.dialog.open).toBe(true);
     expect(enforcer.activeDialog).toBe(controls.tupletComponent.dialog);
-    expect(fixture.keyboardCaptured).toBe(true);
 
     controls.tupletComponent.template.cancelButton.click();
     expect(controls.tupletComponent.dialog.open).toBe(false);
     expect(enforcer.activeDialog).toBeUndefined();
-    expect(fixture.keyboardCaptured).toBe(false);
   });
 
-  test("rejects an invalid tuplet preset without editing the selected beat", () => {
-    expect(() => fixture.callbacks.onTupletNormalClicked(1)).toThrow(Error);
-    expect(fixture.beat.tupletSettings).toBeNull();
+  test("the tuplet preset button applies a 2:3 duplet", () => {
+    fixture.callbacks.bind();
+    fixture.controls.template.tuplet2Button.click();
+    expect(fixture.beat.tupletSettings).toEqual({
+      normalCount: 2,
+      tupletCount: 3,
+    });
+  });
+
+  test("pitch buttons shift the selected note and participate in undo history", () => {
+    const note = required(fixture.beat.notes)[0] as GuitarNote;
+    note.setFret(5);
+    fixture.controls.render();
+    fixture.callbacks.bind();
+
+    fixture.controls.template.shiftPitchUpButton.click();
+    expect((required(fixture.beat.notes)[0] as GuitarNote).fret).toBe(6);
+    fixture.controller.undo();
+    expect((required(fixture.beat.notes)[0] as GuitarNote).fret).toBe(5);
+    fixture.controller.redo();
+    expect((required(fixture.beat.notes)[0] as GuitarNote).fret).toBe(6);
+  });
+
+  test("pitch buttons are disabled when no playable note can move", () => {
+    fixture.controls.render();
+    expect(fixture.controls.template.shiftPitchUpButton.disabled).toBe(true);
+    expect(fixture.controls.template.shiftPitchDownButton.disabled).toBe(true);
+  });
+
+  test("disables pitch down at fret zero and pitch up at the maximum fret", () => {
+    const note = required(fixture.beat.notes)[0] as GuitarNote;
+    const maxFret = note.trackContext.instrument.fretsCount;
+    note.setFret(maxFret);
+    fixture.controls.render();
+    expect(fixture.controls.template.shiftPitchUpButton.disabled).toBe(true);
+    expect(fixture.controls.template.shiftPitchDownButton.disabled).toBe(false);
+    expect(
+      fixture.controls.template.shiftPitchUpButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(true);
+    expect(
+      fixture.controls.template.shiftPitchDownButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(false);
+
+    note.setFret(0);
+    fixture.controls.render();
+    expect(fixture.controls.template.shiftPitchUpButton.disabled).toBe(false);
+    expect(fixture.controls.template.shiftPitchDownButton.disabled).toBe(true);
+    expect(
+      fixture.controls.template.shiftPitchUpButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(false);
+    expect(
+      fixture.controls.template.shiftPitchDownButton.classList.contains(
+        "tu-disabled-img"
+      )
+    ).toBe(true);
   });
 });

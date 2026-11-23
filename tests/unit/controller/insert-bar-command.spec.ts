@@ -19,13 +19,13 @@ function createMultiTrackScore() {
 function expectStaffBars(score: Score, expectedBars: Bar[][]) {
   const staves = score.tracks.flatMap((v) => v.staves);
   expect(staves).toHaveLength(expectedBars.length);
-  staves.forEach((s, i) => {
+  for (const [i, s] of staves.entries()) {
     expect(s.bars).toHaveLength(expectedBars[i].length);
-    s.bars.forEach((b, j) => {
+    for (const [j, b] of s.bars.entries()) {
       expect(b).toBe(expectedBars[i][j]);
       expect(b.masterBar).toBe(score.masterBars[j]);
-    });
-  });
+    }
+  }
 }
 
 describe("InsertBarCommand", () => {
@@ -51,8 +51,13 @@ describe("InsertBarCommand", () => {
     const expectedBars = originalBars.map((v, i) => [v[0], addedBars[i], v[1]]);
     expectStaffBars(score, expectedBars);
     expect(command.insertResult?.index).toBe(1);
+    // The bar before the insertion is saved too: its last note gets a new
+    // next note, which can make a slide or legato invalid.
     expect(command.affectedModels).toEqual([
       { masterBarIndex: 1, modelUUID: addedMasterBar.uuid },
+      { masterBarIndex: 0, modelUUID: originalMasterBars[0].uuid },
+      { masterBarIndex: 1, modelUUID: addedMasterBar.uuid },
+      { masterBarIndex: 2, modelUUID: originalMasterBars[1].uuid },
     ]);
 
     command.undo();

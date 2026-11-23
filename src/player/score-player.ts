@@ -13,6 +13,8 @@ import { PlaybackScheduler } from "./playback-scheduler";
 const LOOKAHEAD_SECONDS = 5;
 /** Interval in milliseconds for rolling lookahead scheduling. */
 const LOOKAHEAD_INTERVAL_MS = 50;
+/** Audio-clock lead time in seconds to prepare the first scheduled notes. */
+const START_DELAY_SECONDS = 0.05;
 
 export interface PlaybackOptions {
   /** Beat to start playback from. */
@@ -23,6 +25,7 @@ export interface PlaybackOptions {
   loopEndBeat?: Beat;
 }
 
+/** Playback error-event stages: audio-context creation, context start, sample loading, and scheduling. */
 export enum PlaybackErrorCode {
   ContextInit = "context-init",
   ContextStart = "context-start",
@@ -110,7 +113,8 @@ export class ScorePlayer {
     this._cursorCoordinator = new PlaybackCursorCoordinator(
       this.score,
       activeTrack,
-      this.uuid
+      this.uuid,
+      () => this._audioEngine.currentTime
     );
   }
 
@@ -205,7 +209,7 @@ export class ScorePlayer {
       throw Error("Playback scheduler is not initialized");
     }
 
-    this._scheduler.setScheduleBase(currentTime + 0.05);
+    this._scheduler.setScheduleBase(currentTime + START_DELAY_SECONDS);
 
     clearInterval(this._schedulerInterval);
     this.scheduleLookahead();
@@ -238,7 +242,7 @@ export class ScorePlayer {
     playbackAnchorBeat: Beat | undefined
   ): Promise<boolean> {
     try {
-      await this.prepareAudio(true, false);
+      await this.prepareAudio(true);
     } catch (error) {
       // Report preparation failures only while this playback run is current
       if (!this.startIsStale(playbackRunId)) {
@@ -263,12 +267,8 @@ export class ScorePlayer {
    * example, a user can stop playback, add a bass track, then load its samples
    * in the background without resuming audio. A later Play action resumes the
    * context when needed and schedules playback.
-   * @param waitForSamples Whether preparation waits for decoded samples.
    */
-  private async prepareAudio(
-    resumeAudio: boolean,
-    waitForSamples: boolean
-  ): Promise<void> {
+  private async prepareAudio(resumeAudio: boolean): Promise<void> {
     this._audioEngine.initialize();
     if (resumeAudio) {
       await this._audioEngine.resume();
@@ -276,10 +276,7 @@ export class ScorePlayer {
         return;
       }
     }
-    const sampleLoad = this._audioEngine.loadSamples();
-    if (waitForSamples) {
-      await sampleLoad;
-    }
+    await this._audioEngine.loadSamples();
   }
 
   /** Starts optional background audio preparation without blocking initialization. */
@@ -289,7 +286,7 @@ export class ScorePlayer {
     }
 
     try {
-      await this.prepareAudio(false, true);
+      await this.prepareAudio(false);
     } catch {
       // A later user-initiated start retries preparation and reports its failure.
     }
@@ -498,6 +495,24 @@ export class ScorePlayer {
   /** Applies score-wide playback controls to already scheduled audio. */
   public syncMasterPlaybackState(): void {
     this._audioEngine.applyMasterControls();
+  }
+
+  /** Enables or disables the score-wide synthesized metronome. */
+  public setMetronomeEnabled(enabled: boolean): void {
+    this._audioEngine.setMetronomeEnabled(enabled);
+  }
+
+  public get metronomeEnabled(): boolean {
+    return this._audioEngine.metronomeEnabled;
+  }
+
+  /** Sets the live global pitch offset without changing score data. */
+  public setPitchShiftSemitones(semitones: number): void {
+    this._audioEngine.setPitchShiftSemitones(semitones);
+  }
+
+  public get pitchShiftSemitones(): number {
+    return this._audioEngine.pitchShiftSemitones;
   }
 
   /** Clears currently selected loop section. */

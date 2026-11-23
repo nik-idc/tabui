@@ -3,6 +3,7 @@ import { NotationComponent } from "../notation/notation-component";
 import { ResolvedTabUIConfig } from "../config/tabui-config";
 import { SideControlsComponent } from "./side-controls/side-controls-component";
 import { TopControlsComponent } from "./top-controls";
+import { ScoreHeaderComponent } from "./score-header";
 
 export class UIComponent {
   readonly topHost: HTMLDivElement;
@@ -13,23 +14,30 @@ export class UIComponent {
 
   readonly topComponent: TopControlsComponent;
   readonly sideComponent: SideControlsComponent;
+  /** Score title and details at the top of the notation. */
+  readonly headerComponent: ScoreHeaderComponent;
+  /** Speaks text to screen readers; repeat replays identical text. */
+  readonly announce: (text: string, repeat?: boolean) => void;
 
   constructor(
     topHost: HTMLDivElement,
+    editorRoot: HTMLDivElement,
     sideHost: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
     config: ResolvedTabUIConfig,
-    announce: (text: string) => void
+    announce: (text: string, repeat?: boolean) => void
   ) {
     this.topHost = topHost;
     this.sideHost = sideHost;
     this.dialogEnforcer = dialogEnforcer;
     this.notationComponent = notationComponent;
     this.config = config;
+    this.announce = announce;
 
     this.topComponent = new TopControlsComponent(
       this.topHost,
+      editorRoot,
       this.dialogEnforcer,
       this.notationComponent,
       announce
@@ -41,11 +49,16 @@ export class UIComponent {
       config,
       announce
     );
+    this.headerComponent = new ScoreHeaderComponent(
+      this.notationComponent.rootDiv,
+      this.notationComponent
+    );
   }
 
   public render(collapsed?: boolean): void {
     this.topComponent.render();
     this.sideComponent.render(collapsed);
+    this.headerComponent.render();
   }
 
   /** Closes editor-owned dialogs before their controls become unavailable. */

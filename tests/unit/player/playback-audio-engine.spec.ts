@@ -29,10 +29,23 @@ function createPanner() {
   };
 }
 
+function createLimiter() {
+  return {
+    threshold: createParam(),
+    knee: createParam(),
+    ratio: createParam(),
+    attack: createParam(),
+    release: createParam(),
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+  };
+}
+
 function createOscillator() {
   return {
     type: "sine" as OscillatorType,
     frequency: createParam(),
+    detune: createParam(),
     start: jest.fn(),
     stop: jest.fn(),
     connect: jest.fn(),
@@ -45,6 +58,7 @@ function createBufferSource() {
   return {
     buffer: null as AudioBuffer | null,
     playbackRate: createParam(),
+    detune: createParam(),
     start: jest.fn(),
     stop: jest.fn(),
     connect: jest.fn(),
@@ -56,6 +70,7 @@ function createBufferSource() {
 function createAudioContext(failPannerAfter?: number) {
   const gains: ReturnType<typeof createGain>[] = [];
   const panners: ReturnType<typeof createPanner>[] = [];
+  const limiters: ReturnType<typeof createLimiter>[] = [];
   const oscillators: ReturnType<typeof createOscillator>[] = [];
   const bufferSources: ReturnType<typeof createBufferSource>[] = [];
   const decodedBuffer = { duration: 1 } as AudioBuffer;
@@ -78,6 +93,11 @@ function createAudioContext(failPannerAfter?: number) {
       panners.push(panner);
       return panner;
     }),
+    createDynamicsCompressor: jest.fn(() => {
+      const limiter = createLimiter();
+      limiters.push(limiter);
+      return limiter;
+    }),
     createOscillator: jest.fn(() => {
       const oscillator = createOscillator();
       oscillators.push(oscillator);
@@ -95,6 +115,7 @@ function createAudioContext(failPannerAfter?: number) {
     destination,
     gains,
     panners,
+    limiters,
     oscillators,
     bufferSources,
     decodedBuffer,
@@ -109,7 +130,7 @@ function playableBeat() {
   if (!(note instanceof GuitarNote)) {
     throw Error("Expected a guitar note");
   }
-  note.fret = 0;
+  note.setFret(0);
   return { ...graph, beat };
 }
 
@@ -146,7 +167,7 @@ describe("PlaybackAudioEngine", () => {
     score.masterVolume = 0.8;
     score.masterPan = -0.25;
     const engine = new PlaybackAudioEngine(score, {});
-    const { context, gains, panners } = createAudioContext();
+    const { context, gains, panners, limiters } = createAudioContext();
     nextAudioContext = context;
 
     expect(AudioContext).not.toHaveBeenCalled();
@@ -157,12 +178,15 @@ describe("PlaybackAudioEngine", () => {
 
     expect(AudioContext).toHaveBeenCalledTimes(1);
     expect(context.resume).toHaveBeenCalledTimes(1);
-    expect(gains).toHaveLength(2);
+    expect(gains).toHaveLength(3);
     expect(panners).toHaveLength(2);
     expect(gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.8, 3);
     expect(panners[0].pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 3);
     expect(gains[0].connect).toHaveBeenCalledWith(panners[0]);
-    expect(panners[0].connect).toHaveBeenCalledWith(context.destination);
+    expect(panners[0].connect).toHaveBeenCalledWith(limiters[0]);
+    expect(limiters[0].connect).toHaveBeenCalledWith(context.destination);
+    expect(limiters[0].threshold.value).toBe(-1);
+    expect(limiters[0].ratio.value).toBe(20);
     expect(gains[1].connect).toHaveBeenCalledWith(panners[1]);
     expect(panners[1].connect).toHaveBeenCalledWith(gains[0]);
 
@@ -174,7 +198,7 @@ describe("PlaybackAudioEngine", () => {
 
     expect(context.close).toHaveBeenCalledTimes(1);
     expect(engine.currentTime).toBeUndefined();
-    for (const node of [...gains, ...panners]) {
+    for (const node of [...gains, ...panners, ...limiters]) {
       expect(node.disconnect).toHaveBeenCalled();
     }
   });
@@ -204,6 +228,80 @@ describe("PlaybackAudioEngine", () => {
     }
   );
 
+  test("updates buffered pitch and the independent metronome bus live", () => {
+    const { score, beat } = playableBeat();
+    const engine = new PlaybackAudioEngine(score, {});
+    const audio = createAudioContext();
+    nextAudioContext = audio.context;
+    engine.initialize();
+
+    engine.scheduleBeat(beat, 5, 6);
+    const note = audio.oscillators[0];
+    if (note === undefined) {
+      throw Error("Expected a note source");
+    }
+    engine.setPitchShiftSemitones(2);
+    engine.scheduleBeat(beat, 6, 7);
+    const handedOffNote = audio.oscillators[1];
+    if (handedOffNote === undefined) {
+      throw Error("Expected a handed-off note source");
+    }
+    expect(handedOffNote.detune.value).toBe(200);
+    Object.defineProperty(audio.context, "currentTime", { value: 4 });
+    engine.setPitchShiftSemitones(7);
+    expect(note.detune.setValueAtTime).toHaveBeenCalledWith(200, 3);
+    expect(note.detune.setValueAtTime).toHaveBeenCalledWith(700, 4);
+    expect(handedOffNote.detune.setValueAtTime).toHaveBeenCalledWith(700, 4);
+    engine.scheduleBeat(beat, 7, 8);
+    const futureNote = audio.oscillators[2];
+    if (futureNote === undefined) {
+      throw Error("Expected a future note source");
+    }
+    expect(futureNote.detune.value).toBe(700);
+
+    engine.scheduleMetronomeClick(5, 6, true);
+    const click = audio.oscillators[3];
+    if (click === undefined) {
+      throw Error("Expected a metronome source");
+    }
+    const clickEnvelope = click.connect.mock.calls[0][0];
+    expect(clickEnvelope.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+      1,
+      5.001
+    );
+    engine.scheduleMetronomeClick(5.5, 6, false);
+    const regularClick = audio.oscillators[audio.oscillators.length - 1];
+    const regularEnvelope = regularClick.connect.mock.calls[0][0];
+    expect(regularEnvelope.gain.linearRampToValueAtTime).toHaveBeenCalledWith(
+      0.625,
+      5.501
+    );
+    const metronomeGain = audio.gains.find((gain) =>
+      gain.connect.mock.calls.some((call) => call[0] === audio.gains[0])
+    );
+    if (metronomeGain === undefined) {
+      throw Error("Expected metronome bus");
+    }
+    engine.setMetronomeEnabled(false);
+    expect(metronomeGain.gain.setValueAtTime).toHaveBeenLastCalledWith(0, 4);
+    engine.setMetronomeEnabled(true);
+    expect(clickEnvelope.connect).toHaveBeenCalledWith(metronomeGain);
+    expect(metronomeGain.connect).toHaveBeenCalledWith(audio.gains[0]);
+    expect(metronomeGain.gain.setValueAtTime).toHaveBeenLastCalledWith(0.48, 4);
+    const clickDetuneCalls = click.detune.setValueAtTime.mock.calls.length;
+    engine.setPitchShiftSemitones(0);
+    expect(click.detune.setValueAtTime).toHaveBeenCalledTimes(clickDetuneCalls);
+    expect(click.start).toHaveBeenCalledWith(5);
+
+    const track = score.tracks[0];
+    track.muted = true;
+    track.soloed = true;
+    track.volume = 0.2;
+    track.pan = -0.4;
+    engine.applyTrackControls();
+    expect(metronomeGain.gain.setValueAtTime).toHaveBeenLastCalledWith(0.48, 4);
+  });
+
   test("removes naturally ended nodes from teardown tracking", () => {
     const { score, beat } = playableBeat();
     const engine = new PlaybackAudioEngine(score, {});
@@ -220,7 +318,8 @@ describe("PlaybackAudioEngine", () => {
     engine.stopScheduledAudioNodes();
 
     expect(source.disconnect).toHaveBeenCalledTimes(1);
-    expect(audio.gains[2].disconnect).toHaveBeenCalledTimes(1);
+    const noteGain = source.connect.mock.calls[0][0];
+    expect(noteGain.disconnect).toHaveBeenCalledTimes(1);
     expect(source.stop).toHaveBeenCalledTimes(1);
     expect(source.stop).toHaveBeenCalledWith(5);
   });
@@ -245,8 +344,10 @@ describe("PlaybackAudioEngine", () => {
       expect(source.stop).toHaveBeenLastCalledWith(3);
       expect(source.disconnect).toHaveBeenCalledTimes(1);
     }
-    expect(audio.gains[3].disconnect).toHaveBeenCalledTimes(1);
-    expect(audio.gains[4].disconnect).toHaveBeenCalledTimes(1);
+    expect(boundary.connect.mock.calls[0][0].disconnect).toHaveBeenCalledTimes(
+      1
+    );
+    expect(later.connect.mock.calls[0][0].disconnect).toHaveBeenCalledTimes(1);
 
     earlier.stop.mockImplementationOnce(() => {
       throw Error("already stopped");
@@ -256,7 +357,9 @@ describe("PlaybackAudioEngine", () => {
 
     expect(earlier.stop).toHaveBeenLastCalledWith(3);
     expect(earlier.disconnect).toHaveBeenCalledTimes(1);
-    expect(audio.gains[2].disconnect).toHaveBeenCalledTimes(1);
+    expect(earlier.connect.mock.calls[0][0].disconnect).toHaveBeenCalledTimes(
+      1
+    );
     expect(boundary.stop).toHaveBeenCalledTimes(2);
     expect(later.stop).toHaveBeenCalledTimes(2);
   });
@@ -275,7 +378,7 @@ describe("PlaybackAudioEngine", () => {
     if (!(secondNote instanceof GuitarNote)) {
       throw Error("Expected a guitar note");
     }
-    secondNote.fret = 2;
+    secondNote.setFret(2);
 
     track.volume = 0.6;
     track.pan = 0.75;
@@ -295,14 +398,22 @@ describe("PlaybackAudioEngine", () => {
     engine.applyTrackControls();
 
     // The second track bus is created after the first note envelope.
-    expect(audio.gains).toHaveLength(5);
-    const firstBus = audio.gains[1];
-    const secondBus = audio.gains[3];
+    expect(audio.gains).toHaveLength(6);
+    const firstBus = audio.gains.find((gain) =>
+      gain.connect.mock.calls.some((call) => call[0] === audio.panners[1])
+    );
+    const secondBus = audio.gains.find((gain) =>
+      gain.connect.mock.calls.some((call) => call[0] === audio.panners[2])
+    );
+    if (firstBus === undefined || secondBus === undefined) {
+      throw Error("Expected both track buses");
+    }
     expect(firstBus.gain.setValueAtTime).toHaveBeenLastCalledWith(0.6, 3);
     expect(secondBus.gain.setValueAtTime).toHaveBeenLastCalledWith(0.25, 3);
-    expect(audio.oscillators[0].connect).toHaveBeenCalledWith(audio.gains[2]);
-    expect(audio.gains[2].connect).toHaveBeenCalledWith(firstBus);
-    expect(audio.gains[4].connect).toHaveBeenCalledWith(secondBus);
+    const firstNoteGain = audio.oscillators[0].connect.mock.calls[0][0];
+    const secondNoteGain = audio.oscillators[1].connect.mock.calls[0][0];
+    expect(firstNoteGain.connect).toHaveBeenCalledWith(firstBus);
+    expect(secondNoteGain.connect).toHaveBeenCalledWith(secondBus);
     expect(secondBus.connect).toHaveBeenCalledWith(audio.panners[2]);
     expect(audio.panners[2].connect).toHaveBeenCalledWith(audio.gains[0]);
     expect(audio.panners[2].pan.setValueAtTime).toHaveBeenLastCalledWith(
@@ -418,13 +529,18 @@ describe("PlaybackAudioEngine", () => {
       const source = audio.bufferSources[0];
       expect(source.buffer).toBe(audio.decodedBuffer);
       expect(source.start).toHaveBeenCalledWith(4);
-      expect(source.connect).toHaveBeenCalledWith(audio.gains[2]);
-      expect(audio.gains[2].connect).toHaveBeenCalledWith(audio.gains[1]);
+      const noteGain = source.connect.mock.calls[0][0];
+      expect(noteGain.connect).toHaveBeenCalledWith(audio.gains[1]);
+      engine.setPitchShiftSemitones(2);
+      engine.setPitchShiftSemitones(0);
+      expect(source.detune.setValueAtTime).toHaveBeenCalledWith(200, 3);
+      engine.setPitchShiftSemitones(0);
+      expect(source.detune.setValueAtTime).toHaveBeenLastCalledWith(0, 3);
 
       engine.stopScheduledAudioNodes();
       expect(source.stop).toHaveBeenLastCalledWith(3);
       expect(source.disconnect).toHaveBeenCalledTimes(1);
-      expect(audio.gains[2].disconnect).toHaveBeenCalledTimes(1);
+      expect(noteGain.disconnect).toHaveBeenCalledTimes(1);
       engine.dispose();
     } finally {
       globalThis.fetch = originalFetch;

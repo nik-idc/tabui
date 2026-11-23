@@ -4,53 +4,32 @@ import {
   getEditorFixtures,
   resolveEditorFixture,
   resolveEditorFixtureKey,
-} from "../../../demo/data/fixture";
+} from "../../../demo/raw/data/fixture";
 import {
   applyEditorThemeToPage,
   getEditorThemes,
   resolveEditorTheme,
   resolveEditorThemeKey,
-} from "../../../demo/data/theme";
-import {
-  Bar,
-  Beat,
-  deserializeScore,
-  GuitarNote,
-  NoteDuration,
-  serializeScore,
-  VoiceNumber,
-} from "../../../src/notation/model";
+} from "../../../demo/raw/data/theme";
+import { Bar, NoteDuration, VoiceNumber } from "../../../src/notation/model";
+import { deserializeScore, serializeScore } from "../../../src/notation/format";
+import showcaseDocument from "../../../fixtures/feature-showcase-score.json";
 
 // Keys are fixture identifiers defined by the demo data contract.
 /* eslint-disable @typescript-eslint/naming-convention */
 const FIXTURE_EXPECTATIONS = {
   feature_showcase: {
-    name: "Feature Showcase Score",
-    tracks: 3,
-    bars: 6,
-    voicesByStaff: [[1], [1]],
+    name: "Sample song",
+    tracks: 5,
+    bars: 34,
+    voicesByTrack: [[[1]], [[1]], [[1]], [[1]], [[1]]],
   },
-  empty: { name: "Unknown", tracks: 1, bars: 1, voicesByStaff: [[1]] },
+  empty: { name: "Unknown", tracks: 1, bars: 1, voicesByTrack: [[[1]]] },
   performance_stress: {
     name: "Performance Stress Score",
     tracks: 1,
     bars: 1000,
-    voicesByStaff: [[1]],
-  },
-  multi_voice_single_staff: {
-    name: "Multi Voice Single Staff",
-    tracks: 1,
-    bars: 3,
-    voicesByStaff: [[1, 2]],
-  },
-  multi_voice_two_staff: {
-    name: "Multi Voice Two Staff",
-    tracks: 1,
-    bars: 3,
-    voicesByStaff: [
-      [1, 2],
-      [1, 3],
-    ],
+    voicesByTrack: [[[1]]],
   },
 } as const;
 /* eslint-enable @typescript-eslint/naming-convention */
@@ -70,25 +49,11 @@ function requireVoice(bar: Bar, voiceNumber: VoiceNumber) {
   return voice;
 }
 
-function guitarNotes(beat: Beat): GuitarNote[] {
-  if (beat.notes === null) {
-    throw new Error("Expected fixture notes, received a rest");
-  }
-  return beat.notes.map((n) => {
-    if (!(n instanceof GuitarNote)) {
-      throw new Error("Expected a guitar note in the fixture");
-    }
-    return n;
-  });
-}
-
 describe("editor fixture and theme resolution", () => {
   it.each([
     ["feature_showcase", "feature_showcase"],
     ["empty", "empty"],
     ["performance_stress", "performance_stress"],
-    ["multi_voice_single_staff", "multi_voice_single_staff"],
-    ["multi_voice_two_staff", "multi_voice_two_staff"],
     ["unknown", "feature_showcase"],
     ["", "feature_showcase"],
   ])("resolves fixture=%s to %s", (key, expected) => {
@@ -106,17 +71,16 @@ describe("editor fixture and theme resolution", () => {
     const params = new URLSearchParams("fixture=feature_showcase");
     const firstScore = resolveEditorFixture(params);
     const secondScore = resolveEditorFixture(params);
-    const firstLead = requireVoice(firstScore.tracks[1].staves[0].bars[0], 1);
-    const secondLead = requireVoice(secondScore.tracks[1].staves[0].bars[0], 1);
+    const untouched = serializeScore(secondScore);
 
+    // Editing one copy must not change the next one.
     firstScore.masterBars[0].tempo = 87;
-    firstScore.tracks[1].name = "Edited lead";
-    guitarNotes(firstLead.beats[0])[0].fret = 7;
+    firstScore.tracks[1].name = "Edited track";
+    requireVoice(firstScore.tracks[1].staves[0].bars[0], 1).beats[0].makeRest();
 
     expect(firstScore).not.toBe(secondScore);
-    expect(secondScore.masterBars[0].tempo).toBe(120);
-    expect(secondScore.tracks[1].name).toBe("Lead track");
-    expect(guitarNotes(secondLead.beats[0])[0].fret).toBe(12);
+    expect(serializeScore(secondScore)).toEqual(untouched);
+    expect(serializeScore(firstScore)).not.toEqual(untouched);
   });
 
   it("exposes fixture options for demo UI", () => {
@@ -124,8 +88,6 @@ describe("editor fixture and theme resolution", () => {
       "feature_showcase",
       "empty",
       "performance_stress",
-      "multi_voice_single_staff",
-      "multi_voice_two_staff",
     ]);
   });
 
@@ -142,14 +104,15 @@ describe("editor fixture and theme resolution", () => {
         expect(score.name).toBe(expected.name);
         expect(score.tracks).toHaveLength(expected.tracks);
         expect(score.masterBars).toHaveLength(expected.bars);
-        for (const track of score.tracks) {
-          expect(track.staves).toHaveLength(expected.voicesByStaff.length);
+        for (const [trackIndex, track] of score.tracks.entries()) {
+          const voicesByStaff = expected.voicesByTrack[trackIndex];
+          expect(track.staves).toHaveLength(voicesByStaff.length);
           for (const [staffIndex, staff] of track.staves.entries()) {
             expect(staff.bars).toHaveLength(expected.bars);
             for (const [barIndex, bar] of staff.bars.entries()) {
               expect(bar.masterBar).toBe(score.masterBars[barIndex]);
               expect(bar.voiceBarsAsArray.map((v) => v.voiceNumber)).toEqual(
-                expected.voicesByStaff[staffIndex]
+                voicesByStaff[staffIndex]
               );
             }
           }
@@ -173,32 +136,21 @@ describe("editor fixture and theme resolution", () => {
     });
   }
 
-  it("provides distinct chord, lead and bass parts in the showcase", () => {
+  it("loads the showcase from its saved file, with full bars", () => {
     const score = resolveEditorFixture(new URLSearchParams());
-    const parts = score.tracks.map((t) => {
-      const voice = requireVoice(t.staves[0].bars[0], 1);
-      return guitarNotes(voice.beats[0]).map((n) => n.fret);
-    });
-
-    expect(parts).toEqual([
-      [null, 2, 2, 1, null, null],
-      [12, null, null, null, null, null],
-      [null, null, null, 0],
-    ]);
-    const rhythmBars = score.tracks[0].staves[0].bars;
-    expect(rhythmBars.map((b) => requireVoice(b, 1).beats.length)).toEqual([
-      1, 2, 4, 8, 16, 32,
-    ]);
-    expect(
-      rhythmBars.map((b) => requireVoice(b, 1).beats[0].baseDuration)
-    ).toEqual([
-      NoteDuration.Whole,
-      NoteDuration.Half,
-      NoteDuration.Quarter,
-      NoteDuration.Eighth,
-      NoteDuration.Sixteenth,
-      NoteDuration.ThirtySecond,
-    ]);
+    expect(serializeScore(score)).toEqual(showcaseDocument);
+    for (const track of score.tracks) {
+      for (const staff of track.staves) {
+        for (const bar of staff.bars) {
+          for (const voice of bar.voiceBarsAsArray) {
+            const last = voice.beats[voice.beats.length - 1];
+            expect(last.endTick / voice.tickResolution).toBe(
+              bar.masterBar.beatsCount * bar.masterBar.duration
+            );
+          }
+        }
+      }
+    }
   });
 
   it("starts the empty fixture with a quarter rest and absent extra voices", () => {
@@ -216,70 +168,16 @@ describe("editor fixture and theme resolution", () => {
     ]).toEqual([null, null, null]);
   });
 
-  it.each(["multi_voice_single_staff", "multi_voice_two_staff"])(
-    "provides independent dotted and tuplet voice timing in %s",
-    (key) => {
-      const score = resolveEditorFixture(new URLSearchParams(`fixture=${key}`));
-      const bars = score.tracks[0].staves[0].bars;
-      const melody = requireVoice(bars[0], 1);
-      const accompaniment = requireVoice(bars[0], 2);
-      const triplets = requireVoice(bars[2], 1);
-
-      expect(
-        melody.beats.map((b) => b.startTick / melody.tickResolution)
-      ).toEqual([0, 0.25, 0.5, 0.75]);
-      expect(
-        accompaniment.beats.map((b) => [
-          b.dots,
-          b.startTick / accompaniment.tickResolution,
-          b.endTick / accompaniment.tickResolution,
-        ])
-      ).toEqual([
-        [0, 0, 0.5],
-        [1, 0.5, 0.875],
-        [0, 0.875, 1],
-      ]);
-      expect(triplets.beats.map((b) => b.tupletSettings)).toEqual([
-        { normalCount: 3, tupletCount: 2 },
-        { normalCount: 3, tupletCount: 2 },
-        { normalCount: 3, tupletCount: 2 },
-        null,
-      ]);
-      expect(
-        triplets.beats.map((b) => b.endTick / triplets.tickResolution)
-      ).toEqual([1 / 12, 1 / 6, 0.25, 0.75]);
-      expect(accompaniment.beats.map((b) => guitarNotes(b)[2].fret)).toEqual([
-        2, 4, 5,
-      ]);
-    }
-  );
-
-  it("populates voice three on the second staff with a separate bass line", () => {
-    const score = resolveEditorFixture(
-      new URLSearchParams("fixture=multi_voice_two_staff")
-    );
-    const bar = score.tracks[0].staves[1].bars[0];
-    const bass = requireVoice(bar, 3);
-
-    expect(bass.beats.map((b) => guitarNotes(b)[4].fret)).toEqual([
-      0, 2, 3, 5, 7,
-    ]);
-    expect(bass.beats.map((b) => b.startTick / bass.tickResolution)).toEqual([
-      0, 0.125, 0.25, 0.375, 0.5,
-    ]);
-    expect(
-      requireVoice(bar, 1).beats.map((b) => guitarNotes(b)[1].fret)
-    ).toEqual([5, 7]);
-    expect(bar.getVoiceBar(2)).toBeNull();
-  });
-
   it.each([
     ["midnight", "midnight"],
     ["obsidian", "obsidian"],
     ["paper", "paper"],
     ["contrast", "contrast"],
-    ["unknown", "obsidian"],
-    ["", "obsidian"],
+    ["light", "light"],
+    ["dark", "dark"],
+    ["auto", "auto"],
+    ["unknown", "auto"],
+    ["", "auto"],
   ])("resolves theme=%s to %s", (key, expected) => {
     const params = new URLSearchParams(key ? `theme=${key}` : "");
 
@@ -288,6 +186,8 @@ describe("editor fixture and theme resolution", () => {
 
   it("exposes theme options for demo UI", () => {
     expect(getEditorThemes().map((theme) => theme.key)).toEqual([
+      "light",
+      "dark",
       "midnight",
       "obsidian",
       "paper",
@@ -305,6 +205,13 @@ describe("editor fixture and theme resolution", () => {
     );
   });
 
+  it("resolves the auto theme from the page appearance", () => {
+    const params = new URLSearchParams("theme=auto");
+
+    expect(resolveEditorTheme(params, false).assets?.variant).toBe("light");
+    expect(resolveEditorTheme(params, true).assets?.variant).toBe("dark");
+  });
+
   it("applies and replaces page theme CSS without clearing unrelated styles", () => {
     const root = document.documentElement;
     const originalStyle = root.getAttribute("style");
@@ -319,10 +226,11 @@ describe("editor fixture and theme resolution", () => {
         "#f4efe6"
       );
       expect(root.style.getPropertyValue("--tu-primary-color")).toBe("#fffdf8");
-      expect(root.style.getPropertyValue("--tu-font-body")).toBe(
-        '"Merriweather", serif'
+      expect(root.style.getPropertyValue("--tu-secondary-color")).toBe(
+        "#ebe2d2"
       );
-      expect(root.style.getPropertyValue("--tu-notation-ink")).toBe("#433422");
+      expect(root.style.getPropertyValue("--tu-border-color")).toBe("#c8b79c");
+      expect(root.style.getPropertyValue("--tu-font-color")).toBe("#433422");
 
       applyEditorThemeToPage(
         resolveEditorTheme(new URLSearchParams("theme=midnight"))
@@ -332,10 +240,11 @@ describe("editor fixture and theme resolution", () => {
         "#0f172a"
       );
       expect(root.style.getPropertyValue("--tu-primary-color")).toBe("#111827");
-      expect(root.style.getPropertyValue("--tu-font-body")).toBe(
-        '"Inter", sans-serif'
+      expect(root.style.getPropertyValue("--tu-secondary-color")).toBe(
+        "#1f2937"
       );
-      expect(root.style.getPropertyValue("--tu-notation-ink")).toBe("#e5eefb");
+      expect(root.style.getPropertyValue("--tu-border-color")).toBe("#334155");
+      expect(root.style.getPropertyValue("--tu-font-color")).toBe("#e5eefb");
       expect(root.style.getPropertyValue("--demo-host-color")).toBe("tomato");
     } finally {
       if (originalStyle === null) {

@@ -13,20 +13,26 @@ export interface SVGTextDescriptor {
   attrs?: Record<string, string>;
 }
 
+/** Technique visual drawn as SVG paths whose coordinates are local to an origin. */
+export interface TechniquePathElement extends NotationElement {
+  /** Path descriptors, or undefined when nothing is drawn. */
+  get pathDescriptors(): SVGPathDescriptor[] | undefined;
+  /** Bar-local origin of the path descriptor coordinates. */
+  get pathOriginBarLocal(): Point;
+}
+
 /**
  * Class that handles geometry & visually relevant info
  * of a note technique. Represents specifically a UI element
  * near the note to which the technique is applied
  */
-export interface TechniqueElement extends NotationElement {
+export interface TechniqueElement extends TechniquePathElement {
   readonly technique: Technique;
   readonly noteElement: NoteElement;
   readonly barLocalCoords: Point;
   readonly barLocalBoundingBox: Rect;
 
-  get pathDescriptors(): SVGPathDescriptor[] | undefined;
   get startPoint(): Point;
-  get pathOriginBarLocal(): Point;
   get pathOriginLineLocal(): Point;
   get pathOrigin(): Point;
   get globalCoords(): Point;

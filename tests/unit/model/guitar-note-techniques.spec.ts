@@ -1,12 +1,19 @@
 import {
+  AccentOptions,
+  AccentType,
   BendTechniqueOptions,
   BendType,
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
   NoteDuration,
+  ScoreEditor,
 } from "../../../src/notation/model";
 import { createBarWithBeats, createScoreGraph } from "./helpers";
+import { required } from "../required";
+
+const NORMAL = new AccentOptions({ kind: AccentType.Normal });
+const HEAVY = new AccentOptions({ kind: AccentType.Heavy });
 
 function createNote(): GuitarNote {
   const { bar } = createScoreGraph();
@@ -14,14 +21,156 @@ function createNote(): GuitarNote {
   if (!(note instanceof GuitarNote)) {
     throw Error("Expected guitar note in test beat");
   }
-  note.fret = 0;
+  // Fretted, because an open string cannot be bent.
+  note.setFret(5);
   return note;
 }
 
+function createContinuationNote(): GuitarNote {
+  const { beats } = createBarWithBeats([
+    { baseDuration: NoteDuration.Quarter },
+    { baseDuration: NoteDuration.Quarter },
+  ]);
+  const notes = beats.map((b) => {
+    const note = b.notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    note.setFret(5);
+    return note;
+  });
+  return notes[1];
+}
+
 describe("GuitarNote technique updates", () => {
+  test("Let Ring support reads marked empty chains without changing local markers", () => {
+    const { beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const notes = beats.map((b) => {
+      const note = b.notes?.[0];
+      if (!(note instanceof GuitarNote)) {
+        throw Error("Expected guitar note");
+      }
+      note.setTechnique(GuitarTechniqueType.LetRing);
+      return note;
+    });
+    notes[0].setFret(5);
+
+    expect(notes[2].hasLetRingSupport()).toBe(true);
+    notes[1].removeTechnique(GuitarTechniqueType.LetRing);
+    expect(notes[2].hasLetRingSupport()).toBe(false);
+    expect(notes[2].hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+    notes[1].setTechnique(GuitarTechniqueType.LetRing);
+    notes[0].setFret(-1);
+    expect(notes[2].hasLetRingSupport()).toBe(false);
+    notes[0].setFret(5);
+    notes[0].setTechnique(GuitarTechniqueType.LetRing);
+    expect(notes[2].hasLetRingSupport()).toBe(true);
+    beats[1].makeRest();
+    expect(notes[2].hasLetRingSupport()).toBe(false);
+  });
+
+  test("empty construction keeps Let Ring locally but rejects note-only techniques", () => {
+    const note = createNote();
+    const marker = new GuitarTechnique(note, GuitarTechniqueType.LetRing);
+    const empty = new GuitarNote(
+      note.beat,
+      note.trackContext,
+      note.stringNum,
+      null,
+      [marker]
+    );
+
+    expect(empty.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+    expect(empty.hasLetRingSupport()).toBe(false);
+    expect(
+      () =>
+        new GuitarNote(note.beat, note.trackContext, note.stringNum, null, [
+          new GuitarTechnique(note, GuitarTechniqueType.Tie),
+        ])
+    ).toThrow("Cannot apply techniques to an empty guitar note");
+  });
+
+  test("Palm Mute accepts a dead strike but never an empty slot", () => {
+    const note = createNote();
+    note.setFret(-1);
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.PalmMute)).toBe(true);
+    expect(note.setTechnique(GuitarTechniqueType.PalmMute)).toBe(true);
+    note.setFret(null);
+    expect(note.hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+    expect(note.setTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
+  });
+
+  test("Accent accepts a dead strike but never an empty slot", () => {
+    const note = createNote();
+    note.setFret(-1);
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(true);
+    note.setFret(null);
+    expect(note.hasTechnique(GuitarTechniqueType.Accent)).toBe(false);
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(false);
+  });
+
+  test("Accent options switch the kind in place and are required", () => {
+    const note = createNote();
+    expect(() => note.setTechnique(GuitarTechniqueType.Accent)).toThrow();
+    expect(note.setTechnique(GuitarTechniqueType.Accent, NORMAL)).toBe(true);
+    const accent = note.techniques[0];
+
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(true);
+    expect(note.techniques).toEqual([accent]);
+    expect(accent.accentOptions?.kind).toBe(AccentType.Heavy);
+    expect(note.setTechnique(GuitarTechniqueType.Accent, HEAVY)).toBe(false);
+    expect(note.setTechnique(GuitarTechniqueType.Accent)).toBe(true);
+    expect(note.techniques).toEqual([]);
+  });
+
+  test("AccentOptions rejects unknown kinds and extra keys", () => {
+    expect(() => new AccentOptions({ kind: 7 as AccentType })).toThrow(
+      "unknown kind"
+    );
+    const extra = { kind: AccentType.Normal, size: 1 };
+    expect(() => new AccentOptions(extra)).toThrow("unexpected key");
+  });
+
+  test("Tap needs a playable fret", () => {
+    const note = createNote();
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.Tap)).toBe(true);
+    note.setFret(-1);
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.Tap)).toBe(false);
+    note.setFret(null);
+    expect(note.isTechniqueApplicable(GuitarTechniqueType.Tap)).toBe(false);
+  });
+
+  test.each([
+    [GuitarTechniqueType.Tap, null],
+    [GuitarTechniqueType.Accent, NORMAL],
+  ] as const)("rejects %s on a tie continuation", (type, options) => {
+    const note = createContinuationNote();
+    expect(note.setTechnique(GuitarTechniqueType.Tie)).toBe(true);
+
+    expect(note.isTechniqueApplicable(type)).toBe(false);
+    expect(note.setTechnique(type, options)).toBe(false);
+  });
+
+  test("adding a tie clears Tap and Accent from the continuation", () => {
+    const note = createContinuationNote();
+    note.setTechnique(GuitarTechniqueType.Tap);
+    note.setTechnique(GuitarTechniqueType.Accent, NORMAL);
+
+    ScoreEditor.setTechniqueForNotes([note], GuitarTechniqueType.Tie);
+
+    const continuation = required(note.beat.notes)[0];
+    expect(continuation.techniques.map((t) => t.type)).toEqual([
+      GuitarTechniqueType.Tie,
+    ]);
+  });
+
   test("rejects techniques on empty notes and clears them when emptied", () => {
     const note = createNote();
-    note.fret = null;
+    note.setFret(null);
 
     expect(note.isTechniqueApplicable(GuitarTechniqueType.Vibrato)).toBe(false);
     expect(note.setTechnique(GuitarTechniqueType.Vibrato)).toBe(false);
@@ -29,10 +178,10 @@ describe("GuitarNote technique updates", () => {
       note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato))
     ).toBe(false);
 
-    note.fret = 3;
+    note.setFret(3);
     expect(note.setTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
 
-    note.fret = null;
+    note.setFret(null);
     expect(note.techniques).toEqual([]);
   });
 
@@ -53,9 +202,9 @@ describe("GuitarNote technique updates", () => {
       bendPitch: 1,
       bendDuration: 0.5,
     }),
-  ])("rejects prebend type $type on a Let Ring note", (options) => {
-    const note = createNote();
-    note.setTechnique(GuitarTechniqueType.LetRing);
+  ])("rejects prebend type $type on a tied note", (options) => {
+    const note = createContinuationNote();
+    note.setTechnique(GuitarTechniqueType.Tie);
 
     expect(note.setTechnique(GuitarTechniqueType.Bend, options)).toBe(false);
     expect(
@@ -64,7 +213,7 @@ describe("GuitarNote technique updates", () => {
       )
     ).toBe(false);
     expect(note.hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
-    expect(note.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+    expect(note.hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
   });
 
   test.each([
@@ -84,12 +233,12 @@ describe("GuitarNote technique updates", () => {
       bendPitch: 1,
       bendDuration: 0.5,
     }),
-  ])("rejects Let Ring after prebend type $type", (options) => {
-    const note = createNote();
+  ])("rejects Tie after prebend type $type", (options) => {
+    const note = createContinuationNote();
     note.setTechnique(GuitarTechniqueType.Bend, options);
 
-    expect(note.setTechnique(GuitarTechniqueType.LetRing)).toBe(false);
-    expect(note.hasTechnique(GuitarTechniqueType.LetRing)).toBe(false);
+    expect(note.setTechnique(GuitarTechniqueType.Tie)).toBe(false);
+    expect(note.hasTechnique(GuitarTechniqueType.Tie)).toBe(false);
     expect(note.techniques).toHaveLength(1);
     expect(note.techniques[0].bendOptions).toEqual(options);
   });
@@ -177,8 +326,8 @@ describe("GuitarNote technique updates", () => {
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
-    previous.fret = 5;
-    current.fret = 5;
+    previous.setFret(5);
+    current.setFret(5);
     previous.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -191,7 +340,7 @@ describe("GuitarNote technique updates", () => {
     if (!(otherString instanceof GuitarNote)) {
       throw Error("Expected guitar note on the other string");
     }
-    otherString.fret = 5;
+    otherString.setFret(5);
     otherString.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -202,7 +351,7 @@ describe("GuitarNote technique updates", () => {
     );
     expect(current.getBendContinuationPitch()).toBeUndefined();
 
-    current.setTechnique(GuitarTechniqueType.LetRing);
+    current.setTechnique(GuitarTechniqueType.Tie);
 
     expect(current.getBendContinuationPitch()).toBe(1);
 
@@ -218,9 +367,14 @@ describe("GuitarNote technique updates", () => {
     expect(current.getBendContinuationPitch()).toBeUndefined();
   });
 
-  test.each([BendType.Bend, BendType.BendAndRelease])(
-    "rejects continuation bend type %s below the inherited pitch",
-    (type) => {
+  test.each([
+    [BendType.Bend, 1],
+    [BendType.Bend, 1.5],
+    [BendType.BendAndRelease, 1],
+    [BendType.BendAndRelease, 1.5],
+  ])(
+    "rejects continuation bend type %s with pitch %s at or below the inherited pitch",
+    (type, bendPitch) => {
       const { beats } = createBarWithBeats([
         { baseDuration: NoteDuration.Quarter },
         { baseDuration: NoteDuration.Quarter },
@@ -233,8 +387,8 @@ describe("GuitarNote technique updates", () => {
       ) {
         throw Error("Expected guitar notes");
       }
-      previous.fret = 5;
-      current.fret = 5;
+      previous.setFret(5);
+      current.setFret(5);
       previous.setTechnique(
         GuitarTechniqueType.Bend,
         new BendTechniqueOptions({
@@ -243,13 +397,13 @@ describe("GuitarNote technique updates", () => {
           bendDuration: 0.5,
         })
       );
-      current.setTechnique(GuitarTechniqueType.LetRing);
+      current.setTechnique(GuitarTechniqueType.Tie);
       const options = new BendTechniqueOptions(
         type === BendType.Bend
-          ? { type, bendPitch: 1, bendDuration: 0.5 }
+          ? { type, bendPitch, bendDuration: 0.5 }
           : {
               type,
-              bendPitch: 1,
+              bendPitch,
               releasePitch: 0,
               bendDuration: 0.5,
             }
@@ -259,7 +413,7 @@ describe("GuitarNote technique updates", () => {
         false
       );
       expect(current.techniques.map((t) => t.type)).toEqual([
-        GuitarTechniqueType.LetRing,
+        GuitarTechniqueType.Tie,
       ]);
       expect(
         current.addTechnique(
@@ -267,7 +421,7 @@ describe("GuitarNote technique updates", () => {
         )
       ).toBe(false);
       expect(current.techniques.map((t) => t.type)).toEqual([
-        GuitarTechniqueType.LetRing,
+        GuitarTechniqueType.Tie,
       ]);
     }
   );
@@ -282,8 +436,8 @@ describe("GuitarNote technique updates", () => {
     if (!(previous instanceof GuitarNote) || !(current instanceof GuitarNote)) {
       throw Error("Expected guitar notes");
     }
-    previous.fret = 5;
-    current.fret = 5;
+    previous.setFret(5);
+    current.setFret(5);
     previous.setTechnique(
       GuitarTechniqueType.Bend,
       new BendTechniqueOptions({
@@ -292,7 +446,7 @@ describe("GuitarNote technique updates", () => {
         bendDuration: 0.5,
       })
     );
-    current.setTechnique(GuitarTechniqueType.LetRing);
+    current.setTechnique(GuitarTechniqueType.Tie);
 
     expect(
       current.setTechnique(
@@ -316,7 +470,7 @@ describe("GuitarNote technique updates", () => {
       )
     ).toBe(false);
     expect(current.techniques.map((t) => t.type)).toEqual([
-      GuitarTechniqueType.LetRing,
+      GuitarTechniqueType.Tie,
       GuitarTechniqueType.Bend,
     ]);
     const bend = current.techniques.find(
@@ -345,8 +499,8 @@ describe("GuitarNote technique updates", () => {
       ) {
         throw Error("Expected guitar notes");
       }
-      previous.fret = 5;
-      current.fret = 5;
+      previous.setFret(5);
+      current.setFret(5);
       previous.setTechnique(
         GuitarTechniqueType.Bend,
         new BendTechniqueOptions({
@@ -355,7 +509,7 @@ describe("GuitarNote technique updates", () => {
           bendDuration: 0.5,
         })
       );
-      current.setTechnique(GuitarTechniqueType.LetRing);
+      current.setTechnique(GuitarTechniqueType.Tie);
       const options = new BendTechniqueOptions(
         type === BendType.Bend
           ? { type, bendPitch: 3, bendDuration: 0.5 }
@@ -371,7 +525,7 @@ describe("GuitarNote technique updates", () => {
         false
       );
       expect(current.techniques.map((t) => t.type)).toEqual([
-        GuitarTechniqueType.LetRing,
+        GuitarTechniqueType.Tie,
       ]);
       expect(
         current.addTechnique(
@@ -379,7 +533,7 @@ describe("GuitarNote technique updates", () => {
         )
       ).toBe(false);
       expect(current.techniques.map((t) => t.type)).toEqual([
-        GuitarTechniqueType.LetRing,
+        GuitarTechniqueType.Tie,
       ]);
     }
   );
@@ -396,8 +550,8 @@ describe("GuitarNote technique updates", () => {
       if (!(current instanceof GuitarNote) || !(next instanceof GuitarNote)) {
         throw Error("Expected guitar notes");
       }
-      current.fret = 5;
-      next.fret = 5;
+      current.setFret(5);
+      next.setFret(5);
 
       expect(current.isTechniqueApplicable(type)).toBe(false);
       expect(current.setTechnique(type)).toBe(false);
@@ -417,8 +571,8 @@ describe("GuitarNote technique updates", () => {
       if (!(current instanceof GuitarNote) || !(next instanceof GuitarNote)) {
         throw Error("Expected guitar notes");
       }
-      current.fret = 5;
-      next.fret = 7;
+      current.setFret(5);
+      next.setFret(7);
 
       expect(current.isTechniqueApplicable(type)).toBe(true);
       expect(current.setTechnique(type)).toBe(true);

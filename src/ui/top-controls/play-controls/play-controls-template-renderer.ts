@@ -1,10 +1,16 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { renderOnce, setImageAsset } from "../../shared";
+import { createDiv } from "../../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { PlayControlsTemplate } from "./play-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 import { PlaybackState } from "../../../player";
 
-const buttonSize = `30px`;
+const buttonSize = `1.875rem`;
 
 export class PlayControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -31,16 +37,26 @@ export class PlayControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-play-controls";
     this.template.container.classList.add(cssClass);
-
-    this.template.container.append(
+    labelGroup(this.template.container, "Playback");
+    const leftGroup = createDiv();
+    leftGroup.className = "tu-play-controls-left";
+    leftGroup.append(
+      this.template.loopButton,
       this.template.firstButton,
-      this.template.prevButton,
-      this.template.playButton,
+      this.template.prevButton
+    );
+    const centerGroup = createDiv();
+    centerGroup.className = "tu-play-controls-center";
+    centerGroup.append(this.template.playButton);
+    const rightGroup = createDiv();
+    rightGroup.className = "tu-play-controls-right";
+    rightGroup.append(
       this.template.nextButton,
       this.template.lastButton,
-      this.template.loopButton,
-      this.template.rangeButton
+      this.template.metronomeButton,
+      this.template.pitchShiftControl.element
     );
+    this.template.container.append(leftGroup, centerGroup, rightGroup);
     this.parentDiv.appendChild(this.template.container);
   }
 
@@ -69,6 +85,7 @@ export class PlayControlsTemplateRenderer {
 
     const playbackState = this.notationComponent.trackController.playbackState;
     const isActive = playbackState !== PlaybackState.Idle;
+    this.template.playButton.classList.add("tu-play-button");
     const playLabel =
       playbackState === PlaybackState.Starting
         ? "Loading audio"
@@ -133,22 +150,32 @@ export class PlayControlsTemplateRenderer {
       String(this.notationComponent.trackController.isLooped)
     );
 
-    const hasSelectionAnchor =
-      this.notationComponent.trackController.hasSelectionAnchor;
-    this.template.rangeButton.classList.add("tu-range-selection-button");
-    const label = hasSelectionAnchor ? "Clear range" : "Set anchor";
     setImageAsset(
-      this.template.rangeButton,
+      this.template.metronomeButton,
       this.assetsPath,
-      `img/ui/${hasSelectionAnchor ? "clear-selection" : "start-selection"}.svg`,
-      label,
+      "img/ui/metronome.svg",
+      "Metronome",
       { width: buttonSize, height: buttonSize }
     );
-    this.template.rangeButton.title = label;
-    this.template.rangeButton.setAttribute(
-      "aria-pressed",
-      `${hasSelectionAnchor}`
+    const t = this.template;
+    setShortcutTooltip(t.firstButton, "First bar", "Ctrl+Home");
+    setShortcutTooltip(t.prevButton, "Prev bar", "Ctrl+Left");
+    setShortcutTooltip(t.nextButton, "Next bar", "Ctrl+Right");
+    setShortcutTooltip(t.lastButton, "Last bar", "Ctrl+End");
+    setShortcutTooltip(t.loopButton, "Loop", "O");
+    setShortcutTooltip(t.metronomeButton, "Metronome", "N");
+    const metronomeEnabled =
+      this.notationComponent.trackController.metronomeEnabled;
+    this.template.metronomeButton.classList.toggle(
+      "tu-track-control-active",
+      metronomeEnabled
     );
+    this.template.metronomeButton.setAttribute(
+      "aria-pressed",
+      String(metronomeEnabled)
+    );
+    const pitch = this.notationComponent.trackController.pitchShiftSemitones;
+    this.template.pitchShiftControl.render(pitch, this.assetsPath);
   }
   /**
    * Responsible for setting up the note controls:

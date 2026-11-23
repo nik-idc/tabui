@@ -13,18 +13,19 @@ import { ScorePlayer } from "../../../src/player";
 import { trackEvent, TrackEventType } from "../../../src/shared/events";
 import { createBarWithBeats } from "../model/helpers";
 import { createTestLayoutDimensions } from "../controller/helpers";
-import { createMultiVoiceTwoStaffScoreFixture } from "../../../demo/data/multi-voice-score";
+import { createMultiVoiceTwoStaffScoreFixture } from "../multi-voice-score";
 import { installTransportAudio } from "../player/transport-audio";
 import { required } from "../required";
+import { mockSvgViewportBounds } from "./svg-viewport-bounds";
 
 function populatedScore() {
   const graph = createBarWithBeats(
     Array.from({ length: 4 }, () => ({ baseDuration: NoteDuration.Quarter }))
   );
-  graph.beats.forEach((b, i) => {
+  for (const [i, b] of graph.beats.entries()) {
     b.makeBeatWithNotes();
-    (required(b.notes)[0] as GuitarNote).fret = i + 3;
-  });
+    (required(b.notes)[0] as GuitarNote).setFret(i + 3);
+  }
   return graph;
 }
 
@@ -95,10 +96,13 @@ describe("PlayerOverlayRenderer", () => {
   function frame() {
     const pending = [...frames.values()];
     frames.clear();
-    pending.forEach((f) => f(0));
+    for (const f of pending) {
+      f(0);
+    }
   }
 
   beforeEach(() => {
+    mockSvgViewportBounds();
     jest.useFakeTimers();
     audio = installTransportAudio();
     frames = new Map();
@@ -113,7 +117,9 @@ describe("PlayerOverlayRenderer", () => {
   });
 
   afterEach(() => {
-    cleanups.splice(0).forEach((c) => c());
+    for (const c of cleanups.splice(0)) {
+      c();
+    }
     audio.restore();
     jest.restoreAllMocks();
     jest.useRealTimers();
@@ -129,10 +135,12 @@ describe("PlayerOverlayRenderer", () => {
     view.emit(beat.uuid);
     const element = view.controller.trackElement.getBeatElement(beat);
     expect(element).toBeInstanceOf(TabBeatElement);
-    if (!(element instanceof TabBeatElement)) throw Error("Expected tab beat");
+    if (!(element instanceof TabBeatElement)) {
+      throw Error("Expected tab beat");
+    }
 
     expect(view.center()).toBeCloseTo(element.attackXGlobal);
-    expect(Number(view.cursor().getAttribute("y"))).toBeCloseTo(42);
+    expect(Number(view.cursor().getAttribute("y"))).toBeCloseTo(60);
     const outline = required(
       element.owningTrackLineElement.outlineLinesGlobal
     ).left;
@@ -206,14 +214,14 @@ describe("PlayerOverlayRenderer", () => {
     expect(frames.size).toBe(0);
   });
 
-  test("interpolates real beat geometry on the audio clock and snaps across lines", async () => {
+  test("interpolates real beat geometry on the audio clock and crosses lines through the current beat", async () => {
     const graph = populatedScore();
     for (let i = 0; i < 20; i++) {
       graph.score.appendMasterBar();
       const beat = required(graph.track.staves[0].bars[i + 1].getVoiceBar(1))
         .beats[0];
       beat.makeBeatWithNotes();
-      (required(beat.notes)[0] as GuitarNote).fret = 9;
+      (required(beat.notes)[0] as GuitarNote).setFret(9);
     }
     const view = viewFor(graph.score);
     await view.player.start();
@@ -226,12 +234,15 @@ describe("PlayerOverlayRenderer", () => {
     const nextText = required(texts.find((t) => t.textContent === "4"));
     expect(startText.textContent).toBe("3");
     expect(nextText.textContent).toBe("4");
-    expect(startX).toBeCloseTo(97.5);
+    // 106.5px beat box start + 16.2px attack offset.
+    expect(startX).toBeCloseTo(122.7);
     const next = required(
       view.controller.trackElement.getBeatElement(graph.beats[1])
     );
     expect(next).toBeInstanceOf(TabBeatElement);
-    if (!(next instanceof TabBeatElement)) throw Error("Expected tab beat");
+    if (!(next instanceof TabBeatElement)) {
+      throw Error("Expected tab beat");
+    }
     expect(next.attackXGlobal).toBeGreaterThan(startX);
     jest.advanceTimersByTime(250);
     frame();
@@ -246,7 +257,22 @@ describe("PlayerOverlayRenderer", () => {
       view.controller.trackElement.getBeatElement(farBeat)
     ).toBeUndefined();
     view.emit(graph.beats[0].uuid, farBeat.uuid);
-    expect(view.center()).toBeCloseTo(startX);
+    const currentBeat = required(
+      view.controller.trackElement.getBeatElement(graph.beats[0])
+    );
+    expect(currentBeat).toBeInstanceOf(TabBeatElement);
+    if (!(currentBeat instanceof TabBeatElement)) {
+      throw Error("Expected current beat");
+    }
+    // Crossing lines, the cursor moves from the attack to the beat box right.
+    const boxRightX = currentBeat.globalBoundingBox.right;
+    expect(boxRightX).toBeGreaterThan(startX);
+    expect(view.center()).toBeCloseTo((startX + boxRightX) / 2);
+    expect(frames.size).toBeGreaterThan(0);
+    // Reach the animation endpoint without delivering the next beat's event.
+    jest.spyOn(audio.context, "currentTime", "get").mockReturnValue(0.55);
+    frame();
+    expect(view.center()).toBeCloseTo(boxRightX);
     expect(frames.size).toBe(0);
 
     view.emit(farBeat.uuid);
@@ -273,7 +299,7 @@ describe("PlayerOverlayRenderer", () => {
     jest.advanceTimersByTime(250);
     frame();
     expect(view.center()).toBeCloseTo(
-      startX + beatElement.boundingBox.width / 2
+      (startX + beatElement.globalBoundingBox.right) / 2
     );
     const x = view.center();
     view.emit(-1);
@@ -288,7 +314,9 @@ describe("PlayerOverlayRenderer", () => {
     expect(view.player.lastStartedBeat).toBeUndefined();
     // Deliver captured callbacks as consumed frames, before rendering the new run.
     frames.clear();
-    staleFrames.forEach((f) => f(0));
+    for (const f of staleFrames) {
+      f(0);
+    }
     expect(view.center()).toBe(x);
     expect(frames.size).toBe(0);
     view.render();

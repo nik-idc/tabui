@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks";
-import { createScore } from "../demo/data/helpers";
+import { createUpdateBenchmarkScore } from "../fixtures/update-benchmark-score";
 import { EditorLayoutDimensions } from "../src/notation/controller/editor-layout-dimensions";
 import { TrackElement } from "../src/notation/controller/element/track-element";
 import {
@@ -21,12 +21,12 @@ import {
   BarRepeatStatus,
   BendTechniqueOptions,
   BendType,
-  DEFAULT_ELECTRIC_GUITARS,
   DEFAULT_MASTER_BAR,
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
   Score,
+  ScoreEditor,
   Beat,
   Note,
 } from "../src/notation/model";
@@ -55,8 +55,6 @@ type BenchmarkCase = {
   buildScenario: () => BenchmarkScenario;
 };
 
-const MASTER_BARS_COUNT = 1000;
-const BEATS_PER_BAR = 32;
 const layoutDimensions = new EditorLayoutDimensions({
   width: 1200,
   noteTextSize: 12,
@@ -68,27 +66,6 @@ const layoutDimensions = new EditorLayoutDimensions({
 const WARMUP_RUNS = Number(process.env.BENCHMARK_WARMUPS ?? 0);
 const MEASURED_RUNS = Number(process.env.BENCHMARK_RUNS ?? 1);
 const CASE_FILTER = process.env.BENCHMARK_CASE_FILTER?.toLowerCase();
-
-function createBenchmarkScore(): Score {
-  const denseBarsInfo = Array.from({ length: MASTER_BARS_COUNT }, () => ({
-    beatsCount: BEATS_PER_BAR,
-    beatsDuration: NoteDuration.ThirtySecond,
-  }));
-
-  return createScore(
-    "Updates Benchmark Score",
-    "TabUI",
-    "Updates Stress Test",
-    MASTER_BARS_COUNT,
-    [
-      {
-        instrument: DEFAULT_ELECTRIC_GUITARS["Electric Clean"],
-        stavesInfo: [denseBarsInfo],
-        name: "Updates Benchmark Track",
-      },
-    ]
-  );
-}
 
 function getBeat(score: Score, barIndex: number, beatIndex: number): Beat {
   const voiceBar = score.tracks[0].staves[0].bars[barIndex].getVoiceBar(1);
@@ -114,7 +91,11 @@ function getNote(
   beatIndex: number,
   noteIndex: number
 ): Note {
-  return getBeat(score, barIndex, beatIndex).notes[noteIndex];
+  const notes = getBeat(score, barIndex, beatIndex).notes;
+  if (notes === null) {
+    throw Error(`Expected notes at bar ${barIndex}, beat ${beatIndex}`);
+  }
+  return notes[noteIndex];
 }
 
 function collectBeats(
@@ -142,7 +123,7 @@ function collectNotes(
 function createScenario(
   buildCommands: (score: Score) => Command[]
 ): BenchmarkScenario {
-  const score = createBenchmarkScore();
+  const score = createUpdateBenchmarkScore();
   const trackElement = new TrackElement(score.tracks[0], layoutDimensions);
 
   return {
@@ -205,10 +186,15 @@ function createMultipleBeatInsertionCase(
     name,
     buildScenario: () =>
       createScenario((score) => {
-        const staff = score.tracks[0].staves[0];
         const anchorBeat = getBeat(score, barIndex, anchorBeatIndex);
         const beatsToInsert = collectBeats(score, insertedBeats);
-        return [new InsertBeatsCommand(staff, anchorBeat, beatsToInsert)];
+        return [
+          new InsertBeatsCommand(
+            anchorBeat.voiceBar.bar,
+            anchorBeat,
+            beatsToInsert
+          ),
+        ];
       }),
   };
 }
@@ -271,7 +257,7 @@ function createTimeSigCase(
           (index) =>
             new SetTimeSigCommand(
               score,
-              score.masterBars[index],
+              [score.masterBars[index]],
               beatsCount,
               duration
             )
@@ -292,14 +278,9 @@ function createTempoCase(
         indices.map(
           (index, i) =>
             new SetTempoCommand(
-              score.masterBars[index],
-              tempos[i] ?? tempos[0],
-              [
-                {
-                  masterBarIndex: index,
-                  modelUUID: getBeat(score, index, 0).uuid,
-                },
-              ]
+              score,
+              [score.masterBars[index]],
+              tempos[i] ?? tempos[0]
             )
         )
       ),
@@ -348,7 +329,13 @@ function createTechniqueCase(
     buildScenario: () =>
       createScenario((score) => {
         const notes = collectNotes(score, selections) as GuitarNote[];
-        return [new SetTechniqueCommand(notes, type, bendOptions)];
+        return [
+          new SetTechniqueCommand(
+            ScoreEditor.getTechniqueTargetsForNotes(notes),
+            type,
+            { bendOptions }
+          ),
+        ];
       }),
   };
 }

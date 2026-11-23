@@ -8,10 +8,12 @@ import { DEFAULT_MASTER_BAR, GuitarNote } from "../../../src/notation/model";
 import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
 import { createScoreGraph } from "../model/helpers";
 import { required } from "../required";
+import { mockSvgViewportBounds } from "../render/svg-viewport-bounds";
 
 describe("TabUICallbacks", () => {
   const cleanups: (() => void)[] = [];
   beforeEach(() => {
+    mockSvgViewportBounds();
     jest.useFakeTimers();
     Object.defineProperty(globalThis, "SVGRectElement", {
       configurable: true,
@@ -20,11 +22,11 @@ describe("TabUICallbacks", () => {
     });
   });
   afterEach(() => {
-    cleanups
-      .splice(0)
-      .reverse()
-      .forEach((c) => c());
+    for (const cleanup of cleanups.splice(0).reverse()) {
+      cleanup();
+    }
     Reflect.deleteProperty(globalThis, "SVGRectElement");
+    jest.restoreAllMocks();
     jest.useRealTimers();
     document.body.replaceChildren();
   });
@@ -37,8 +39,11 @@ describe("TabUICallbacks", () => {
     shell.render();
     cleanups.push(() => shell.dispose());
     const { score, track, staff } = createScoreGraph();
-    if (long)
-      for (let i = 0; i < 80; i++) score.appendMasterBar(DEFAULT_MASTER_BAR);
+    if (long) {
+      for (let i = 0; i < 80; i++) {
+        score.appendMasterBar(DEFAULT_MASTER_BAR);
+      }
+    }
     const viewport = shell.template.notationViewport;
     Object.defineProperties(viewport, {
       clientHeight: { value: 400 },
@@ -53,6 +58,7 @@ describe("TabUICallbacks", () => {
     cleanups.push(() => notation.dispose());
     const ui = new UIComponent(
       shell.template.scorePanelHost,
+      root,
       shell.template.sidePanelHost,
       shell.dialogEnforcer,
       notation,
@@ -201,7 +207,7 @@ describe("TabUICallbacks", () => {
     expect(
       Array.from(viewport.querySelectorAll("text"), (e) => e.textContent)
     ).not.toContain("7");
-    note.fret = 7;
+    note.setFret(7);
     callbacks.refresh();
     expect(
       Array.from(viewport.querySelectorAll("text"), (e) => e.textContent)

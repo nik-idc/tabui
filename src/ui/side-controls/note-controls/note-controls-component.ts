@@ -4,6 +4,7 @@ import { NoteControlsTemplate } from "./note-controls-template";
 import { NoteControlsTemplateRenderer } from "./note-controls-template-renderer";
 import { TupletControlsComponent } from "./tuplet-controls";
 import { FretControlsComponent } from "./fret-controls";
+import { formatActiveDynamic } from "../../../notation/accessibility/notation-selection-announcement";
 
 export class NoteControlsComponent {
   readonly parentDiv: HTMLDivElement;
@@ -19,7 +20,7 @@ export class NoteControlsComponent {
     parentDiv: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
-    announce: (text: string) => void
+    private readonly _announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
     this.notationComponent = notationComponent;
@@ -35,7 +36,7 @@ export class NoteControlsComponent {
       this.template.container,
       dialogEnforcer,
       this.notationComponent,
-      announce
+      this._announce
     );
     this.fretComponent = new FretControlsComponent(
       this.template.container,
@@ -49,6 +50,17 @@ export class NoteControlsComponent {
 
     this.tupletComponent.render();
     this.fretComponent.render();
+  }
+
+  /**
+   * Speaks the active beat's dynamic after a dynamic edit. Navigation text names
+   * a dynamic only where it changes, so an edit needs its own confirmation.
+   */
+  public announceDynamic(): void {
+    const text = formatActiveDynamic(this.notationComponent.trackController);
+    if (text !== undefined) {
+      this._announce(text);
+    }
   }
 
   public showTupletControls(): void {

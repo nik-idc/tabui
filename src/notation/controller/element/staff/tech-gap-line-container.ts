@@ -35,7 +35,7 @@ export class TechGapLineContainer implements NotationContainer {
   readonly uuid: number;
   /** Parent staff gap element */
   readonly techGapContainer: TechGapContainer;
-  /** Line number in tech gap (1/2/3) */
+  /** Line number in the technique gap. */
   readonly techLineNumber: TechLineNumber;
   /** Root track element */
   readonly trackElement: TrackElement;

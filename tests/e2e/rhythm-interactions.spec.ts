@@ -14,7 +14,9 @@ async function stemHitPoint(stem: Locator) {
   return stem.evaluate((node) => {
     const line = node as SVGLineElement;
     const matrix = line.getScreenCTM();
-    if (matrix === null) throw Error("Stem has no screen transform");
+    if (matrix === null) {
+      throw Error("Stem has no screen transform");
+    }
     return new DOMPoint(
       line.x1.baseVal.value + 2,
       (line.y1.baseVal.value + line.y2.baseVal.value) / 2
@@ -59,14 +61,18 @@ test("stem and flags share hover and enlarged targets select one beat", async ({
     .locator('[id^="note-text-"]')
     .filter({ hasText: /^6$/ });
   const secondNoteId = await secondNoteText.getAttribute("id");
-  if (secondNoteId === null) throw Error("Expected second note ID");
+  if (secondNoteId === null) {
+    throw Error("Expected second note ID");
+  }
   await editor
     .locator(`[id="${secondNoteId.replace("note-text-", "note-rect-")}"]`)
     .click();
   const flagPoint = await flag.evaluate((node) => {
     const line = node as SVGLineElement;
     const matrix = line.getScreenCTM();
-    if (matrix === null) throw Error("Flag has no screen transform");
+    if (matrix === null) {
+      throw Error("Flag has no screen transform");
+    }
     return new DOMPoint(
       (line.x1.baseVal.value + line.x2.baseVal.value) / 2,
       line.y1.baseVal.value
@@ -132,8 +138,9 @@ test("double dots hover together, remove from the clicked beat, and undo", async
   const noteBox = await editor
     .locator(`[id="${selectedNoteId}"]`)
     .boundingBox();
-  if (selectedBox === null || noteBox === null)
+  if (selectedBox === null || noteBox === null) {
     throw Error("Expected selection boxes");
+  }
   expect(selectedBox.x + selectedBox.width / 2).toBeCloseTo(
     noteBox.x + noteBox.width / 2,
     0
@@ -169,7 +176,9 @@ test("secondary beam tails highlight and select the complete connected group", a
         .locator('[id^="note-text-"]')
         .filter({ hasText: new RegExp(`^${f}$`) })
         .getAttribute("id");
-      if (id === null) throw Error(`Expected note ${f}`);
+      if (id === null) {
+        throw Error(`Expected note ${f}`);
+      }
       return editor.locator(`[id="${id.replace("note-text-", "note-rect-")}"]`);
     })
   );
@@ -179,11 +188,15 @@ test("secondary beam tails highlight and select the complete connected group", a
     );
     await expect(selection).toHaveCount(1);
     const selectedBox = await selection.boundingBox();
-    if (selectedBox === null) throw Error("Expected beam group selection");
+    if (selectedBox === null) {
+      throw Error("Expected beam group selection");
+    }
     const centers = await Promise.all(
       noteTargets.map(async (n) => {
         const box = await n.boundingBox();
-        if (box === null) throw Error("Expected visible note");
+        if (box === null) {
+          throw Error("Expected visible note");
+        }
         return box.x + box.width / 2;
       })
     );
@@ -202,7 +215,9 @@ test("secondary beam tails highlight and select the complete connected group", a
   const tailPoint = await tail.evaluate((node) => {
     const rect = node as SVGRectElement;
     const matrix = rect.getScreenCTM();
-    if (matrix === null) throw Error("Beam has no screen transform");
+    if (matrix === null) {
+      throw Error("Beam has no screen transform");
+    }
     return new DOMPoint(
       rect.x.baseVal.value + rect.width.baseVal.value / 2,
       rect.y.baseVal.value + rect.height.baseVal.value / 2
@@ -222,7 +237,9 @@ test("secondary beam tails highlight and select the complete connected group", a
   const primaryPoint = await primary.evaluate((node) => {
     const rect = node as SVGRectElement;
     const matrix = rect.getScreenCTM();
-    if (matrix === null) throw Error("Beam has no screen transform");
+    if (matrix === null) {
+      throw Error("Beam has no screen transform");
+    }
     return new DOMPoint(
       rect.x.baseVal.value + rect.width.baseVal.value / 2,
       rect.y.baseVal.value + rect.height.baseVal.value / 2
@@ -245,7 +262,7 @@ test("view-only allows rhythm selection but blocks dot removal", async ({
   const firstNote = editor.locator('[id^="note-rect-"]').first();
   await page.keyboard.press("a");
   await page.keyboard.press("6");
-  await page.setViewportSize({ width: 800, height: 900 });
+  await page.setViewportSize({ width: 580, height: 900 });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
   const dots = editor.locator(".tu-beat-dots circle");
   await editor.locator(".tu-beat-dots path").click();
@@ -261,8 +278,9 @@ test("view-only allows rhythm selection but blocks dot removal", async ({
     .locator('#tu-selection [id^="selection-rect-"][display="block"]')
     .boundingBox();
   const firstNoteBox = await firstNote.boundingBox();
-  if (selectionBox === null || firstNoteBox === null)
+  if (selectionBox === null || firstNoteBox === null) {
     throw Error("Expected selected beat and note boxes");
+  }
   const noteCenterX = firstNoteBox.x + firstNoteBox.width / 2;
   expect(noteCenterX).toBeGreaterThan(selectionBox.x);
   expect(noteCenterX).toBeLessThan(selectionBox.x + selectionBox.width);
@@ -272,9 +290,27 @@ test("playback blocks rhythm selection and dot removal", async ({ page }) => {
   const editor = await openRhythmEditor(page);
   await page.keyboard.press(".");
   await page.keyboard.press(".");
+  const dotsPath = editor.locator(".tu-beat-dots path").first();
+  await dotsPath.scrollIntoViewIfNeeded();
   await editor.getByRole("button", { name: "Play", exact: true }).click();
-  await editor.locator(".tu-beat-dots path").click();
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  const dotsBounds = await dotsPath.boundingBox();
+  expect(dotsBounds).not.toBeNull();
+  if (dotsBounds === null) {
+    throw Error("Expected dots hit target bounds");
+  }
+  await page.mouse.click(
+    dotsBounds.x + dotsBounds.width / 2,
+    dotsBounds.y + dotsBounds.height / 2
+  );
   await expect(editor.locator(".tu-beat-dots circle")).toHaveCount(2);
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   const point = await stemHitPoint(
     editor.locator('[id^="beat-rhythm-stem-"]').first()
   );

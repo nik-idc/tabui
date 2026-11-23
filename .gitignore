@@ -2,6 +2,7 @@
 node_modules/
 /dist/
 /demo/dist/
+/docs/api/
 *.tsbuildinfo
 
 # Test output
@@ -25,3 +26,5 @@ node_modules/
 .env
 .env.*
 !.env.example
+/site/dist/
+/docs/.vitepress/cache/

@@ -1,15 +1,18 @@
-import { NoteType, NoteValue, shiftNoteValue } from "../../note";
-import { DEFAULT_TUNINGS } from "./default-tunings";
+import {
+  getNoteFromSemitones,
+  getSemitonesFromNote,
+  HIGHEST_OCTAVE,
+  LOWEST_OCTAVE,
+  NoteType,
+  NoteValue,
+} from "../../note";
 
 /**
- * 🚨🚨🚨 !!! AI SLOP !!! 🚨🚨🚨
- * Checks if the provided string fits format:
- * "*note_1* *note_2* ... *note_N*" where N is the string count
- * Example of valid tuning: "A# B A# f# G# c"
- * Example of invalid tuning: "A## b# ff iamanidiot"
- * @param input Input string
- * @param stringCount String count
- * @returns True if tuning is valid, false otherwise
+ * Checks whitespace-separated, case-insensitive A–G pitch classes against a string count, without octave suffixes.
+ * Accepts ASCII # except E#/B#, and Unicode ♭ except C♭/F♭; this spelling contract differs from parseTuning().
+ * @param input Pitch-class tokens to check.
+ * @param stringCount Required token count.
+ * @returns True if all tokens and the count match.
  */
 export function isValidGuitarTuning(
   input: string,
@@ -54,10 +57,10 @@ export function isValidGuitarTuning(
 }
 
 /**
- * 🚨🚨🚨 !!! AI SLOP !!! 🚨🚨🚨
- * Parses tuning string
- * @param tuning Tuning string
- * @returns Parsed array of note objects
+ * Parses whitespace-separated, case-insensitive pitch classes in input order, accepting #, ♯, and X (dead), but not flats.
+ * Unknown tokens become None; octaves are inferred as 2 + floor(index / 6), even for dead or empty values.
+ * @param tuning Pitch-class tokens, without parsed octave suffixes.
+ * @returns New pitch objects; no validation of playable tuning is performed.
  */
 export function parseTuning(tuning: string): NoteType[] {
   // Split on one or more whitespace characters between note names.
@@ -117,59 +120,43 @@ export function parseTuning(tuning: string): NoteType[] {
   });
 }
 
-export function parseTuningStrSimple(tuning: string): NoteType[] {
-  const parsed = parseTuning(tuning).reverse();
-  const defaultTuning = Object.values(DEFAULT_TUNINGS)
-    .flatMap((tunings) => Object.values(tunings))
-    .find((defaultTuning) => defaultTuning.length === parsed.length);
-
-  if (defaultTuning === undefined) {
-    return parsed;
+/**
+ * Shifts a pitch by semitones and carries the octave, so B4 + 1 is C5.
+ * Returns the note unchanged when it has no pitch or the result would leave
+ * the supported octaves.
+ */
+export function shiftPitch(note: NoteType, semitones: number): NoteType {
+  if (
+    note.octave === null ||
+    note.noteValue === NoteValue.Dead ||
+    note.noteValue === NoteValue.None
+  ) {
+    return note;
   }
-
-  return parsed.map((note, index) => ({
-    noteValue: note.noteValue,
-    octave: defaultTuning[index].octave,
-  }));
-}
-
-export function getDefaultTuningStrSimple(stringCount: number): string | null {
-  const defaultTuning = Object.values(DEFAULT_TUNINGS)
-    .flatMap((tunings) => Object.values(tunings))
-    .find((defaultTuning) => defaultTuning.length === stringCount);
-
-  if (defaultTuning === undefined) {
-    return null;
-  }
-
-  return defaultTuning
-    .map((note) => note.noteValue)
-    .reverse()
-    .join(" ");
-}
-
-export function shiftTuningString(
-  tuning: string,
-  stringIndex: number,
-  semitones: number
-): string {
-  // Split on one or more whitespace characters between note names.
-  const notes = tuning.trim().split(/\s+/);
-  if (stringIndex < 0 || stringIndex >= notes.length) {
-    throw new Error(`${stringIndex} is invalid tuning string index`);
-  }
-
-  notes[stringIndex] = shiftNoteValue(
-    notes[stringIndex] as NoteValue,
-    semitones
+  const shifted = getNoteFromSemitones(
+    getSemitonesFromNote(note.noteValue, note.octave) + semitones
   );
-  return notes.join(" ");
+  if (shifted.octave < LOWEST_OCTAVE || shifted.octave > HIGHEST_OCTAVE) {
+    return note;
+  }
+  return shifted;
 }
 
-export function shiftTuningWhole(tuning: string, semitones: number): string {
-  return tuning
-    .trim()
-    .split(/\s+/) // Split on one or more whitespace characters between note names.
-    .map((note) => shiftNoteValue(note as NoteValue, semitones))
-    .join(" ");
+/** Copies a tuning, so it can change without changing the source. */
+export function copyTuning(tuning: readonly NoteType[]): NoteType[] {
+  return tuning.map((note) => ({ ...note }));
+}
+
+/** True when both tunings have the same pitches, octaves included. */
+export function tuningsEqual(
+  a: readonly NoteType[],
+  b: readonly NoteType[]
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (note, i) =>
+        note.noteValue === b[i].noteValue && note.octave === b[i].octave
+    )
+  );
 }

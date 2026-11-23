@@ -1,7 +1,8 @@
 import { randomInt } from "../../shared";
 import { Beat } from "./beat";
 import { TrackContext } from "./track-context";
-import { GuitarTechnique } from "./guitar-technique";
+import { GuitarTechnique, GuitarTechniqueOptions } from "./guitar-technique";
+import { AccentOptions } from "./accent-options";
 import { Guitar } from "./instrument/guitar";
 import {
   NoteValue,
@@ -13,7 +14,10 @@ import {
 } from "./note";
 import { GuitarTechniqueType } from "./technique-type";
 import {
+  ATTACK_TECHNIQUES,
   BEND_TYPE_INCOMPATIBILITY,
+  TECHNIQUE_ALLOWED_ON_DEAD_NOTES,
+  TECHNIQUE_ALLOWED_ON_EMPTY_NOTES,
   TRANSITIONAL_TECHNIQUES,
 } from "./guitar-technique-lists";
 import {
@@ -21,7 +25,7 @@ import {
   guitarTechniqueTypesIncompatible,
   isBendValidForContinuation,
 } from "./guitar-technique-validation";
-import { BendTechniqueOptions } from "./bend-options";
+import { BendType } from "./bend-type";
 
 /**
  * Class that represents a guitar note
@@ -46,12 +50,13 @@ export class GuitarNote implements Note<Guitar> {
   private _techniques: GuitarTechnique[];
 
   /**
-   * Class that represents a guitar note
+   * Creates a guitar note and computes its pitch from the string tuning and fret.
    * @param beat Beat in which the note lives
    * @param trackContext Track context
-   * @param stringNum String number
-   * @param fret Fret number
-   * @param techniques Techniques applied to the note
+   * @param stringNum One-based string number, matching tuning order.
+   * @param fret Null for an empty slot, -1 for a dead note, or a fret number; values above the fretboard are clamped.
+   * @param techniques Retained live array; only Let Ring can remain on an empty slot.
+   * @throws If an empty slot has another technique, tuning is missing/unpitched, or fret-to-pitch conversion fails.
    */
   constructor(
     beat: Beat<Guitar>,
@@ -60,7 +65,10 @@ export class GuitarNote implements Note<Guitar> {
     fret: number | null = null,
     techniques: GuitarTechnique[] = []
   ) {
-    if (fret === null && techniques.length > 0) {
+    const hasNonEmptyTechnique = techniques.some(
+      (t) => !TECHNIQUE_ALLOWED_ON_EMPTY_NOTES[t.type]
+    );
+    if (fret === null && hasNonEmptyTechnique) {
       throw new Error("Cannot apply techniques to an empty guitar note");
     }
 
@@ -70,13 +78,14 @@ export class GuitarNote implements Note<Guitar> {
 
     this._stringNum = stringNum;
     this._techniques = techniques;
-    this.fret = fret;
+    this.setFret(fret);
 
     this.calcNoteFromFret();
   }
 
   /**
-   * Calculate musical note value based on the fret & string number
+   * Recomputes pitch from fret and string tuning; null and -1 frets become empty and dead notes.
+   * @throws If string tuning is missing, its octave is null, or the resulting pitch is invalid or outside octaves 0–9.
    */
   public calcNoteFromFret(): void {
     if (this._fret === null) {
@@ -111,18 +120,44 @@ export class GuitarNote implements Note<Guitar> {
     this._octave = octave;
   }
 
+  /** Drops ties made invalid by an installed note's pitch change. */
+  private invalidateTies(oldFret: number | null): void {
+    if (oldFret === this._fret || !this.beat.notes?.includes(this)) {
+      return;
+    }
+
+    this.removeTechnique(GuitarTechniqueType.Tie);
+
+    const nextBeat = this.beat.voiceBar.bar.staff.getNextBeat(this.beat);
+    const nextNote = nextBeat?.notes?.[this.stringNum - 1];
+    if (nextNote instanceof GuitarNote && !nextNote.isTieContinuation) {
+      nextNote.removeTechnique(GuitarTechniqueType.Tie);
+    }
+  }
+
   /**
-   * Calculate musical note value based on note & octave value
+   * Computes fret from pitch and string tuning, clamping above the fretboard maximum without changing stored pitch.
+   * Empty pitch keeps only Let Ring and sets a null fret; dead pitch keeps only dead-note techniques and sets fret -1.
+   * @throws If playable pitch/tuning has a null octave, tuning is missing, or the calculated fret is below zero.
+   * @param invalidateTies Whether to remove ties invalidated by the new fret.
    */
-  public calculateFretFromNote(): void {
+  public calculateFretFromNote(invalidateTies: boolean = true): void {
+    const oldFret = this._fret;
     if (this._noteValue === NoteValue.None) {
       this._fret = null;
-      this.clearTechniques();
+      this.keepEmptySlotTechniques();
+      if (invalidateTies) {
+        this.invalidateTies(oldFret);
+      }
       return;
     }
 
     if (this._noteValue === NoteValue.Dead) {
       this._fret = -1;
+      this.keepDeadNoteTechniques();
+      if (invalidateTies) {
+        this.invalidateTies(oldFret);
+      }
       return;
     }
 
@@ -157,22 +192,30 @@ export class GuitarNote implements Note<Guitar> {
     }
 
     this._fret = fret;
+    if (invalidateTies) {
+      this.invalidateTies(oldFret);
+    }
   }
 
   /**
-   * Sets both note value and octave
+   * Sets pitch data and recalculates fret; does not validate pitch membership or octave bounds.
    * @param newNoteValue - New note value
    * @param newOctave - New octave value
+   * @param invalidateTies - Whether to remove ties invalidated by the new fret
+   * @throws If pitch-to-fret conversion fails because of missing tuning/octave or a negative fret.
    */
-  public setNote(newNoteValue: NoteValue, newOctave: number | null): void {
+  public setNote(
+    newNoteValue: NoteValue,
+    newOctave: number | null,
+    invalidateTies: boolean = true
+  ): void {
     this._noteValue = newNoteValue;
     this._octave = newOctave;
-    this.calculateFretFromNote();
+    this.calculateFretFromNote(invalidateTies);
   }
 
   /**
-   * Returns note in the format "{Note value}{Octave}". Examples: A#2, B3, c4, f#1
-   * @returns Note in the format "{Note value}{Octave}"
+   * Returns pitch text with octave (for example A#2), "x" for a dead note, or empty text for an empty slot.
    */
   public getNoteStr(): string {
     switch (this._noteValue) {
@@ -185,8 +228,12 @@ export class GuitarNote implements Note<Guitar> {
     }
   }
 
+  /**
+   * Returns the preceding tied bend's terminal pitch in whole tones.
+   * Returns undefined without a valid incoming tie or a supported bend shape.
+   */
   public getBendContinuationPitch(): number | undefined {
-    if (!this.hasTechnique(GuitarTechniqueType.LetRing)) {
+    if (!this.isTieContinuation) {
       return undefined;
     }
     const previousBeat = this.beat.voiceBar.bar.staff.getPrevBeat(this.beat);
@@ -199,18 +246,84 @@ export class GuitarNote implements Note<Guitar> {
     const previousBend = previousNote.techniques.find(
       (t) => t.type === GuitarTechniqueType.Bend
     );
-    return previousBend?.bendOptions?.terminalPitch;
+    return previousBend === undefined
+      ? previousNote.getBendContinuationPitch()
+      : previousBend.bendOptions?.terminalPitch;
+  }
+
+  /** Returns the immediate previous beat's playable note on this string. */
+  public getTiePredecessor(): GuitarNote | null {
+    const beat = this.beat.voiceBar.bar.staff.getPrevBeat(this.beat);
+    const note = beat?.notes?.[this.stringNum - 1];
+    return note instanceof GuitarNote && note.fret !== null && note.fret >= 0
+      ? note
+      : null;
+  }
+
+  /** Reads preceding marked slots to validate an empty marker during editing or serialization. */
+  public hasLetRingSupport(): boolean {
+    const staff = this.beat.voiceBar.bar.staff;
+    let previous = staff.getPrevBeat(this.beat);
+    while (previous !== null) {
+      const source = previous.notes?.[this.stringNum - 1];
+      const marked =
+        source instanceof GuitarNote &&
+        source.hasTechnique(GuitarTechniqueType.LetRing);
+      if (!marked) {
+        return false;
+      }
+      if (source.fret !== null) {
+        return source.fret >= 0;
+      }
+      previous = staff.getPrevBeat(previous);
+    }
+    return false;
+  }
+
+  /** Finds a source for Tie editing across empty slots, stopping at rests or dead notes. */
+  public static findTieSource(
+    beat: Beat,
+    stringNumber: number
+  ): GuitarNote | null {
+    const staff = beat.voiceBar.bar.staff;
+    let previous = staff.getPrevBeat(beat);
+    while (previous !== null && previous.notes !== null) {
+      const note = previous.notes[stringNumber - 1];
+      if (!(note instanceof GuitarNote)) {
+        return null;
+      }
+      if (note.fret !== null) {
+        return note.fret >= 0 ? note : null;
+      }
+      previous = staff.getPrevBeat(previous);
+    }
+    return null;
+  }
+
+  /** True when the incoming tie still has the same string, fret, staff, and voice. */
+  public get isTieContinuation(): boolean {
+    return (
+      this.hasTechnique(GuitarTechniqueType.Tie) &&
+      this.getTiePredecessor()?.fret === this.fret
+    );
   }
 
   /**
    * Applies, updates, or removes a technique on this note.
+   * Existing techniques toggle off, except bends and accents with options, which update in place.
+   * @returns True if changed; false if inapplicable, incompatible, or unchanged.
+   * @throws If options do not match the technique. Transition lookup can also throw if this note's beat is a rest.
    */
   public setTechnique(
     type: GuitarTechniqueType,
-    bendOptions: BendTechniqueOptions | null = null
+    options: GuitarTechniqueOptions | null = null
   ): boolean {
     const existingTechnique = this._techniques.find((t) => t.type === type);
     if (existingTechnique !== undefined) {
+      if (options instanceof AccentOptions) {
+        return existingTechnique.replaceAccentOptions(options);
+      }
+      const bendOptions = options;
       if (
         existingTechnique.type === GuitarTechniqueType.Bend &&
         bendOptions !== null
@@ -231,16 +344,24 @@ export class GuitarNote implements Note<Guitar> {
       return this.removeTechnique(type);
     }
 
-    return this.addTechnique(new GuitarTechnique(this, type, bendOptions));
+    return this.addTechnique(new GuitarTechnique(this, type, options));
   }
 
   /**
-   * Adds new technique to the note
-   * @param guitarTechnique Guitar technique to add
-   * @returns True if technique added succesfully, false if can't add this technique
+   * Adds an applicable, compatible technique without copying or rebinding it.
+   * @param guitarTechnique Technique already owned by this note.
+   * @returns True if added; false for invalid continuation or incompatible/inapplicable techniques.
+   * @throws If transition lookup fails because this note's beat is a rest.
    */
   public addTechnique(guitarTechnique: GuitarTechnique): boolean {
     if (!this.isTechniqueApplicable(guitarTechnique.type)) {
+      return false;
+    }
+
+    if (
+      guitarTechnique.type === GuitarTechniqueType.Tie &&
+      this.getTiePredecessor()?.fret !== this.fret
+    ) {
       return false;
     }
 
@@ -275,6 +396,15 @@ export class GuitarNote implements Note<Guitar> {
     }
 
     this._techniques.splice(techniqueIndex, 1);
+    if (type === GuitarTechniqueType.Tie) {
+      const bend = this._techniques.find(
+        (t) => t.type === GuitarTechniqueType.Bend
+      );
+      const bendType = bend?.bendOptions?.type;
+      if (bendType === BendType.Hold || bendType === BendType.Release) {
+        this.removeTechnique(GuitarTechniqueType.Bend);
+      }
+    }
     return true;
   }
 
@@ -285,37 +415,111 @@ export class GuitarNote implements Note<Guitar> {
     this._techniques = [];
   }
 
+  /** Empty slots can retain only a Let Ring marker; ScoreEditor validates its preceding support. */
+  private keepEmptySlotTechniques(): void {
+    this._techniques = this._techniques.filter(
+      (t) => TECHNIQUE_ALLOWED_ON_EMPTY_NOTES[t.type]
+    );
+  }
+
+  /** Removes techniques that need a pitch when the note becomes dead. */
+  private keepDeadNoteTechniques(): void {
+    this._techniques = this._techniques.filter(
+      (t) => TECHNIQUE_ALLOWED_ON_DEAD_NOTES[t.type]
+    );
+  }
+
   /**
-   * Sorts techniques
+   * Sorts the live technique array in descending technique-type order.
    */
   public sortTechniques(): void {
     this._techniques.sort((a, b) => b.type - a.type);
   }
 
   /**
-   * Determines whether provided technique can be applied to the current note
+   * Checks fret state, the immediate next beat's same-slot transition target, and existing technique compatibility.
    * @param type Technique type
    * @returns True if applicable, false otherwise
+   * @throws If transition lookup fails because this note's beat is a rest.
    */
   public isTechniqueApplicable(type: GuitarTechniqueType): boolean {
-    if (this._fret === null || this._fret === -1) {
+    const someIncompatible = this._techniques.some((technique) =>
+      guitarTechniqueTypesIncompatible(technique.type, type)
+    );
+
+    if (type === GuitarTechniqueType.Tie) {
+      return (
+        GuitarNote.findTieSource(this.beat, this.stringNum) !== null &&
+        !someIncompatible
+      );
+    }
+
+    if (this._fret === null) {
+      return TECHNIQUE_ALLOWED_ON_EMPTY_NOTES[type] && !someIncompatible;
+    }
+
+    if (
+      ATTACK_TECHNIQUES.has(type) &&
+      this.hasTechnique(GuitarTechniqueType.Tie)
+    ) {
       return false;
     }
 
+    if (this._fret === -1) {
+      return TECHNIQUE_ALLOWED_ON_DEAD_NOTES[type] && !someIncompatible;
+    }
+
+    if (type === GuitarTechniqueType.Bend && this._fret === 0) {
+      return false;
+    }
+
+    if (TRANSITIONAL_TECHNIQUES.has(type) && !this.hasValidTransition(type)) {
+      return false;
+    }
+
+    return !someIncompatible;
+  }
+
+  /**
+   * Checks a slide or legato against the same string in the next beat. The
+   * target must be played (not empty or dead) with a different fret. A slide
+   * also cannot start or end on an open string.
+   */
+  private hasValidTransition(type: GuitarTechniqueType): boolean {
     if (type === GuitarTechniqueType.Slide && this._fret === 0) {
       return false;
     }
+    const next = this.beat.voiceBar.bar.staff.getNextNote(this);
+    if (
+      !(next instanceof GuitarNote) ||
+      next._fret === null ||
+      next._fret < 0 ||
+      next._fret === this._fret
+    ) {
+      return false;
+    }
+    return type !== GuitarTechniqueType.Slide || next._fret > 0;
+  }
 
-    if (TRANSITIONAL_TECHNIQUES.has(type)) {
-      const nextNote = this.beat.voiceBar.bar.staff.getNextNote(this);
-      if (!(nextNote instanceof GuitarNote) || nextNote._fret === this._fret) {
-        return false;
+  /**
+   * Removes techniques that an edit made invalid: a slide or legato without a
+   * valid target, or a bend on an open string.
+   * @returns True if a technique was removed.
+   */
+  public removeInvalidTechniques(): boolean {
+    if (this._fret === null || this._fret < 0) {
+      return false;
+    }
+    let removed = false;
+    for (const type of TRANSITIONAL_TECHNIQUES) {
+      if (this.hasTechnique(type) && !this.hasValidTransition(type)) {
+        removed = this.removeTechnique(type) || removed;
       }
     }
-
-    return !this._techniques.some((technique) =>
-      guitarTechniqueTypesIncompatible(technique.type, type)
-    );
+    if (this._fret === 0) {
+      removed = this.removeTechnique(GuitarTechniqueType.Bend) || removed;
+    }
+    return removed;
   }
 
   /**
@@ -328,8 +532,7 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Compares contents of this guitar note with some other note
-   * (ignoring UUID)
+   * Compares pitch, octave, fret, and string number, ignoring UUID, ownership, and techniques.
    * @param otherNote Note to compare with
    * @returns True if equal, false otherwise
    */
@@ -343,9 +546,10 @@ export class GuitarNote implements Note<Guitar> {
   }
 
   /**
-   * Deep copy of the guitar note
+   * Copies fret, string number, and techniques into the destination beat, recomputing pitch from its tuning.
    * @param beat Beat that will own the copied note
    * @returns Deep copy of the guitar note
+   * @throws If destination tuning, copied fret/pitch, or technique data is invalid.
    */
   public deepCopy(beat: Beat<Guitar> = this.beat): GuitarNote {
     const note = new GuitarNote(
@@ -361,7 +565,10 @@ export class GuitarNote implements Note<Guitar> {
     return note;
   }
 
-  /** Note value setter */
+  /**
+   * Stores pitch class and recalculates fret without validating pitch membership.
+   * @throws If tuning/octave is missing or the calculated fret is negative.
+   */
   public set noteValue(newNoteValue: NoteValue) {
     this._noteValue = newNoteValue;
     this.calculateFretFromNote();
@@ -371,7 +578,10 @@ export class GuitarNote implements Note<Guitar> {
     return this._noteValue;
   }
 
-  /** Octave setter */
+  /**
+   * Stores octave and recalculates fret without checking octave bounds.
+   * @throws If playable pitch/tuning has no octave, tuning is missing, or the calculated fret is negative.
+   */
   public set octave(newOctave: number | null) {
     this._octave = newOctave;
     this.calculateFretFromNote();
@@ -381,28 +591,40 @@ export class GuitarNote implements Note<Guitar> {
     return this._octave;
   }
 
-  /** String number setter */
-  public set fret(newFret: number | null) {
+  /**
+   * Sets fret and recomputes pitch, clamping above the fretboard maximum; null keeps only Let Ring for editor validation.
+   * @param invalidateTies Whether to remove ties invalidated by the new fret.
+   * @throws If tuning is missing/unpitched or the resulting pitch is invalid or outside supported octave bounds.
+   */
+  public setFret(newFret: number | null, invalidateTies: boolean = true): void {
+    const oldFret = this._fret;
     const fretsCount = this.trackContext.instrument.fretsCount;
     if (newFret !== null) {
       this._fret = Math.min(newFret, fretsCount);
     } else {
       this._fret = null;
-      this.clearTechniques();
+      this.keepEmptySlotTechniques();
     }
     this.calcNoteFromFret();
+    if (invalidateTies) {
+      this.invalidateTies(oldFret);
+    }
+    if (this._fret === -1) {
+      this.keepDeadNoteTechniques();
+    }
   }
-  /** Fret number */
+
+  /** Fret number, null for an empty slot, or -1 for a dead note. */
   public get fret(): number | null {
     return this._fret;
   }
 
-  /** String number getter */
+  /** One-based string number in instrument tuning order. */
   public get stringNum(): number {
     return this._stringNum;
   }
 
-  /** Techniques array */
+  /** Live technique array; use technique methods to check applicability and compatibility. */
   public get techniques(): GuitarTechnique[] {
     return this._techniques;
   }

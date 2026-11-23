@@ -1,7 +1,13 @@
 import { TrackElement } from "../../../src/notation/controller/element/track-element";
-import { DEFAULT_MASTER_BAR, NoteDuration } from "../../../src/notation/model";
-import { createScoreGraph } from "../model/helpers";
+import { TabBeatElement } from "../../../src/notation/controller/element/beat/tab-beat-element";
+import {
+  DEFAULT_MASTER_BAR,
+  GuitarNote,
+  NoteDuration,
+} from "../../../src/notation/model";
+import { createBarWithBeats, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
+import { required } from "../required";
 
 describe("TrackElement measure", () => {
   test("hides repeated time signature on consecutive bars and removes its leading width", () => {
@@ -186,5 +192,69 @@ describe("TrackElement measure", () => {
       trackElement.trackLineElements[0].staffLineContainers[0]
         .styleLinesAsArray[0].barElements[0];
     expect(barElement.barValidState).toBe(true);
+  });
+});
+
+describe("Tab beat technique slot", () => {
+  function layoutTabBeats(
+    beatConfigs: Array<{ baseDuration: NoteDuration; dots?: 0 | 1 | 2 }>,
+    fret: number
+  ): TabBeatElement[] {
+    const { track, beats } = createBarWithBeats(beatConfigs);
+    for (const beat of beats) {
+      (required(beat.notes)[0] as GuitarNote).setFret(fret);
+    }
+    const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
+    trackElement.update();
+
+    return beats.map((b) => {
+      const element = trackElement.getBeatElement(b);
+      if (!(element instanceof TabBeatElement)) {
+        throw Error("Expected a tab beat element");
+      }
+      return element;
+    });
+  }
+
+  test("keeps the slot free of two-digit fret text", () => {
+    const beatElements = layoutTabBeats(
+      [
+        { baseDuration: NoteDuration.Sixteenth },
+        { baseDuration: NoteDuration.Sixteenth },
+        { baseDuration: NoteDuration.Half },
+      ],
+      12
+    );
+
+    for (const beatElement of beatElements) {
+      const slotRight =
+        beatElement.globalCoords.x + TEST_LAYOUT_DIMENSIONS.beatTechniqueWidth;
+      const textRect = beatElement.noteElements[0].textRectGlobal;
+      expect(textRect.x).toBeGreaterThanOrEqual(slotRight);
+    }
+  });
+
+  test("keeps the last fret text inside the content when a bar ends with a 64th", () => {
+    const beatElements = layoutTabBeats(
+      [
+        { baseDuration: NoteDuration.Half },
+        { baseDuration: NoteDuration.Quarter, dots: 1 },
+        { baseDuration: NoteDuration.SixtyFourth },
+      ],
+      12
+    );
+    const last = required(beatElements.at(-1));
+    const barElement = last.barElement;
+    const contentRightX =
+      barElement.globalCoords.x +
+      last.voiceBarContainer.boundingBox.x +
+      barElement.voiceContentWidth;
+
+    expect(last.boundingBox.width).toBeGreaterThanOrEqual(
+      TEST_LAYOUT_DIMENSIONS.minRhythmColumnGap
+    );
+    expect(last.noteElements[0].textRectGlobal.right).toBeLessThanOrEqual(
+      contentRightX
+    );
   });
 });

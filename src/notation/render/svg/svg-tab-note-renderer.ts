@@ -377,7 +377,7 @@ export class SVGTabNoteRenderer implements SVGNoteRenderer {
     this.unrenderSelectionRect();
 
     // Render note value stuff if note value defined, remove it otherwise
-    if (this.noteElement.note?.fret != null) {
+    if (this.noteElement.noteText !== "") {
       this.renderNoteBackground();
       this.renderNoteText();
     } else {

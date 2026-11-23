@@ -29,8 +29,6 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
   private _measureComponent: MeasureControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
 
@@ -41,45 +39,34 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
   constructor(
     measureComponent: MeasureControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._measureComponent = measureComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
 
     this._tempoCallbacks = new TempoControlsDefaultCallbacks(
       this._measureComponent.tempoControlsComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._timeSigCallbacks = new TimeSigControlsDefaultCallbacks(
       this._measureComponent.timeSigControlsComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._repeatCountCallbacks = new RepeatCountControlsDefaultCallbacks(
       this._measureComponent.repeatCountControlsComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._freeKeyboard
+      this._renderFunc
     );
   }
 
   onTempoClicked(): void {
-    this._captureKeyboard();
     this._measureComponent.showTempoControls();
   }
 
   onTimeSignatureClicked(): void {
-    this._captureKeyboard();
     this._measureComponent.showTimeSigControls();
   }
 
@@ -95,7 +82,6 @@ export class MeasureControlsDefaultCallbacks implements MeasureControlsCallbacks
   }
 
   onRepeatEndClicked(): void {
-    this._captureKeyboard();
     this._measureComponent.showRepeatCountControls();
   }
 

@@ -2,8 +2,9 @@ import {
   ElectricGuitarTone,
   Guitar,
   GuitarNote,
+  DEFAULT_TUNINGS,
+  copyTuning,
   parseTuning,
-  parseTuningStrSimple,
   Score,
   StringInstrumentType,
   Track,
@@ -140,7 +141,7 @@ describe("Track model", () => {
         ElectricGuitarTone.Clean,
         "Drop D",
         6,
-        parseTuningStrSimple("D A D G B E")
+        copyTuning(DEFAULT_TUNINGS[6].GuitarDropD)
       ),
       TrackInstrumentChangeMode.Transpose
     );

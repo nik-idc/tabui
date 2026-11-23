@@ -79,8 +79,9 @@ test("adapts between unrestricted, view-only, and blocked widths", async ({
         const svgLine = line as SVGLineElement;
         const matrix = svgLine.getScreenCTM();
         const svgRoot = svgLine.ownerSVGElement;
-        if (matrix === null || svgRoot === null)
+        if (matrix === null || svgRoot === null) {
           throw new Error("Expected rendered notation geometry");
+        }
         const point = new DOMPoint(
           svgLine.x1.baseVal.value,
           svgLine.y1.baseVal.value
@@ -117,7 +118,7 @@ test("adapts between unrestricted, view-only, and blocked widths", async ({
   };
 
   // This width is between the default responsive thresholds.
-  await page.setViewportSize({ width: 800, height: 900 });
+  await page.setViewportSize({ width: 580, height: 900 });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
 
   // Responsive view-only hides the editing side panel but keeps notation visible.
@@ -159,7 +160,7 @@ test("adapts between unrestricted, view-only, and blocked widths", async ({
 
   // A host-only resize must also apply the restriction, with no window resize.
   await editor.evaluate((root) => {
-    root.style.width = "800px";
+    root.style.width = "560px";
   });
   await expect(editor).toHaveClass(/tu-responsive-view-only/);
   await expect(svg).toBeVisible();
@@ -224,7 +225,9 @@ test("collapses the side panel and gives notation its space", async ({
     .poll(async () => {
       const widths = await notation.evaluate((viewport) => {
         const rendered = viewport.querySelector(".tu-root-svg");
-        if (rendered === null) throw new Error("Expected rendered notation");
+        if (rendered === null) {
+          throw new Error("Expected rendered notation");
+        }
         return {
           svg: rendered.getBoundingClientRect().width,
           available: viewport.clientWidth,
@@ -247,6 +250,201 @@ test("collapses the side panel and gives notation its space", async ({
     .toBeCloseTo(svgWidthBefore, 0);
 });
 
+test("contains new-track tuning controls at desktop editing widths", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await editor.getByRole("button", { name: "New track", exact: true }).click();
+  const dialog = editor.getByRole("dialog", { name: "New track" });
+  const content = dialog.locator(".tu-nt-content");
+  const counter = dialog.locator(".tu-nt-string-count-value");
+  await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(6);
+  await expect(dialog.locator(".tu-nt-tuning-step")).toHaveCount(12);
+  const initialContent = await requiredBoundingBox(content);
+  const initialCounter = await requiredBoundingBox(counter);
+  expect(initialCounter.x + initialCounter.width / 2).toBeCloseTo(
+    initialContent.x + initialContent.width / 2,
+    0
+  );
+
+  await dialog
+    .getByRole("button", { name: "Increase string count by 1" })
+    .click({ clickCount: 6 });
+  await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(12);
+  await expect(dialog.locator(".tu-nt-tuning-step")).toHaveCount(24);
+  const grownContent = await requiredBoundingBox(content);
+  const grownCounter = await requiredBoundingBox(counter);
+  expect(grownContent.width).toBeGreaterThan(initialContent.width);
+  expect(grownCounter.x + grownCounter.width / 2).toBeCloseTo(
+    grownContent.x + grownContent.width / 2,
+    0
+  );
+
+  const controls = await dialog
+    .locator(".tu-nt-tuning-step")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return { left: bounds.left, right: bounds.right, top: bounds.top };
+      })
+    );
+  expect(controls).toHaveLength(24);
+  for (const [index, bounds] of controls.entries()) {
+    expect(bounds.left).toBeGreaterThanOrEqual(grownContent.x);
+    expect(bounds.right).toBeLessThanOrEqual(
+      grownContent.x + grownContent.width
+    );
+    if (index > 0 && bounds.top === controls[index - 1].top) {
+      expect(bounds.left).toBeGreaterThanOrEqual(controls[index - 1].right);
+    }
+  }
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.reload();
+  const compactEditor = page.locator("#tabui-editor");
+  await expect(compactEditor).not.toHaveClass(
+    /tu-responsive-(view-only|blocked)/
+  );
+  await compactEditor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await compactEditor
+    .getByRole("button", { name: "New track", exact: true })
+    .click();
+  const compactDialog = compactEditor.getByRole("dialog", {
+    name: "New track",
+  });
+  const compactContent = compactDialog.locator(".tu-nt-content");
+  await expect(compactDialog.locator(".tu-nt-tuning-string")).toHaveCount(6);
+  await compactDialog
+    .getByRole("button", { name: "Increase string count by 1" })
+    .click({ clickCount: 6 });
+  await expect(compactDialog.locator(".tu-nt-tuning-string")).toHaveCount(12);
+  await expect(compactDialog.locator(".tu-nt-tuning-step")).toHaveCount(24);
+  const compactContentBox = await requiredBoundingBox(compactContent);
+  const compactControls = await compactDialog
+    .locator(".tu-nt-tuning-step")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return { left: bounds.left, right: bounds.right };
+      })
+    );
+  for (const bounds of compactControls) {
+    expect(bounds.left).toBeGreaterThanOrEqual(compactContentBox.x);
+    expect(bounds.right).toBeLessThanOrEqual(
+      compactContentBox.x + compactContentBox.width
+    );
+  }
+  await compactDialog.getByRole("button", { name: "Cancel" }).click();
+});
+
+test("keeps editing at 200% zoom on a 1280px screen", async ({ page }) => {
+  // WCAG 1.4.4: a 1280px screen at 200% zoom leaves 640 CSS px.
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  await expect(editor).not.toHaveClass(/tu-responsive-(view-only|blocked)/);
+  await expect(editor.getByRole("button", { name: "Undo" })).toBeVisible();
+
+  // The master controls get their own line instead of overlapping the
+  // selection and editing buttons.
+  const selection = await requiredBoundingBox(
+    editor.locator(".tu-selection-controls")
+  );
+  const edit = await requiredBoundingBox(editor.locator(".tu-edit-controls"));
+  const master = await requiredBoundingBox(
+    editor.locator(".tu-score-controls .tu-settings")
+  );
+  expect(selection.x + selection.width).toBeLessThanOrEqual(edit.x);
+  expect(master.y).toBeGreaterThanOrEqual(selection.y + selection.height);
+
+  // Track rows still line up with the master controls.
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  const masterVolume = await requiredBoundingBox(
+    editor.getByRole("slider", { name: "Master volume" })
+  );
+  const trackVolume = await requiredBoundingBox(
+    editor.locator(".tu-tracks .tu-track-controls input[type=range]").first()
+  );
+  expect(Math.abs(trackVolume.x - masterVolume.x)).toBeLessThanOrEqual(0.5);
+  expect(Math.abs(trackVolume.width - masterVolume.width)).toBeLessThanOrEqual(
+    0.5
+  );
+});
+
+test("contains a long time-signature dialog at compact editing width", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.locator(".tu-time-signature").first().click();
+  await page.keyboard.press("Shift+M");
+  const initialDialog = editor.getByRole("dialog", { name: "Time signature" });
+  await initialDialog
+    .getByRole("button", { name: "Increase beats per measure by 1" })
+    .click();
+  await initialDialog.getByRole("button", { name: "Confirm" }).click();
+  await editor.locator('[id^="note-rect-"]').first().click();
+  for (let i = 0; i < 30; i++) {
+    await page.keyboard.press("Shift+ArrowRight");
+  }
+  await page.keyboard.press("Shift+M");
+
+  const dialog = editor.getByRole("dialog", { name: "Time signature" });
+  const content = dialog.locator(".tu-time-sig-dialog-content");
+  await expect(dialog.locator(".tu-time-sig-text")).toContainText(
+    "Applies to bars"
+  );
+
+  const checkGeometry = async (): Promise<void> => {
+    const contentBox = await requiredBoundingBox(content);
+    const textBox = await requiredBoundingBox(
+      dialog.locator(".tu-time-sig-text")
+    );
+    expect(textBox.x).toBeGreaterThanOrEqual(contentBox.x);
+    expect(textBox.x + textBox.width).toBeLessThanOrEqual(
+      contentBox.x + contentBox.width
+    );
+    const controls = dialog.locator(
+      ".tu-time-sig-label, .tu-time-sig-beats-input, .tu-time-sig-duration-input"
+    );
+    const controlBoxes = await controls.evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const bounds = node.getBoundingClientRect();
+        return {
+          left: bounds.left,
+          right: bounds.right,
+          center: bounds.left + bounds.width / 2,
+        };
+      })
+    );
+    expect(controlBoxes).toHaveLength(3);
+    for (const box of controlBoxes) {
+      expect(box.left).toBeGreaterThanOrEqual(contentBox.x);
+      expect(box.right).toBeLessThanOrEqual(contentBox.x + contentBox.width);
+      expect(box.center).toBeCloseTo(contentBox.x + contentBox.width / 2, 0);
+    }
+  };
+  await checkGeometry();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+  await page.setViewportSize({ width: 1100, height: 900 });
+  await page.reload();
+  const compactEditor = page.locator("#tabui-editor");
+  await expect(compactEditor).not.toHaveClass(
+    /tu-responsive-(view-only|blocked)/
+  );
+  await compactEditor
+    .getByRole("button", { name: "Time Signature", exact: true })
+    .click();
+  await checkGeometry();
+  await dialog.getByRole("button", { name: "Cancel" }).click();
+});
+
 test("uses the default top-left panel placement", async ({ page }) => {
   // The default configuration places score controls above notation and side controls left.
   await page.goto("/tabui/?fixture=empty");
@@ -259,6 +457,216 @@ test("uses configured bottom-right panel placement", async ({ page }) => {
     "/tabui/?fixture=empty&scorePanelPlacement=bottom&sidePanelPlacement=right"
   );
   await expectPanelPlacement(page, "bottom-right");
+});
+
+test("opens the track list in the available direction without moving notation", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  const notation = editor.locator(".tu-notation-viewport");
+  const title = editor.getByRole("textbox", {
+    name: "Score name",
+    exact: true,
+  });
+  const scoreName = await title.inputValue();
+  const initialTitle = await requiredBoundingBox(title);
+  await title.fill("Short");
+  expect((await requiredBoundingBox(title)).width).toBeLessThan(
+    initialTitle.width
+  );
+  await title.fill(scoreName);
+  expect(
+    await title.evaluate(
+      (input: HTMLInputElement) => input.scrollWidth <= input.clientWidth
+    )
+  ).toBe(true);
+  await editor.getByRole("button", { name: "Tracks" }).scrollIntoViewIfNeeded();
+  const before = await requiredBoundingBox(notation);
+  const pageScrollBefore = await page.evaluate(() => window.scrollY);
+
+  await editor.getByRole("button", { name: "Tracks" }).click();
+  const overlay = editor.locator(".tu-track-controls-overlay");
+  await expect(overlay).toBeVisible();
+  await expect(overlay.locator(".tu-track-controls")).toHaveCount(5);
+  const geometry = await editor.evaluate((root) => {
+    const getBox = (selector: string): DOMRect => {
+      const element = root.querySelector<HTMLElement>(selector);
+      if (element === null) {
+        throw new Error(`Missing ${selector}`);
+      }
+      return element.getBoundingClientRect();
+    };
+    const toolbar = getBox(".tu-top-controls");
+    const title = getBox(".tu-score-name-input");
+    const play = getBox(".tu-play-button");
+    const master = getBox(".tu-master-volume-input");
+    const track = getBox(".tu-track-volume-input");
+    const row = getBox(".tu-track-controls");
+    const panel = getBox(".tu-track-controls-overlay");
+    const viewport = root.querySelector<HTMLElement>(".tu-notation-viewport");
+    if (viewport === null) {
+      throw new Error("Missing notation viewport");
+    }
+    return {
+      toolbarCenter: toolbar.left + toolbar.width / 2,
+      mixerCenter: row.left + row.width / 2,
+      toolbarBottom: toolbar.bottom,
+      titleCenter: title.left + title.width / 2,
+      notationCenter:
+        viewport.getBoundingClientRect().left +
+        viewport.clientLeft +
+        viewport.clientWidth / 2,
+      playCenter: play.left + play.width / 2,
+      masterX: master.left,
+      trackX: track.left,
+      masterWidth: master.width,
+      trackWidth: track.width,
+      panelTop: panel.top,
+      panelBottom: panel.bottom,
+      notationTop: getBox(".tu-notation-viewport").top,
+    };
+  });
+  expect(Math.abs(geometry.titleCenter - geometry.notationCenter)).toBeLessThan(
+    2
+  );
+  expect(Math.abs(geometry.playCenter - geometry.toolbarCenter)).toBeLessThan(
+    2
+  );
+  expect(Math.abs(geometry.mixerCenter - geometry.toolbarCenter)).toBeLessThan(
+    2
+  );
+  expect(Math.abs(geometry.masterX - geometry.trackX)).toBeLessThan(2);
+  expect(Math.abs(geometry.masterWidth - geometry.trackWidth)).toBeLessThan(2);
+  expect(
+    Math.abs(geometry.panelTop - geometry.toolbarBottom)
+  ).toBeLessThanOrEqual(0.5);
+  await expect
+    .poll(async () => {
+      const box = await requiredBoundingBox(notation);
+      return [box.x, box.y, box.width, box.height];
+    })
+    .toEqual([before.x, before.y, before.width, before.height]);
+  await expect
+    .poll(async () => page.evaluate(() => window.scrollY))
+    .toBe(pageScrollBefore);
+
+  await page.goto(
+    "/tabui/?fixture=feature_showcase&scorePanelPlacement=bottom"
+  );
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  const bottomNotation = editor.locator(".tu-notation-viewport");
+  await editor.getByRole("button", { name: "Tracks" }).scrollIntoViewIfNeeded();
+  const bottomBefore = await requiredBoundingBox(bottomNotation);
+  const bottomPageScrollBefore = await page.evaluate(() => window.scrollY);
+  await editor.getByRole("button", { name: "Tracks" }).click();
+  const bottomGeometry = await editor.evaluate((root) => {
+    const getBox = (selector: string): DOMRect => {
+      const element = root.querySelector<HTMLElement>(selector);
+      if (element === null) {
+        throw new Error(`Missing ${selector}`);
+      }
+      return element.getBoundingClientRect();
+    };
+    const panel = getBox(".tu-track-controls-overlay");
+    const toolbar = getBox(".tu-top-controls");
+    return { panelBottom: panel.bottom, toolbarTop: toolbar.top };
+  });
+  expect(
+    Math.abs(bottomGeometry.panelBottom - bottomGeometry.toolbarTop)
+  ).toBeLessThanOrEqual(0.5);
+  await expect
+    .poll(async () => {
+      const box = await requiredBoundingBox(bottomNotation);
+      return [box.x, box.y, box.width, box.height];
+    })
+    .toEqual([
+      bottomBefore.x,
+      bottomBefore.y,
+      bottomBefore.width,
+      bottomBefore.height,
+    ]);
+  await expect
+    .poll(async () => page.evaluate(() => window.scrollY))
+    .toBe(bottomPageScrollBefore);
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await expect(editor.locator(".tu-track-controls-overlay")).toBeHidden();
+});
+
+test("caps a long track list at five rows and keeps it scrollable", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+
+  for (const name of ["Extra one", "Extra two", "Extra three"]) {
+    await editor
+      .getByRole("button", { name: "New track", exact: true })
+      .click();
+    const dialog = editor.getByRole("dialog", { name: "New track" });
+    await dialog
+      .getByRole("textbox", { name: "Track name", exact: true })
+      .fill(name);
+    await dialog.getByRole("button", { name: "Confirm", exact: true }).click();
+  }
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  const overlay = editor.locator(".tu-track-list");
+  const metrics = await overlay.evaluate((panel) => {
+    const row = panel.querySelector<HTMLElement>(".tu-track-controls");
+    if (row === null) {
+      throw new Error("Expected track row");
+    }
+    const style = getComputedStyle(panel);
+    return {
+      clientHeight: panel.clientHeight,
+      scrollHeight: panel.scrollHeight,
+      rowHeight: row.getBoundingClientRect().height,
+      gap: parseFloat(style.gap),
+      padding: parseFloat(style.paddingTop) + parseFloat(style.paddingBottom),
+    };
+  });
+  expect(metrics.clientHeight).toBeGreaterThan(0);
+  expect(metrics.scrollHeight).toBeGreaterThan(metrics.clientHeight);
+  expect(metrics.clientHeight).toBeLessThanOrEqual(
+    metrics.rowHeight * 5 + metrics.gap * 4 + metrics.padding + 2
+  );
+  await overlay.scrollIntoViewIfNeeded();
+  await overlay.hover();
+  const scrollTopBeforeWheel = await overlay.evaluate(
+    (panel) => panel.scrollTop
+  );
+  await page.mouse.wheel(0, 500);
+  await expect
+    .poll(async () =>
+      overlay.evaluate((panel) => {
+        return panel.scrollTop;
+      })
+    )
+    .toBeGreaterThan(scrollTopBeforeWheel);
+  const scrollState = await overlay.evaluate((panel) => {
+    const row = panel.querySelector<HTMLElement>(
+      ".tu-track-controls:last-child"
+    );
+    if (row === null) {
+      throw new Error("Expected last track row");
+    }
+    const panelBox = panel.getBoundingClientRect();
+    const rowBox = row.getBoundingClientRect();
+    return {
+      scrollTop: panel.scrollTop,
+      rowTop: rowBox.top,
+      rowBottom: rowBox.bottom,
+      panelTop: panelBox.top,
+      panelBottom: panelBox.bottom,
+    };
+  });
+  expect(scrollState.scrollTop).toBeGreaterThan(0);
+  expect(scrollState.rowTop).toBeGreaterThanOrEqual(scrollState.panelTop - 0.5);
+  expect(scrollState.rowBottom).toBeLessThanOrEqual(
+    scrollState.panelBottom + 0.5
+  );
 });
 
 test("configured view-only keeps only track selection, names, and playback", async ({
@@ -276,43 +684,53 @@ test("configured view-only keeps only track selection, names, and playback", asy
   // Track selection and score/track names remain available for viewing.
   await expect(editor.getByRole("button", { name: "Tracks" })).toBeVisible();
   await expect(editor.locator(".tu-score-name-input")).toBeDisabled();
-  await expect(editor.locator(".tu-track-select-button")).toHaveCount(3);
-  for (const name of ["Rhythm track", "Lead track", "Bass track"]) {
+  await expect(editor.locator('.tu-track-controls[role="group"]')).toHaveCount(
+    5
+  );
+  for (const name of [
+    "Clean rhythm",
+    "Bass",
+    "Clean lead",
+    "Distortion rhythm",
+    "Distortion lead",
+  ]) {
     await expect(
-      editor.getByRole("button", { name: `Select track: ${name}`, exact: true })
+      editor.getByRole("group", { name: `Track: ${name}`, exact: true })
     ).toBeVisible();
-    await expect(
-      editor.getByRole("textbox", { name: `${name} name`, exact: true })
-    ).toBeDisabled();
   }
-  const lead = editor.getByRole("button", {
-    name: "Select track: Lead track",
+  await expect(
+    editor.getByRole("textbox", { name: "Clean rhythm name", exact: true })
+  ).toBeDisabled();
+  const bass = editor.getByRole("group", {
+    name: "Track: Bass",
     exact: true,
   });
-  const rhythm = editor.getByRole("button", {
-    name: "Select track: Rhythm track",
+  const rhythm = editor.getByRole("group", {
+    name: "Track: Clean rhythm",
     exact: true,
   });
-  await expect(rhythm).toHaveAttribute("aria-pressed", "true");
-  await lead.focus();
-  await expect(lead).toBeFocused();
+  await expect(rhythm).toHaveAttribute("aria-current", "true");
+  // Keyboard navigation restores native Space activation after opening Tracks by mouse.
+  await rhythm.focus();
+  await page.keyboard.press("Tab");
+  await expect(bass).toBeFocused();
   await page.keyboard.press("Space");
-  await expect(lead).toHaveAttribute("aria-pressed", "true");
-  await expect(rhythm).toHaveAttribute("aria-pressed", "false");
+  await expect(bass).toHaveAttribute("aria-current", "true");
+  await expect(rhythm).toHaveAttribute("aria-current", "false");
   const notation = editor.locator(".tu-notation-viewport");
   await notation.focus();
   await expect(notation).toBeFocused();
   await page.keyboard.press("ArrowRight");
-  await expect(lead).toHaveAttribute("aria-pressed", "true");
-  await expect(rhythm).toHaveAttribute("aria-pressed", "false");
+  await expect(bass).toHaveAttribute("aria-current", "true");
+  await expect(rhythm).toHaveAttribute("aria-current", "false");
+  // Each bass bar starts with a whole rest, so the next beat is in bar 2.
   await expect(editor.getByRole("status")).toHaveText(
-    "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, fret 15."
+    "Bar 2, 4/4, 90 BPM, Beat 1, whole, String 1, rest."
   );
   await page.keyboard.press("ArrowLeft");
   await expect(editor.getByRole("status")).toContainText("Bar 1");
-  await expect(editor.getByRole("status")).toContainText("Beat 1");
-  await expect(editor.getByRole("status")).toContainText("fret 12.");
-  await expect(lead).toHaveAttribute("aria-pressed", "true");
+  await expect(editor.getByRole("status")).toContainText("rest.");
+  await expect(bass).toHaveAttribute("aria-current", "true");
   await expect(
     editor.getByRole("button", { name: "Play", exact: true })
   ).toBeEnabled();
@@ -335,4 +753,22 @@ test("configured view-only keeps only track selection, names, and playback", asy
   ]) {
     await expect(editor.locator(`${selector}:visible`)).toHaveCount(0);
   }
+});
+
+test("fills the height of its parent", async ({ page }) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  await expect(editor.locator(".tu-root-svg")).toBeVisible();
+  // The demo sets its own editor height. Remove it to test the default.
+  await editor.evaluate((element) => {
+    element.classList.remove("demo-editor");
+    const parent = element.parentElement;
+    if (parent === null) {
+      throw new Error("Expected the editor to have a parent");
+    }
+    parent.style.height = "500px";
+  });
+  await expect
+    .poll(async () => (await requiredBoundingBox(editor)).height)
+    .toBe(500);
 });

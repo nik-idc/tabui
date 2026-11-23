@@ -1,6 +1,15 @@
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { NotationComponent } from "../../../notation/notation-component";
-import { GuitarTechniqueType } from "../../../notation/model";
+import {
+  AccentType,
+  BeatGuitarTechniqueType,
+  GuitarTechniqueType,
+} from "../../../notation/model";
 import { TechniqueControlsTemplate } from "./technique-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 
@@ -27,46 +36,53 @@ export class TechniqueControlsTemplateRenderer {
   }
 
   private assembleContainer(): void {
-    const cssClass = "tu-technique-controls";
-    this.template.container.classList.add(cssClass);
-    this.template.container.append(
-      this.template.vibratoButton,
-      this.template.palmMuteButton,
-      this.template.letRingButton,
-      this.template.legatoButton,
-      this.template.slideButton,
-      this.template.bendButton,
-      this.template.nhButton,
-      this.template.phButton
+    const t = this.template;
+    t.container.classList.add("tu-technique-controls");
+    labelGroup(t.container, "Techniques");
+
+    // DOM order is also the Tab key order.
+    t.styleGroup.append(
+      t.vibratoButton,
+      t.palmMuteButton,
+      t.letRingButton,
+      t.strokeButton
     );
-    this.parentDiv.appendChild(this.template.container);
+    t.articulationGroup.append(
+      t.tieButton,
+      t.tieBackButton,
+      t.legatoButton,
+      t.slideButton,
+      t.bendButton,
+      t.tapButton,
+      t.nhButton,
+      t.phButton
+    );
+    t.accentGroup.append(t.accentButton, t.heavyAccentButton);
+
+    const groups = [t.styleGroup, t.articulationGroup, t.accentGroup];
+    for (const group of groups) {
+      group.classList.add("tu-technique-group");
+    }
+    t.container.append(...groups);
+    this.parentDiv.appendChild(t.container);
   }
 
+  /**
+   * Shows a toggle button's state.
+   * @param isApplied Pressed state; defaults to whether a selected note has the technique.
+   */
   private renderTechniqueButtonState(
     type: GuitarTechniqueType,
-    button: HTMLButtonElement
+    button: HTMLButtonElement,
+    isApplied: boolean = this.notationComponent.trackController.hasSelectedTechnique(
+      type
+    )
   ): void {
     const tc = this.notationComponent.trackController;
 
-    const selection = tc.selectionBeats;
-    const selectionCursor = tc.selectionCursor;
     const appliedCSSClass = "tu-applied-img";
     const disabledCSSClass = "tu-disabled-img";
-    let isApplied = false;
-    let isDisabled: boolean;
-
-    if (selectionCursor === undefined) {
-      isDisabled = type === GuitarTechniqueType.Bend;
-      isApplied =
-        !isDisabled && selection.some((beat) => beat.hasTechnique(type));
-    } else {
-      const note = selectionCursor.note;
-      isDisabled = note === null;
-      if (note !== null) {
-        isApplied = note.hasTechnique(type);
-        isDisabled = !isApplied && !note.isTechniqueApplicable(type);
-      }
-    }
+    const isDisabled = !tc.canSetTechnique(type);
 
     button.disabled = isDisabled;
     button.classList.toggle(appliedCSSClass, isApplied);
@@ -74,7 +90,62 @@ export class TechniqueControlsTemplateRenderer {
     button.setAttribute("aria-pressed", `${isApplied}`);
   }
 
+  /** Tie back is an action, not a toggle, so it has no pressed state. */
+  private renderTieBackButton(): void {
+    const button = this.template.tieBackButton;
+    const label = "Tie as far back as possible";
+    setImageAsset(
+      button,
+      this.assetsPath,
+      "img/techniques/tie-back.svg",
+      label
+    );
+    setShortcutTooltip(button, label, "Shift+J");
+    const isDisabled = !this.notationComponent.trackController.canSetTechnique(
+      GuitarTechniqueType.Tie,
+      { tieToEarliest: true }
+    );
+    button.disabled = isDisabled;
+    button.classList.toggle("tu-disabled-img", isDisabled);
+  }
+
+  /** Shows stroke state. The button opens the settings dialog, so it is pressed when any target beat has a stroke. */
+  private renderStrokeButton(): void {
+    const tc = this.notationComponent.trackController;
+    const button = this.template.strokeButton;
+    const isApplied = tc.hasSelectedBeatTechnique(
+      BeatGuitarTechniqueType.Stroke
+    );
+    const isDisabled = !tc.canSetBeatTechnique(BeatGuitarTechniqueType.Stroke);
+
+    setImageAsset(
+      button,
+      this.assetsPath,
+      "img/techniques/stroke.svg",
+      "Stroke"
+    );
+    setShortcutTooltip(button, "Stroke", "Shift+D");
+    button.setAttribute("aria-haspopup", "dialog");
+    button.setAttribute("aria-pressed", `${isApplied}`);
+    button.classList.toggle("tu-applied-img", isApplied);
+    button.disabled = isDisabled;
+    button.classList.toggle("tu-disabled-img", isDisabled);
+  }
+
   private renderTechniqueButtons(): void {
+    const tc = this.notationComponent.trackController;
+    setImageAsset(
+      this.template.tieButton,
+      this.assetsPath,
+      "img/techniques/tie.svg",
+      "Tie"
+    );
+    setShortcutTooltip(this.template.tieButton, "Tie", "j");
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Tie,
+      this.template.tieButton
+    );
+    this.renderTieBackButton();
     setImageAsset(
       this.template.vibratoButton,
       this.assetsPath,
@@ -115,9 +186,9 @@ export class TechniqueControlsTemplateRenderer {
       this.template.nhButton,
       this.assetsPath,
       "img/techniques/nh.svg",
-      "Nat. Harmonic"
+      "Natural Harmonic"
     );
-    setShortcutTooltip(this.template.nhButton, "Nat. Harmonic", "h");
+    setShortcutTooltip(this.template.nhButton, "Natural Harmonic", "h");
     this.renderTechniqueButtonState(
       GuitarTechniqueType.NaturalHarmonic,
       this.template.nhButton
@@ -170,10 +241,54 @@ export class TechniqueControlsTemplateRenderer {
       GuitarTechniqueType.Bend,
       this.template.bendButton
     );
+
+    setImageAsset(
+      this.template.tapButton,
+      this.assetsPath,
+      "img/techniques/tap.svg",
+      "Tap"
+    );
+    setShortcutTooltip(this.template.tapButton, "Tap", "k");
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Tap,
+      this.template.tapButton
+    );
+
+    setImageAsset(
+      this.template.accentButton,
+      this.assetsPath,
+      "img/techniques/accent.svg",
+      "Accent"
+    );
+    setShortcutTooltip(this.template.accentButton, "Accent", "c");
+    // Pressed like a stroke direction: when a click would remove this kind.
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Accent,
+      this.template.accentButton,
+      tc.isSelectedAccentOfKind(AccentType.Normal)
+    );
+
+    setImageAsset(
+      this.template.heavyAccentButton,
+      this.assetsPath,
+      "img/techniques/heavy-accent.svg",
+      "Heavy Accent"
+    );
+    setShortcutTooltip(
+      this.template.heavyAccentButton,
+      "Heavy Accent",
+      "Shift+C"
+    );
+    this.renderTechniqueButtonState(
+      GuitarTechniqueType.Accent,
+      this.template.heavyAccentButton,
+      tc.isSelectedAccentOfKind(AccentType.Heavy)
+    );
   }
 
   public render(): void {
     this.renderTechniqueButtons();
+    this.renderStrokeButton();
 
     this._assembled = renderOnce(this._assembled, () =>
       this.assembleContainer()

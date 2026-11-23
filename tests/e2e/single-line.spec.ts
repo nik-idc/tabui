@@ -8,20 +8,24 @@ async function barBorderIds(editor: Locator): Promise<string[]> {
 
 async function barBorderXs(page: Page): Promise<number[]> {
   return page.locator('line[id^="bar-border-"]').evaluateAll((lines) => {
-    return lines
+    const positions = lines
       .map((line) => {
-        const svgLine = line as SVGGraphicsElement;
-        return (svgLine.getCTM()?.e ?? 0) + Number(svgLine.getAttribute("x1"));
+        return Math.round(line.getBoundingClientRect().x * 100) / 100;
       })
       .sort((a, b) => a - b);
+    // Each staff repeats the same bar borders at a different height.
+    return [...new Set(positions)];
   });
 }
 
 async function selectTrack(editor: Locator, index: number): Promise<void> {
   await editor.getByRole("button", { name: "Tracks" }).click();
-  const buttons = editor.locator(".tu-track-select-button");
-  await buttons.nth(index).click();
-  await expect(buttons.nth(index)).toHaveAttribute("aria-pressed", "true");
+  const rows = editor.locator('.tu-track-controls[role="group"]');
+  const row = rows.nth(index);
+  if ((await row.getAttribute("aria-current")) !== "true") {
+    await row.locator(".tu-track-name-label").click();
+  }
+  await expect(row).toHaveAttribute("aria-current", "true");
 }
 
 type BarExtent = { left: number; right: number };
@@ -78,6 +82,8 @@ async function renderedBarContentExtents(
 test("scrolls one notation line and materializes horizontal bar ranges", async ({
   page,
 }) => {
+  // Keep three bars beyond the viewport even with the showcase's lighter notation.
+  await page.setViewportSize({ width: 800, height: 720 });
   await page.goto("/tabui/?fixture=feature_showcase&layoutMode=single-line");
   const editor = page.locator("#tabui-editor");
   const viewport = editor.locator(".tu-notation-viewport");
@@ -150,6 +156,13 @@ test("keeps single-line bar borders aligned when switching tracks", async ({
     .poll(() => viewport.evaluate((e) => e.scrollLeft))
     .toBeGreaterThan(0);
   await expect.poll(() => barBorderXs(page)).not.toEqual(initialXs);
+  // Scrolling renders bars over a few frames; read once they are drawn.
+  await page.evaluate(
+    () =>
+      new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+      )
+  );
   const firstTrackXs = await barBorderXs(page);
   expect(firstTrackXs.length).toBeGreaterThan(2);
 
@@ -180,7 +193,9 @@ test("follows an offscreen selected bar in single-line mode", async ({
     .poll(() =>
       viewport.evaluate((element) => {
         const selection = element.querySelector("#tu-selection rect");
-        if (selection === null) throw Error("Expected selection rectangle");
+        if (selection === null) {
+          throw Error("Expected selection rectangle");
+        }
         const bounds = selection.getBoundingClientRect();
         const left = element.getBoundingClientRect().left + element.clientLeft;
         const right = left + element.clientWidth;
@@ -199,7 +214,7 @@ test("follows playback to an offscreen bar in single-line mode", async ({
   await expect(editor.locator(".tu-root-svg")).toBeVisible();
   expect(await viewport.evaluate((e) => e.scrollLeft)).toBe(0);
 
-  await editor.getByRole("button", { name: "Play" }).click();
+  await editor.getByRole("button", { name: "Play", exact: true }).click();
   await expect(editor.getByRole("button", { name: "Pause" })).toBeVisible();
   // Capture and pause in the same browser frame, before the short final bar ends.
   const followed = await editor.evaluate(async (element) => {
@@ -219,7 +234,9 @@ test("follows playback to an offscreen bar in single-line mode", async ({
         requestAnimationFrame(() => resolve())
       );
       const cursor = element.querySelector("#playerCursor");
-      if (cursor === null) throw Error("Expected playback cursor");
+      if (cursor === null) {
+        throw Error("Expected playback cursor");
+      }
       const bounds = cursor.getBoundingClientRect();
       const left = scroller.getBoundingClientRect().left + scroller.clientLeft;
       const right = left + scroller.clientWidth;
@@ -248,10 +265,9 @@ test("follows playback to an offscreen bar in single-line mode", async ({
   expect(followed.width).toBeGreaterThan(0);
   // Use the scroller's horizontal clip, with one CSS pixel for scroll rounding.
   expect(followed.horizontalOverflow).toBeLessThanOrEqual(1);
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
 });
 
 test("keeps adjacent bars separate after a visible duration change", async ({

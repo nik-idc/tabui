@@ -1,9 +1,29 @@
 import { ResolvedAssetConfig, resolveAssetUrl } from "../../assets";
+import type { MasterBar } from "../../notation/model/master-bar";
+import type { NoteType } from "../../notation/model/note";
+import type { Score } from "../../notation/model/score";
+
+/** Describes the score-wide bar span affected by a settings dialog. */
+export function getBarEditScopeText(score: Score, bars: MasterBar[]): string {
+  if (bars.length === 0) {
+    return "";
+  }
+  const first = score.masterBars.indexOf(bars[0]) + 1;
+  const last = score.masterBars.indexOf(bars[bars.length - 1]) + 1;
+  return first === last
+    ? ` Applies to bar ${first}.`
+    : ` Applies to bars ${first}–${last}.`;
+}
 
 export interface DialogSection {
   element: HTMLElement;
   className: string;
   children?: Node[];
+}
+
+/** Note names of a tuning with octaves, such as "E2 A2", joined with spaces. */
+export function getTuningText(tuning: readonly NoteType[]): string {
+  return tuning.map((note) => `${note.noteValue}${note.octave}`).join(" ");
 }
 
 /** Describes tuning in displayed string order, with spoken accidentals. */
@@ -14,11 +34,17 @@ export function getTuningValueText(
   const notes = tuning
     .trim()
     .split(/\s+/)
-    .map((note) => note.replace(/#/g, " sharp").replace(/b/g, " flat"));
+    .map((note) => note.replace("#", " sharp "));
   if (stringIndex !== undefined) {
     return `String ${notes.length - stringIndex}: ${notes[stringIndex]}`;
   }
   return `Tuning, strings ${notes.length} to 1: ${notes.join(", ")}`;
+}
+
+/** Marks an element as a named group, such as a panel section. */
+export function labelGroup(element: HTMLElement, label: string): void {
+  element.setAttribute("role", "group");
+  element.setAttribute("aria-label", label);
 }
 
 export function renderOnce(
@@ -54,13 +80,16 @@ export function setImageAsset(
   }
 }
 
-/** Adds a keyboard binding to a tooltip without changing the button's name. */
+/** Displays letter keys in lowercase without changing the button's name. */
 export function setShortcutTooltip(
   button: HTMLButtonElement,
   label: string,
   shortcut: string
 ): void {
-  const text = `${label} (${shortcut})`;
+  const displayShortcut = shortcut
+    .trim()
+    .replace(/\b[A-Z]\b/g, (k) => k.toLowerCase());
+  const text = displayShortcut ? `${label} (${displayShortcut})` : label;
   button.title = text;
   button.dataset.tooltip = text;
 }

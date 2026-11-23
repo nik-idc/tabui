@@ -51,11 +51,14 @@ export function withDragSelection(
   } finally {
     fixture.callbacks.unbind();
     fixture.player.dispose();
-    keys.forEach((k, i) => {
+    for (const [i, k] of keys.entries()) {
       const descriptor = previous[i];
-      if (descriptor) Object.defineProperty(globalThis, k, descriptor);
-      else Reflect.deleteProperty(globalThis, k);
-    });
+      if (descriptor) {
+        Object.defineProperty(globalThis, k, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, k);
+      }
+    }
     dom.window.close();
   }
 }

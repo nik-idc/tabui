@@ -17,13 +17,13 @@ function createMultiTrackScore() {
 function expectStaffBars(score: Score, expectedBars: Bar[][]) {
   const staves = score.tracks.flatMap((v) => v.staves);
   expect(staves).toHaveLength(expectedBars.length);
-  staves.forEach((s, i) => {
+  for (const [i, s] of staves.entries()) {
     expect(s.bars).toHaveLength(expectedBars[i].length);
-    s.bars.forEach((b, j) => {
+    for (const [j, b] of s.bars.entries()) {
       expect(b).toBe(expectedBars[i][j]);
       expect(b.masterBar).toBe(score.masterBars[j]);
-    });
-  });
+    }
+  }
 }
 
 describe("AppendBarCommand", () => {

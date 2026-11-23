@@ -1,0 +1,218 @@
+/*
+ * Demo controls. The host page sets these colors:
+ * --demo-text, --demo-muted, --demo-border, --demo-surface, --demo-active.
+ */
+.demo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--demo-text);
+}
+
+.demo-toolbar select,
+.demo-button,
+.demo-segmented label {
+  box-sizing: border-box;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--demo-border);
+  border-radius: 6px;
+  background: var(--demo-surface);
+  color: var(--demo-text);
+  font: inherit;
+  line-height: 30px;
+  cursor: pointer;
+}
+
+.demo-toolbar select {
+  padding-right: 4px;
+  /* Some host pages reset select styles; keep the native arrow. */
+  appearance: auto;
+}
+
+.demo-toolbar :focus-visible {
+  outline: 2px solid var(--demo-text);
+  outline-offset: 1px;
+}
+
+.demo-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demo-field > span {
+  color: var(--demo-muted);
+}
+
+.demo-button:hover,
+.demo-segmented label:hover {
+  border-color: var(--demo-text);
+}
+
+.demo-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.demo-button-quiet {
+  border-color: transparent;
+  background: transparent;
+  color: var(--demo-muted);
+}
+
+/* The format selector with its Import and Export buttons. */
+.demo-exchange {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Radio groups that look like two joined buttons. */
+.demo-segmented {
+  display: inline-flex;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.demo-segmented label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.demo-segmented label + label {
+  margin-left: -1px;
+}
+
+.demo-segmented label:first-of-type {
+  border-radius: 6px 0 0 6px;
+}
+
+.demo-segmented label:last-of-type {
+  border-radius: 0 6px 6px 0;
+}
+
+/* The radio covers its label, so a click anywhere on the label selects it. */
+.demo-segmented input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.demo-segmented label:has(input:checked) {
+  background: var(--demo-active);
+  border-color: var(--demo-text);
+  font-weight: 600;
+}
+
+.demo-segmented label:has(input:focus-visible) {
+  outline: 2px solid var(--demo-text);
+  outline-offset: 1px;
+  z-index: 1;
+}
+
+.demo-menu {
+  position: relative;
+}
+
+.demo-menu > summary {
+  display: inline-block;
+  list-style: none;
+}
+
+.demo-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.demo-menu > summary::after {
+  content: " ▾";
+}
+
+.demo-menu-content {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 200;
+  display: grid;
+  gap: 12px;
+  width: max-content;
+  padding: 12px;
+  border: 1px solid var(--demo-border);
+  border-radius: 8px;
+  background: var(--demo-surface);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 20%);
+}
+
+.demo-menu-content fieldset {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.demo-menu-content legend {
+  margin-bottom: 6px;
+  padding: 0;
+  font-weight: 600;
+}
+
+.demo-menu-end .demo-menu-content {
+  right: 0;
+  left: auto;
+}
+
+.demo-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.demo-check:has(input:disabled) {
+  opacity: 0.5;
+}
+
+.demo-status {
+  color: var(--demo-muted);
+}
+
+.demo-status[data-state="error"] {
+  color: #d32f2f;
+}
+
+.demo-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The editor fills a fixed-height box and scrolls inside it. TabUI adds
+   .tu-editor to the host, so both classes are needed to override its height. */
+.demo-editor.tu-editor {
+  height: var(--demo-editor-height, calc(100dvh - 2rem));
+  min-height: 560px;
+  /* An outline, not a border, so the editor's own box stays the same. */
+  outline: 1px solid var(--demo-border);
+}
+
+.demo-credits {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--demo-muted);
+}
+
+.demo-credits a {
+  color: inherit;
+}

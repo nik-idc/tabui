@@ -28,9 +28,7 @@ function createHarness() {
   const callbacks = new FretControlsDefaultCallbacks(
     component,
     notationComponent,
-    () => component.render(),
-    () => {},
-    () => {}
+    () => component.render()
   );
 
   return { callbacks, component, controller, root };

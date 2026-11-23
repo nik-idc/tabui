@@ -45,6 +45,13 @@ export interface EditorRenderer {
   /** Materializes a beat and optionally follows it in the notation viewport. */
   ensureBeatVisible(beat: Beat, follow: boolean): BeatElement | undefined;
 
+  /** Resolves an ongoing drag by screen position, even outside beat hit targets. */
+  getDragSelectionBeat?(
+    clientX: number,
+    clientY: number,
+    anchor: BeatElement
+  ): BeatElement | undefined;
+
   render(options?: EditorRenderOptions): ElementRenderer[];
   unrender(): void;
   dispose(): void;

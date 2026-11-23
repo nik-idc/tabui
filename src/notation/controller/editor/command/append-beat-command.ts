@@ -1,5 +1,11 @@
-import { BeatArrayOperationOutput, VoiceBar } from "../../../model";
-import { Command, AffectedModel } from "./command";
+import {
+  Beat,
+  BeatArrayOperationOutput,
+  BeatSnapshot,
+  VoiceBar,
+  ScoreEditor,
+} from "../../../model";
+import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /**
  * Append beat command
@@ -9,6 +15,12 @@ export class AppendBeatCommand implements Command {
   private _voiceBar: VoiceBar;
   /** Created master bar & staff bars or null if not created yet */
   private _appendBeatResult: BeatArrayOperationOutput | null = null;
+  /** Completed inserted content, kept separate from later live edits for redo. */
+  private _after: Beat | null = null;
+  /** The beat before the new one, whose slide or legato can lose its target. */
+  private _neighborBefore: BeatSnapshot[] = [];
+  /** That beat after the edit, for redo. */
+  private _neighborAfter: BeatSnapshot[] = [];
 
   /**
    * Add beat command
@@ -22,7 +34,18 @@ export class AppendBeatCommand implements Command {
    * Execute add beat command
    */
   execute(): void {
-    this._appendBeatResult = this._voiceBar.appendBeats();
+    const previous = ScoreEditor.getBeatBefore(
+      this._voiceBar,
+      this._voiceBar.beats.length
+    );
+    this._neighborBefore = ScoreEditor.snapshotBeatNotes(
+      previous === null ? [] : [previous]
+    );
+    this._appendBeatResult = ScoreEditor.appendBeat(this._voiceBar);
+    this._neighborAfter = ScoreEditor.snapshotBeatNotes(
+      ScoreEditor.resolveBeatPositions(this._neighborBefore)
+    );
+    this._after = this._appendBeatResult.beats[0].deepCopy();
   }
 
   /**
@@ -39,20 +62,22 @@ export class AppendBeatCommand implements Command {
     const targetIndex =
       beatIndex === -1 ? this._appendBeatResult.index : beatIndex;
     this._voiceBar.removeBeat(targetIndex);
+    ScoreEditor.restoreBeatSnapshots(this._neighborBefore);
   }
 
   /**
    * Redo, i.e. restore bar state to before execute
    */
   redo(): void {
-    if (this._appendBeatResult === null) {
+    if (this._appendBeatResult === null || this._after === null) {
       throw Error("Redo called before execute");
     }
 
-    this._voiceBar.insertBeat(
+    this._appendBeatResult = this._voiceBar.insertBeat(
       this._appendBeatResult.index,
-      this._appendBeatResult.beats[0]
+      this._after
     );
+    ScoreEditor.restoreBeatSnapshots(this._neighborAfter);
   }
 
   /** Created master bar & staff bars or null if not created yet */
@@ -68,6 +93,10 @@ export class AppendBeatCommand implements Command {
         ),
         modelUUID: this._voiceBar.bar.masterBar.uuid,
       },
+      // The beat before can be in the previous bar.
+      ...getAffectedModelsFromBeats(
+        ScoreEditor.resolveBeatPositions(this._neighborBefore)
+      ),
     ];
   }
 }

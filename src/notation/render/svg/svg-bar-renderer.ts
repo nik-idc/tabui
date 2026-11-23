@@ -3,6 +3,7 @@ import {
   createSVGG,
   createSVGLine,
   createSVGPath,
+  createSVGRect,
   createSVGText,
 } from "../../../shared";
 import type { Rect } from "../../../shared";
@@ -66,6 +67,8 @@ export class SVGBarRenderer implements ElementRenderer {
   /** Bar repeat sign SVG paths */
   private _repeatStartSVG?: SVGPathElement;
   private _repeatEndSVG?: SVGPathElement;
+  /** Repeat start group owns the sign and its continuous pointer target. */
+  private _repeatStartGroupSVG?: SVGGElement;
   /** Repeat end SVG group */
   private _repeatEndGroupSVG?: SVGGElement;
   /** Repeat count SVG text */
@@ -74,6 +77,9 @@ export class SVGBarRenderer implements ElementRenderer {
   private _timeSigTextsSVG?: SVGTextElement[];
   /** Time signature SVG group. */
   private _timeSigGroupSVG?: SVGGElement;
+  /** Append-bar affordance SVG elements. */
+  private _appendBarRectSVG?: SVGRectElement;
+  private _appendBarTextSVG?: SVGTextElement;
   /** Supplied callbacks keyed by event type. */
   private _attachedEvents = new Map<string, EventListener>();
 
@@ -126,7 +132,7 @@ export class SVGBarRenderer implements ElementRenderer {
     eventHandler: (
       event: SVGElementEventMap[K],
       barElement: BarElement,
-      target: "timeSignature" | "repeatStart" | "repeatEnd"
+      target: "timeSignature" | "repeatStart" | "repeatEnd" | "appendBar"
     ) => void
   ): void {
     const group = this.ensureContainerGroup();
@@ -141,7 +147,7 @@ export class SVGBarRenderer implements ElementRenderer {
     eventHandler: (
       event: SVGElementEventMap[K],
       barElement: BarElement,
-      target: "timeSignature" | "repeatStart" | "repeatEnd"
+      target: "timeSignature" | "repeatStart" | "repeatEnd" | "appendBar"
     ) => void,
     event: Event
   ): void {
@@ -149,7 +155,7 @@ export class SVGBarRenderer implements ElementRenderer {
     if (!(target instanceof Element)) {
       return;
     }
-    if (target === this._repeatStartSVG) {
+    if (this._repeatStartGroupSVG?.contains(target)) {
       eventHandler(
         event as SVGElementEventMap[K],
         this.barElement,
@@ -162,6 +168,17 @@ export class SVGBarRenderer implements ElementRenderer {
         event as SVGElementEventMap[K],
         this.barElement,
         "repeatEnd"
+      );
+      return;
+    }
+    if (
+      target === this._appendBarRectSVG ||
+      target === this._appendBarTextSVG
+    ) {
+      eventHandler(
+        event as SVGElementEventMap[K],
+        this.barElement,
+        "appendBar"
       );
       return;
     }
@@ -190,6 +207,9 @@ export class SVGBarRenderer implements ElementRenderer {
 
   public updateElementReference(element: BarElement): void {
     this.barElement = element;
+    if (this._containerGroupSVG !== undefined) {
+      this.renderAppendBar();
+    }
   }
 
   /**
@@ -406,10 +426,13 @@ export class SVGBarRenderer implements ElementRenderer {
     ) {
       this._repeatStartSVG = createSVGPath();
       this._repeatStartSVG.setAttribute("id", `bar-rep-start-${barUUID}`);
-      this._repeatStartSVG.setAttribute("class", "tu-repeat-start");
       this._repeatStartSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._repeatStartSVG.setAttribute("pointer-events", "none");
+      this._repeatStartGroupSVG = createSVGG();
+      this._repeatStartGroupSVG.classList.add("tu-repeat-start");
+      this._repeatStartGroupSVG.appendChild(this._repeatStartSVG);
 
-      this._containerGroupSVG.appendChild(this._repeatStartSVG);
+      this._containerGroupSVG.appendChild(this._repeatStartGroupSVG);
     }
     if (
       this._repeatEndSVG === undefined &&
@@ -418,6 +441,7 @@ export class SVGBarRenderer implements ElementRenderer {
       this._repeatEndSVG = createSVGPath();
       this._repeatEndSVG.setAttribute("id", `bar-rep-end-${barUUID}`);
       this._repeatEndSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._repeatEndSVG.setAttribute("pointer-events", "none");
       this._repeatEndGroupSVG = createSVGG();
       this._repeatEndGroupSVG.setAttribute("class", "tu-repeat-end");
       this._repeatEndGroupSVG.appendChild(this._repeatEndSVG);
@@ -434,6 +458,7 @@ export class SVGBarRenderer implements ElementRenderer {
         this._repeatCountSVG.setAttribute("id", `bar-rep-count-${barUUID}`);
         this._repeatCountSVG.setAttribute("fill", "var(--tu-notation-text)");
         this._repeatCountSVG.setAttribute("font-size", `${repeatFontSize}`);
+        this._repeatCountSVG.setAttribute("pointer-events", "none");
         if (this._repeatEndGroupSVG === undefined) {
           throw Error("Repeat end group SVG undefined for repeat count");
         }
@@ -462,6 +487,39 @@ export class SVGBarRenderer implements ElementRenderer {
     if (this._repeatEndSVG !== undefined && repEndLineLocal !== undefined) {
       this._repeatEndSVG.setAttribute("d", repeatPath(repEndLineLocal, false));
     }
+    if (
+      this._repeatStartGroupSVG !== undefined &&
+      repStartLineLocal !== undefined
+    ) {
+      this.renderRepeatHitArea(this._repeatStartGroupSVG, repStartLineLocal);
+    }
+    if (
+      this._repeatEndGroupSVG !== undefined &&
+      repEndLineLocal !== undefined
+    ) {
+      this.renderRepeatHitArea(this._repeatEndGroupSVG, repEndLineLocal);
+    }
+  }
+
+  /** Covers a repeat sign and its optional count, including the empty space. */
+  private renderRepeatHitArea(group: SVGGElement, rect: Rect): void {
+    const bounds = group.getBBox?.() ?? rect;
+    const padding = this.trackController.layoutDimensions.noteTextSize / 8;
+    const left = Math.min(rect.x, bounds.x) - padding;
+    const top = Math.min(rect.y, bounds.y) - padding;
+    const right =
+      Math.max(rect.x + rect.width, bounds.x + bounds.width) + padding;
+    const bottom =
+      Math.max(rect.y + rect.height, bounds.y + bounds.height) + padding;
+    const hitArea = createSVGRect();
+    hitArea.classList.add("tu-repeat-hit-area");
+    hitArea.setAttribute("x", `${left}`);
+    hitArea.setAttribute("y", `${top}`);
+    hitArea.setAttribute("width", `${right - left}`);
+    hitArea.setAttribute("height", `${bottom - top}`);
+    hitArea.setAttribute("fill", "transparent");
+    hitArea.setAttribute("pointer-events", "all");
+    group.appendChild(hitArea);
   }
 
   /**
@@ -472,8 +530,9 @@ export class SVGBarRenderer implements ElementRenderer {
       throw Error("Tried to unrender bar repeats when SVG group undefined");
     }
 
-    if (this._repeatStartSVG !== undefined) {
-      this._containerGroupSVG.removeChild(this._repeatStartSVG);
+    if (this._repeatStartGroupSVG !== undefined) {
+      this._repeatStartGroupSVG.remove();
+      this._repeatStartGroupSVG = undefined;
       this._repeatStartSVG = undefined;
     }
     if (this._repeatEndSVG !== undefined) {
@@ -496,6 +555,53 @@ export class SVGBarRenderer implements ElementRenderer {
     }
   }
 
+  /** Renders the append affordance only on the final score bar. */
+  private renderAppendBar(): void {
+    if (this._containerGroupSVG === undefined) {
+      throw Error("Tried to render append bar when SVG group undefined");
+    }
+
+    const rect = this.barElement.appendBarRect;
+    if (rect === undefined) {
+      this.unrenderAppendBar();
+      return;
+    }
+    if (this._appendBarRectSVG === undefined) {
+      this._appendBarRectSVG = createSVGRect();
+      this._appendBarTextSVG = createSVGText();
+      this._appendBarRectSVG.setAttribute("class", "tu-append-bar");
+      this._appendBarRectSVG.setAttribute("fill", "transparent");
+      this._appendBarRectSVG.setAttribute("pointer-events", "all");
+      this._appendBarTextSVG.setAttribute("class", "tu-append-bar");
+      this._appendBarTextSVG.setAttribute("fill", "var(--tu-notation-ink)");
+      this._appendBarTextSVG.setAttribute("pointer-events", "none");
+      this._appendBarTextSVG.textContent = "+";
+      this._containerGroupSVG.appendChild(this._appendBarRectSVG);
+      this._containerGroupSVG.appendChild(this._appendBarTextSVG);
+    }
+    const text = this._appendBarTextSVG;
+    if (text === undefined) {
+      throw Error("Append bar text SVG undefined");
+    }
+    this._appendBarRectSVG.setAttribute("x", `${rect.x}`);
+    this._appendBarRectSVG.setAttribute("y", `${rect.y}`);
+    this._appendBarRectSVG.setAttribute("width", `${rect.width}`);
+    this._appendBarRectSVG.setAttribute("height", `${rect.height}`);
+    text.setAttribute("x", `${rect.x + rect.width / 2}`);
+    text.setAttribute("y", `${rect.y + rect.height / 2}`);
+    text.setAttribute("text-anchor", "middle");
+    text.setAttribute("dominant-baseline", "central");
+    const fontSize = this.trackController.layoutDimensions.barAppendTextSize;
+    text.setAttribute("font-size", `${fontSize}`);
+  }
+
+  private unrenderAppendBar(): void {
+    this._appendBarRectSVG?.parentNode?.removeChild(this._appendBarRectSVG);
+    this._appendBarTextSVG?.parentNode?.removeChild(this._appendBarTextSVG);
+    this._appendBarRectSVG = undefined;
+    this._appendBarTextSVG = undefined;
+  }
+
   /**
    * Render bar element
    */
@@ -510,6 +616,7 @@ export class SVGBarRenderer implements ElementRenderer {
     this.renderBarBorderLines();
     this.renderBarSig();
     this.renderRepeats();
+    this.renderAppendBar();
   }
 
   /**
@@ -524,6 +631,7 @@ export class SVGBarRenderer implements ElementRenderer {
     this.unrenderBarBorderLines();
     this.unrenderBarSig();
     this.unrenderRepeats();
+    this.unrenderAppendBar();
   }
 
   /** Beat renderers getter */

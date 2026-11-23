@@ -1,7 +1,12 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { Track } from "../../../notation";
 import { ScoreControlsComponent } from "../..";
-import { ListenerManager } from "../../../shared/misc";
+import { readVolumeSlider, showVolume } from "../../shared/volume-slider";
+import {
+  ListenerManager,
+  readClipboardText,
+  writeClipboardText,
+} from "../../../shared/misc";
 import {
   TrackControlsCallbacks,
   TrackControlsDefaultCallbacks,
@@ -24,19 +29,22 @@ export interface ScoreControlsCallbacks {
   onNewTrackButtonClicked(): void;
   onMasterVolumeChanged(): void;
   onMasterPanningChanged(): void;
-  onScoreNameChanged(): void;
-  onScoreNameFocusGained(): void;
-  onScoreNameFocusLost(): void;
+  onRangeClicked(): void;
+  onSelectAllClicked(): void;
+  onCopyClicked(): Promise<void>;
+  onUndoClicked(): void;
+  onRedoClicked(): void;
+  onCutClicked(): Promise<void>;
+  onPasteClicked(): Promise<void>;
   bind(): void;
   unbind(): void;
 }
 
+/** The Clipboard API exists only in secure contexts, such as HTTPS. */
 export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   private _scoreComponent: ScoreControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _showTrackSettings: (track: Track) => void;
 
   private _trackCallbacks: TrackControlsCallbacks[] = [];
@@ -46,44 +54,32 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
   private _listeners = new ListenerManager();
   private _bound = false;
-  private _minTrackNameLength = 1;
-  private _maxTrackNameLength = 32;
 
   constructor(
     scoreComponent: ScoreControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void,
     showTrackSettings: (track: Track) => void
   ) {
     this._scoreComponent = scoreComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
     this._showTrackSettings = showTrackSettings;
 
     this._newTrackCallbacks = new NewTrackControlsDefaultCallbacks(
       this._scoreComponent.newTrackComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._trackSettingsCallbacks = new TrackSettingsControlsDefaultCallbacks(
       this._scoreComponent.trackSettingsComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._trackRemoveCallbacks = new YesNoDefaultCallbacks(
       this._scoreComponent.trackRemoveComponent,
       this._notationComponent,
       this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard,
       () => this._scoreComponent.removeSelectedTrack()
     );
   }
@@ -99,17 +95,19 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
 
   onNewTrackButtonClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       return;
     }
-    this._captureKeyboard();
     this._scoreComponent.showNewTrackDialog();
   }
 
   onMasterVolumeChanged(): void {
+    const input = this._scoreComponent.template.masterVolumeInput;
+    const volume = readVolumeSlider(input);
+    showVolume(input, volume, "Master volume");
     this._notationComponent.trackController.setMasterVolume(
       this._scoreComponent.score,
-      Number(this._scoreComponent.template.masterVolumeInput.value) / 100
+      volume
     );
   }
 
@@ -120,23 +118,78 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
     );
   }
 
-  onScoreNameChanged(): void {
+  onRangeClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (controller.hasSelectionAnchor) {
+      controller.clearSelectionRange();
+    } else {
+      controller.setSelectionAnchor();
+    }
+    this._renderFunc();
+  }
+
+  onSelectAllClicked(): void {
+    if (this._notationComponent.trackController.selectAllBeats()) {
+      this._renderFunc();
+    }
+  }
+
+  /**
+   * The clipboard buttons use the browser's Clipboard API, which the browser
+   * can block. Ctrl+C, Ctrl+X, and Ctrl+V use clipboard events instead, which
+   * the browser doesn't block.
+   */
+  async onCopyClicked(): Promise<void> {
+    const text = this._notationComponent.trackController.copy();
+    if (text !== undefined && !(await writeClipboardText(text))) {
+      this.announceClipboardBlocked("Ctrl+C");
+    }
+  }
+
+  onUndoClicked(): void {
+    this._notationComponent.trackController.undo();
+    this._renderFunc();
+  }
+
+  onRedoClicked(): void {
+    this._notationComponent.trackController.redo();
+    this._renderFunc();
+  }
+
+  async onCutClicked(): Promise<void> {
+    const controller = this._notationComponent.trackController;
+    if (!controller.canEdit) {
       return;
     }
-    this._notationComponent.trackController.setScoreName(
-      this._scoreComponent.score,
-      this._scoreComponent.template.scoreNameInput.value
+    const text = controller.copy();
+    if (text === undefined) {
+      return;
+    }
+    // Remove the beats only once they are on the clipboard.
+    if (!(await writeClipboardText(text))) {
+      this.announceClipboardBlocked("Ctrl+X");
+      return;
+    }
+    controller.removeSelectedBeat();
+    this._renderFunc();
+  }
+
+  async onPasteClicked(): Promise<void> {
+    const text = await readClipboardText();
+    if (text === undefined) {
+      this.announceClipboardBlocked("Ctrl+V");
+      return;
+    }
+    if (this._notationComponent.trackController.paste(text)) {
+      this._renderFunc();
+    }
+  }
+
+  // Screen readers only for now. Visible messages are planned in ROADMAP.md.
+  private announceClipboardBlocked(shortcut: string): void {
+    this._scoreComponent.announce(
+      `The browser blocked clipboard access. Use ${shortcut}.`
     );
-  }
-
-  onScoreNameFocusGained(): void {
-    this._captureKeyboard();
-  }
-
-  onScoreNameFocusLost(): void {
-    this._freeKeyboard();
   }
 
   private bindTracksCallbacks(): void {
@@ -150,8 +203,6 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         trackComponent,
         this._notationComponent,
         this._renderFunc,
-        this._captureKeyboard,
-        this._freeKeyboard,
         () => this._showTrackSettings(trackComponent.track),
         () => this._scoreComponent.showTrackRemoveDialog(trackComponent.track)
       );
@@ -188,19 +239,39 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
         handler: () => this.onMasterPanningChanged(),
       },
       {
-        element: this._scoreComponent.template.scoreNameInput,
-        event: "input",
-        handler: () => this.onScoreNameChanged(),
+        element: this._scoreComponent.template.rangeButton,
+        event: "click",
+        handler: () => this.onRangeClicked(),
       },
       {
-        element: this._scoreComponent.template.scoreNameInput,
-        event: "focus",
-        handler: () => this.onScoreNameFocusGained(),
+        element: this._scoreComponent.template.selectAllButton,
+        event: "click",
+        handler: () => this.onSelectAllClicked(),
       },
       {
-        element: this._scoreComponent.template.scoreNameInput,
-        event: "focusout",
-        handler: () => this.onScoreNameFocusLost(),
+        element: this._scoreComponent.template.copyButton,
+        event: "click",
+        handler: () => void this.onCopyClicked(),
+      },
+      {
+        element: this._scoreComponent.template.undoButton,
+        event: "click",
+        handler: () => this.onUndoClicked(),
+      },
+      {
+        element: this._scoreComponent.template.redoButton,
+        event: "click",
+        handler: () => this.onRedoClicked(),
+      },
+      {
+        element: this._scoreComponent.template.cutButton,
+        event: "click",
+        handler: () => void this.onCutClicked(),
+      },
+      {
+        element: this._scoreComponent.template.pasteButton,
+        event: "click",
+        handler: () => void this.onPasteClicked(),
       },
     ]);
 

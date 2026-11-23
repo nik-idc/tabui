@@ -204,10 +204,11 @@ export class PlayerOverlayRenderer {
       return;
     }
 
-    const startX = beatElement.attackXGlobal;
+    // Stop at the box right: the attack is inset by the beat technique slot,
+    // so attack + width would overshoot into the next beat.
     this.animateToX(
       beatElement,
-      startX + beatElement.boundingBox.width,
+      beatElement.globalBoundingBox.right,
       startTime,
       endTime,
       playbackRunId
@@ -221,13 +222,22 @@ export class PlayerOverlayRenderer {
     endTime: number,
     playbackRunId: number
   ): void {
+    if (!(startBeatElement instanceof TabBeatElement)) {
+      this.snapToBeat(startBeatElement);
+      return;
+    }
+
     if (
-      !(startBeatElement instanceof TabBeatElement) ||
       !(endBeatElement instanceof TabBeatElement) ||
       startBeatElement.owningTrackLineElement !==
         endBeatElement.owningTrackLineElement
     ) {
-      this.snapToBeat(startBeatElement);
+      this.animateThroughBeat(
+        startBeatElement,
+        startTime,
+        endTime,
+        playbackRunId
+      );
       return;
     }
 
@@ -279,7 +289,12 @@ export class PlayerOverlayRenderer {
     const nextTrackLineElement =
       this._trackController.trackElement.getTrackLineElementForBeat(nextBeat);
     if (nextTrackLineElement !== trackLineElement) {
-      this.snapToBeat(beatElement);
+      this.animateThroughBeat(
+        beatElement,
+        args.startTime,
+        args.endTime,
+        args.playbackRunId
+      );
       return;
     }
 

@@ -23,8 +23,6 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   private _tempoComponent: TempoControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly beatsCountErrorText: string = "Invalid beats count";
@@ -33,18 +31,17 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
   constructor(
     tempoComponent: TempoControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._tempoComponent = tempoComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   private tempoValid(tempoValue: string): boolean {
+    if (tempoValue.trim() === "") {
+      return false;
+    }
     const tempoNum = Number(tempoValue);
     if (
       !Number.isFinite(tempoNum) ||
@@ -55,6 +52,20 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
     }
 
     return true;
+  }
+
+  private updateValidation(): void {
+    const template = this._tempoComponent.template;
+    const isValid = this.tempoValid(template.valueInput.value);
+    const tempo = Number(template.valueInput.value);
+    template.errorText.textContent = isValid ? " " : this.beatsCountErrorText;
+    template.confirmButton.disabled = !isValid;
+    template.decreaseTenButton.disabled =
+      isValid && tempo <= MIN_MASTER_BAR_TEMPO;
+    template.decreaseButton.disabled = isValid && tempo <= MIN_MASTER_BAR_TEMPO;
+    template.increaseButton.disabled = isValid && tempo >= MAX_MASTER_BAR_TEMPO;
+    template.increaseTenButton.disabled =
+      isValid && tempo >= MAX_MASTER_BAR_TEMPO;
   }
 
   onDialogClicked(event: MouseEvent): void {
@@ -69,32 +80,29 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
 
   onTempoStep(delta: number): void {
     const template = this._tempoComponent.template;
-    const parsedTempo = Number(template.value.textContent);
-    const currentTempo = Number.isFinite(parsedTempo)
+    const parsedTempo = Number(template.valueInput.value);
+    const originalTempo =
+      this._notationComponent.trackController.getTempoEditBars()[0]?.tempo ??
+      DEFAULT_MASTER_BAR.tempo;
+    const currentTempo = this.tempoValid(template.valueInput.value)
       ? parsedTempo
-      : DEFAULT_MASTER_BAR.tempo;
+      : originalTempo;
     const tempo = Math.max(
       MIN_MASTER_BAR_TEMPO,
       Math.min(MAX_MASTER_BAR_TEMPO, currentTempo + delta)
     );
-    template.value.textContent = `${tempo}`;
-    template.decreaseTenButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
-    template.decreaseButton.disabled = tempo <= MIN_MASTER_BAR_TEMPO;
-    template.increaseButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
-    template.increaseTenButton.disabled = tempo >= MAX_MASTER_BAR_TEMPO;
-    template.errorText.textContent = " ";
-    template.confirmButton.disabled = false;
+    template.valueInput.value = `${tempo}`;
+    this.updateValidation();
 
     this._tempoComponent.announceValue();
   }
 
   onConfirmClicked(): void {
     const template = this._tempoComponent.template;
-    const tempoValue = template.value.textContent;
+    const tempoValue = template.valueInput.value;
     const tempo = Number(tempoValue);
     if (!this.tempoValid(tempoValue)) {
-      template.errorText.textContent = this.beatsCountErrorText;
-      template.confirmButton.disabled = true;
+      this.updateValidation();
       return;
     }
     this._notationComponent.trackController.setSelectedBarTempo(tempo);
@@ -118,11 +126,6 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
         element: this._tempoComponent.template.dialogContainer,
         event: "click",
         handler: (event: MouseEvent) => this.onDialogClicked(event),
-      },
-      {
-        element: this._tempoComponent.template.dialogContainer,
-        event: "close",
-        handler: () => this._freeKeyboard(),
       },
       {
         element: this._tempoComponent.template.decreaseTenButton,
@@ -150,12 +153,19 @@ export class TempoControlsDefaultCallbacks implements TempoControlsCallbacks {
         handler: (event: WheelEvent) => this.onWheel(event),
       },
       {
+        element: this._tempoComponent.template.valueInput,
+        event: "input",
+        handler: () => this.updateValidation(),
+      },
+      {
         element: this._tempoComponent.template.dialogContent,
         event: "submit",
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._tempoComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

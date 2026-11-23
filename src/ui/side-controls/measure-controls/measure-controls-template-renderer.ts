@@ -1,5 +1,10 @@
 import { NotationComponent } from "../../../notation/notation-component";
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { MeasureControlsTemplate } from "./measure-controls-template";
 import type { ResolvedAssetConfig } from "../../../assets";
 
@@ -28,6 +33,7 @@ export class MeasureControlsTemplateRenderer {
   private assembleContainer(): void {
     const cssClass = "tu-measure-controls";
     this.template.container.classList.add(cssClass);
+    labelGroup(this.template.container, "Measure");
     this.template.container.append(
       this.template.repeatStartButton,
       this.template.repeatEndButton,
@@ -108,11 +114,7 @@ export class MeasureControlsTemplateRenderer {
       "img/ui/repeat-end.svg",
       "Repeat End"
     );
-    setShortcutTooltip(
-      this.template.repeatEndButton,
-      "Repeat End and count",
-      "Shift+R"
-    );
+    setShortcutTooltip(this.template.repeatEndButton, "Repeat end", "Shift+R");
     setImageAsset(
       this.template.insertBarBeforeButton,
       this.assetsPath,
@@ -154,7 +156,7 @@ export class MeasureControlsTemplateRenderer {
     );
     setShortcutTooltip(
       this.template.removeBarButton,
-      "Remove all selected bars",
+      "Remove bars",
       "Shift+Delete"
     );
 

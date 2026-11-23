@@ -8,9 +8,13 @@ import {
 } from "./notation/input";
 import { UIComponent } from "./ui";
 import { UICallbacks } from "./ui/ui-callbacks";
+import { focusAdjacentSection } from "./ui/section-focus";
 import {
+  captureSelectionCursor,
+  captureSelectionText,
   formatNotationSelection,
   NotationCursorPosition,
+  NotationSelectionText,
 } from "./notation/accessibility/notation-selection-announcement";
 
 export class TabUICallbacks {
@@ -24,14 +28,22 @@ export class TabUICallbacks {
   private _onStateChanged: () => void;
   private _announce: (text: string, repeat?: boolean) => void;
   private _lastSelectionDescription?: string;
+  /** Where the last description was spoken, so edits read only what changed. */
+  private _lastSelectionPosition?: NotationCursorPosition;
+  private _lastSelectionText?: NotationSelectionText;
   private _suppressViewportFocusAnnouncement = false;
   private _boundOnViewportFocus: () => void;
+  /** Capture listener that returns pointer-activated toolbar actions to notation. */
+  private _boundOnRootClick: (event: MouseEvent) => void;
+  /** Capture listener for section focus keys, before notation shortcuts. */
+  private _boundOnRootKeyDown: (event: KeyboardEvent) => void;
+  /** Capture listener for the pitch display's wheel interaction. */
+  private _boundOnRootWheel: (event: WheelEvent) => void;
   /** Pending requestAnimationFrame id for coalesced notation scroll renders. */
   private _notationRenderRafId?: number;
   /** Pending requestAnimationFrame id for coalesced selection/UI updates. */
   private _selectionRenderRafId?: number;
   private _bound = false;
-  private _keyboardCaptured = false;
 
   constructor(
     uiComponent: UIComponent,
@@ -46,6 +58,9 @@ export class TabUICallbacks {
     this._onStateChanged = onStateChanged;
     this._announce = announce;
     this._boundOnViewportFocus = this.onViewportFocus.bind(this);
+    this._boundOnRootClick = this.onRootClick.bind(this);
+    this._boundOnRootWheel = this.onRootWheel.bind(this);
+    this._boundOnRootKeyDown = this.onRootKeyDown.bind(this);
 
     this._mouseCallbacks = new EditorMouseDefCallbacks(
       this._uiComponent,
@@ -66,9 +81,7 @@ export class TabUICallbacks {
       this._uiComponent,
       this._notationComponent,
       () => this.render(RenderType.Full),
-      () => this.render(RenderType.ActiveVoiceSelection),
-      this.captureKeyboard.bind(this),
-      this.freeKeyboard.bind(this)
+      () => this.render(RenderType.ActiveVoiceSelection)
     );
   }
 
@@ -91,15 +104,23 @@ export class TabUICallbacks {
       return;
     }
 
-    this._lastSelectionDescription = description;
+    const lastPosition = this._lastSelectionPosition;
+    const lastText = this._lastSelectionText;
+    this.rememberSelection(description);
     if (description === undefined) {
       return;
     }
 
-    const formatted =
-      onlyIfChanged || previous === undefined
-        ? description
-        : formatNotationSelection(source, previous);
+    let formatted: string | undefined;
+    if (onlyIfChanged) {
+      // An edit or a click: read only the layers that changed since the
+      // last announcement.
+      formatted = formatNotationSelection(source, lastPosition, lastText);
+    } else if (previous === undefined) {
+      formatted = description;
+    } else {
+      formatted = formatNotationSelection(source, previous);
+    }
     if (formatted === undefined) {
       return;
     }
@@ -107,10 +128,21 @@ export class TabUICallbacks {
     this._announce(formatted, !onlyIfChanged);
   }
 
+  private rememberSelection(description: string | undefined): void {
+    const source = this._notationComponent.trackController;
+    this._lastSelectionDescription = description;
+    this._lastSelectionPosition = captureSelectionCursor(
+      source.selectionCursor
+    );
+    this._lastSelectionText = captureSelectionText(source);
+  }
+
   /** Focuses notation without allowing the focus event to announce stale state. */
   private focusViewport(): void {
     const viewport = this._notationComponent.rootDiv;
-    if (document.activeElement === viewport) return;
+    if (document.activeElement === viewport) {
+      return;
+    }
     this._suppressViewportFocusAnnouncement = true;
     viewport.focus({
       preventScroll: true,
@@ -122,7 +154,92 @@ export class TabUICallbacks {
   }
 
   private onViewportFocus(): void {
-    if (!this._suppressViewportFocusAnnouncement) this.announceSelection(false);
+    if (
+      !this._suppressViewportFocusAnnouncement &&
+      !this._uiComponent.dialogEnforcer.isRestoringFocus
+    ) {
+      this.announceSelection(false);
+    }
+  }
+
+  /**
+   * Alt+Down and Alt+Up move focus to the next or previous editor section.
+   * Escape returns focus from a control to the notation. Dialogs keep their
+   * own keys.
+   */
+  private onRootKeyDown(event: KeyboardEvent): void {
+    if (
+      event.defaultPrevented ||
+      this._uiComponent.dialogEnforcer.activeDialog
+    ) {
+      return;
+    }
+    const viewport = this._notationComponent.rootDiv;
+    const noOtherModifier = !event.ctrlKey && !event.metaKey && !event.shiftKey;
+    const sectionKey =
+      event.altKey &&
+      noOtherModifier &&
+      (event.key === "ArrowDown" || event.key === "ArrowUp");
+    if (sectionKey) {
+      event.preventDefault();
+      event.stopPropagation();
+      focusAdjacentSection(
+        this._rootDiv,
+        viewport,
+        event.key === "ArrowDown" ? 1 : -1
+      );
+      return;
+    }
+
+    const active = document.activeElement;
+    if (
+      event.key === "Escape" &&
+      !event.altKey &&
+      noOtherModifier &&
+      active !== viewport &&
+      active instanceof HTMLElement &&
+      this._rootDiv.contains(active)
+    ) {
+      event.preventDefault();
+      event.stopPropagation();
+      viewport.focus({ preventScroll: true });
+    }
+  }
+
+  /** Returns pointer clicks to notation unless the clicked control needs its own keys. */
+  private onRootClick(event: MouseEvent): void {
+    if (event.detail === 0 || this._uiComponent.dialogEnforcer.activeDialog) {
+      return;
+    }
+    const target = event.target;
+    if (!(target instanceof Element) || !this._rootDiv.contains(target)) {
+      return;
+    }
+    const contentEditable = target.closest("[contenteditable]");
+    if (
+      target.closest("input, select, textarea, a, dialog, .tu-dialog") ||
+      (contentEditable !== null &&
+        contentEditable.getAttribute("contenteditable") !== "false")
+    ) {
+      return;
+    }
+
+    this.focusViewport();
+  }
+
+  /** Returns focus to notation before a pitch display wheel action runs. */
+  private onRootWheel(event: WheelEvent): void {
+    if (
+      event.deltaY === 0 ||
+      this._uiComponent.dialogEnforcer.activeDialog ||
+      !(event.target instanceof Element) ||
+      !this._rootDiv.contains(event.target) ||
+      !event.target.closest("[data-tu-focus-notation-on-wheel]")
+    ) {
+      return;
+    }
+
+    this.focusViewport();
   }
 
   private renderAndBindFull(forceNotation: boolean = false): void {
@@ -275,28 +392,6 @@ export class TabUICallbacks {
     this._onStateChanged();
   }
 
-  private captureKeyboard(): void {
-    if (!this._bound || this._keyboardCaptured) {
-      return;
-    }
-
-    this._keyboardCaptured = true;
-    this._keyboardCallbacks.unbind();
-  }
-
-  private freeKeyboard(): void {
-    if (!this._keyboardCaptured) {
-      return;
-    }
-
-    this._keyboardCaptured = false;
-    if (!this._bound) {
-      return;
-    }
-
-    this._keyboardCallbacks.bind();
-  }
-
   public bind(): void {
     if (this._bound) {
       return;
@@ -305,8 +400,8 @@ export class TabUICallbacks {
     this._bound = true;
     const activeRenderers = this._notationComponent.render();
     this._mouseCallbacks.bind(activeRenderers);
-    this._lastSelectionDescription = formatNotationSelection(
-      this._notationComponent.trackController
+    this.rememberSelection(
+      formatNotationSelection(this._notationComponent.trackController)
     );
     this._notationComponent.renderer.attachViewportScrollEvent(() =>
       this.render(RenderType.NotationOnly)
@@ -317,6 +412,9 @@ export class TabUICallbacks {
       "focus",
       this._boundOnViewportFocus
     );
+    this._rootDiv.addEventListener("click", this._boundOnRootClick, true);
+    this._rootDiv.addEventListener("wheel", this._boundOnRootWheel, true);
+    this._rootDiv.addEventListener("keydown", this._boundOnRootKeyDown, true);
 
     this._uiCallbacks.bind();
   }
@@ -330,12 +428,18 @@ export class TabUICallbacks {
     this.cancelPendingSelectionRender();
     this._mouseCallbacks.unbind();
     this._notationComponent.renderer.detachViewportScrollEvent();
-    this.freeKeyboard();
     this._bound = false;
     this._keyboardCallbacks.unbind();
     this._notationComponent.rootDiv?.removeEventListener(
       "focus",
       this._boundOnViewportFocus
+    );
+    this._rootDiv.removeEventListener("click", this._boundOnRootClick, true);
+    this._rootDiv.removeEventListener("wheel", this._boundOnRootWheel, true);
+    this._rootDiv.removeEventListener(
+      "keydown",
+      this._boundOnRootKeyDown,
+      true
     );
     this._uiCallbacks.unbind();
   }

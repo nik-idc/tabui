@@ -16,8 +16,12 @@ describe("TabUIEditor responsive sizing with real components", () => {
   let hostWidth: number;
   let viewportWidth: number;
   let notifyResize: () => void;
-  let observe: jest.Mock;
-  let disconnect: jest.Mock;
+  let currentResizeObserver: {
+    observe: jest.Mock;
+    unobserve: jest.Mock;
+    disconnect: jest.Mock;
+  } | null;
+  let failNextResponsiveObserve: boolean;
   const editors: TabUIEditor[] = [];
 
   beforeAll(() => {
@@ -69,14 +73,25 @@ describe("TabUIEditor responsive sizing with real components", () => {
     jest.useFakeTimers();
     hostWidth = 1200;
     viewportWidth = 690;
-    observe = jest.fn();
-    disconnect = jest.fn();
+    currentResizeObserver = null;
+    failNextResponsiveObserve = false;
     Object.defineProperty(globalThis, "ResizeObserver", {
       configurable: true,
       writable: true,
       value: jest.fn((callback: ResizeObserverCallback) => {
-        notifyResize = () => callback([], {} as ResizeObserver);
-        return { observe, disconnect };
+        const observer = {
+          observe: jest.fn(() => {
+            if (failNextResponsiveObserve) {
+              failNextResponsiveObserve = false;
+              throw new Error("observe failed");
+            }
+          }),
+          unobserve: jest.fn(),
+          disconnect: jest.fn(),
+        };
+        currentResizeObserver = observer;
+        notifyResize = () => callback([], observer as ResizeObserver);
+        return observer;
       }),
     });
     // Layout measurement is a browser boundary: jsdom does not lay out boxes.
@@ -90,13 +105,18 @@ describe("TabUIEditor responsive sizing with real components", () => {
   });
 
   afterEach(() => {
-    for (const editor of editors.splice(0)) editor.dispose();
+    for (const editor of editors.splice(0)) {
+      editor.dispose();
+    }
     jest.restoreAllMocks();
     jest.useRealTimers();
     dom.window.close();
     for (const [name, descriptor] of originalGlobals) {
-      if (descriptor) Object.defineProperty(globalThis, name, descriptor);
-      else Reflect.deleteProperty(globalThis, name);
+      if (descriptor) {
+        Object.defineProperty(globalThis, name, descriptor);
+      } else {
+        Reflect.deleteProperty(globalThis, name);
+      }
     }
     originalGlobals.clear();
   });
@@ -113,8 +133,9 @@ describe("TabUIEditor responsive sizing with real components", () => {
     const beat = required(bar.getVoiceBar(1)).beats[0];
     const frets = () =>
       required(beat.notes).map((v) => {
-        if (!(v instanceof guitarNoteConstructor))
+        if (!(v instanceof guitarNoteConstructor)) {
           throw new Error("Expected a guitar note");
+        }
         return v.fret;
       });
     return { root, editor, svg, frets };
@@ -123,6 +144,13 @@ describe("TabUIEditor responsive sizing with real components", () => {
   function flushResize() {
     notifyResize();
     jest.advanceTimersByTime(20);
+  }
+
+  function getResponsiveObserver() {
+    if (currentResizeObserver === null) {
+      throw new Error("Expected responsive resize observer");
+    }
+    return currentResizeObserver;
   }
 
   function expectRenderedWidth(root: HTMLDivElement, width: number) {
@@ -293,7 +321,7 @@ describe("TabUIEditor responsive sizing with real components", () => {
 
   test("coalesces responsive viewport observations using the latest width", () => {
     const { editor, root, svg } = mount();
-    expect(observe).toHaveBeenCalledWith(
+    expect(getResponsiveObserver().observe).toHaveBeenCalledWith(
       root.querySelector(".tu-notation-viewport")
     );
     const listener = jest.fn();
@@ -310,8 +338,9 @@ describe("TabUIEditor responsive sizing with real components", () => {
     expect(listener).toHaveBeenCalledTimes(1);
     flushResize();
     expect(listener).toHaveBeenCalledTimes(1);
+    const responsiveObserver = getResponsiveObserver();
     editor.dispose();
-    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(responsiveObserver.disconnect).toHaveBeenCalledTimes(1);
   });
 
   test("enforces responsive blocked and view-only modes from host width", () => {
@@ -335,8 +364,8 @@ describe("TabUIEditor responsive sizing with real components", () => {
     key();
     expect(frets()).toEqual([null, null, null, null, null, null]);
 
-    hostWidth = 700;
-    viewportWidth = 700;
+    hostWidth = 540;
+    viewportWidth = 540;
     flushResize();
     expect(root.classList.contains("tu-responsive-view-only")).toBe(true);
     expect(message.hidden).toBe(true);
@@ -356,7 +385,7 @@ describe("TabUIEditor responsive sizing with real components", () => {
     expectRenderedWidth(root, 1000);
 
     const dialog = required(root.querySelector(".tu-tempo-dialog"));
-    for (const width of [700, 490]) {
+    for (const width of [540, 490]) {
       hostWidth = 1000;
       viewportWidth = 1000;
       flushResize();
@@ -406,17 +435,11 @@ describe("TabUIEditor responsive sizing with real components", () => {
   });
 
   test("rolls back when responsive observer setup fails", () => {
-    jest.mocked(ResizeObserver).mockImplementationOnce(() => ({
-      observe: () => {
-        throw new Error("observe failed");
-      },
-      unobserve: jest.fn(),
-      disconnect,
-    }));
+    failNextResponsiveObserve = true;
     const root = document.createElement("div");
     const editor = new editorConstructor(root, scoreGraph().score);
     expect(() => editor.init()).toThrow("observe failed");
-    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(getResponsiveObserver().disconnect).toHaveBeenCalledTimes(1);
     expect(root.childElementCount).toBe(0);
     expect(() => editor.getState()).toThrow("TabUIEditor already disposed");
     const restored = new editorConstructor(root, scoreGraph().score);
@@ -447,7 +470,7 @@ describe("TabUIEditor responsive sizing with real components", () => {
     notifyResize();
     editor.dispose();
     expect(cancel).toHaveBeenCalledTimes(1);
-    expect(disconnect).toHaveBeenCalledTimes(1);
+    expect(getResponsiveObserver().disconnect).toHaveBeenCalledTimes(1);
     notifyResize();
     jest.advanceTimersByTime(20);
     expect(root.childElementCount).toBe(0);

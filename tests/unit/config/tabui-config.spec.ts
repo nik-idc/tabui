@@ -30,12 +30,16 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-background-color"]).toBe("#f0f0f0");
     expect(config.theme.cssVars["--tu-font-body"]).toContain("Segoe UI");
     expect(config.theme.cssVars["--tu-font-notation"]).toContain("Roboto");
+    expect(config.theme.cssVars["--tu-score-name-font-size"]).toBe("2.25rem");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#000000");
+    expect(config.theme.cssVars["--tu-notation-bar-number"]).toBe(
+      "color-mix(in srgb, var(--tu-notation-text) 55%, transparent)"
+    );
     expect(config.layout).toEqual({
       mode: TabUILayoutMode.Wrapped,
       width: undefined,
       viewOnlyModeWidthThreshold: 500,
-      unrestrictedModeWidthThreshold: 1000,
+      unrestrictedModeWidthThreshold: 560,
       noteTextSize: 12,
       timeSigTextSize: 48,
       tempoTextSize: 24,
@@ -57,7 +61,14 @@ describe("tabui-config", () => {
             text: "#eeeeee",
           },
           fonts: {
-            body: "Inter, sans-serif",
+            default: {
+              family: "Inter, sans-serif",
+              size: "1.1rem",
+            },
+            scoreName: {
+              family: "Georgia, serif",
+              size: "2rem",
+            },
           },
           radius: "12px",
         },
@@ -65,6 +76,7 @@ describe("tabui-config", () => {
           colors: {
             ink: "#f8fafc",
             noteBackground: "#020617",
+            barNumber: "#64748b",
           },
           fonts: {
             notation: "Bravura, serif",
@@ -80,12 +92,24 @@ describe("tabui-config", () => {
     expect(config.theme.cssVars["--tu-bend-label"]).toBe("#eeeeee");
     expect(config.theme.cssVars["--tu-primary-color"]).toBe("#ffffff");
     expect(config.theme.cssVars["--tu-font-body"]).toBe("Inter, sans-serif");
+    expect(config.theme.cssVars["--tu-font-body-size"]).toBe("1.1rem");
+    expect(config.theme.cssVars["--tu-score-name-font-family"]).toBe(
+      "Georgia, serif"
+    );
+    expect(config.theme.cssVars["--tu-score-name-font-size"]).toBe("2rem");
+    const defaultSizeConfig = resolveTabUIConfig({
+      theme: { ui: { fonts: { default: { size: "1.25rem" } } } },
+    });
+    expect(defaultSizeConfig.theme.cssVars["--tu-score-name-font-size"]).toBe(
+      "1.25rem"
+    );
     expect(config.theme.cssVars["--tu-font-notation"]).toBe("Bravura, serif");
     expect(config.theme.cssVars["--tu-border-radius"]).toBe("12px");
     expect(config.theme.cssVars["--tu-notation-ink"]).toBe("#f8fafc");
     expect(config.theme.cssVars["--tu-bend-curve"]).toBe("#f8fafc");
     expect(config.theme.cssVars["--tu-bend-handle"]).toBe("#f8fafc");
     expect(config.theme.cssVars["--tu-notation-text"]).toBe("#000000");
+    expect(config.theme.cssVars["--tu-notation-bar-number"]).toBe("#64748b");
     expect(config.theme.cssVars["--tu-notation-note-background"]).toBe(
       "#020617"
     );
@@ -218,12 +242,20 @@ describe("tabui-config", () => {
     );
     expect(() =>
       resolveTabUIConfig({
-        layout: { width: 599, viewOnlyModeWidthThreshold: 600 },
+        layout: {
+          width: 599,
+          viewOnlyModeWidthThreshold: 600,
+          unrestrictedModeWidthThreshold: 1000,
+        },
       })
     ).toThrow("layout width");
     expect(
       resolveTabUIConfig({
-        layout: { width: 600, viewOnlyModeWidthThreshold: 600 },
+        layout: {
+          width: 600,
+          viewOnlyModeWidthThreshold: 600,
+          unrestrictedModeWidthThreshold: 1000,
+        },
       }).layout.width
     ).toBe(600);
   });

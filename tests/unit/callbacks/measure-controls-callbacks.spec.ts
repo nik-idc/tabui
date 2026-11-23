@@ -28,17 +28,10 @@ function createControls() {
     notation,
     () => {}
   );
-  let keyboardCaptured = false;
   const callbacks = new MeasureControlsDefaultCallbacks(
     controls,
     notation,
-    () => controls.render(),
-    () => {
-      keyboardCaptured = true;
-    },
-    () => {
-      keyboardCaptured = false;
-    }
+    () => controls.render()
   );
   controls.render();
 
@@ -48,9 +41,6 @@ function createControls() {
     controls,
     callbacks,
     controller: notation.trackController,
-    get keyboardCaptured() {
-      return keyboardCaptured;
-    },
     dispose() {
       controls.tempoControlsComponent.dialog.close();
       controls.timeSigControlsComponent.dialog.close();
@@ -78,24 +68,18 @@ describe("MeasureControlsDefaultCallbacks", () => {
 
     controls.template.tempoButton.click();
     expect(controls.tempoControlsComponent.dialog.open).toBe(true);
-    expect(fixture.keyboardCaptured).toBe(true);
     controls.tempoControlsComponent.template.cancelButton.click();
     expect(controls.tempoControlsComponent.dialog.open).toBe(false);
-    expect(fixture.keyboardCaptured).toBe(false);
 
     controls.template.timeSignatureButton.click();
     expect(controls.timeSigControlsComponent.dialog.open).toBe(true);
-    expect(fixture.keyboardCaptured).toBe(true);
     controls.timeSigControlsComponent.template.cancelButton.click();
     expect(controls.timeSigControlsComponent.dialog.open).toBe(false);
-    expect(fixture.keyboardCaptured).toBe(false);
 
     controls.template.repeatEndButton.click();
     expect(controls.repeatCountControlsComponent.dialog.open).toBe(true);
-    expect(fixture.keyboardCaptured).toBe(true);
     controls.repeatCountControlsComponent.template.cancelButton.click();
     expect(controls.repeatCountControlsComponent.dialog.open).toBe(false);
-    expect(fixture.keyboardCaptured).toBe(false);
 
     controls.template.repeatStartButton.click();
     expect(masterBar.isRepeatStart).toBe(true);

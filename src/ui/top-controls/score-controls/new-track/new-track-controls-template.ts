@@ -4,8 +4,6 @@ export class NewTrackControlsTemplate {
   readonly dialogContainer: HTMLDivElement = createDiv();
   /**/ readonly dialogContent: HTMLFormElement = document.createElement("form");
   /****/ readonly settingsContainer: HTMLDivElement = createDiv();
-  /******/ readonly instrFamiliesContainer: HTMLDivElement = createDiv();
-  /********/ readonly instrFamiliesButtons: HTMLButtonElement[] = [];
   /******/ readonly instrSelectContainer: HTMLDivElement = createDiv();
   /********/ readonly instrTypesContainer: HTMLDivElement = createDiv();
   /**********/ readonly instrTypesButtons: HTMLButtonElement[] = [];
@@ -14,6 +12,11 @@ export class NewTrackControlsTemplate {
   /******/ readonly trackInfoContainer: HTMLDivElement = createDiv();
   /********/ readonly trackNameInput: HTMLInputElement = createInput();
   /********/ readonly trackNameError: HTMLDivElement = createDiv();
+  /********/ readonly staffCountContainer: HTMLDivElement = createDiv();
+  /**********/ readonly staffCountDownButton: HTMLButtonElement =
+    createButton();
+  /**********/ readonly staffCountValue: HTMLDivElement = createDiv();
+  /**********/ readonly staffCountUpButton: HTMLButtonElement = createButton();
   /********/ readonly stringCountContainer: HTMLDivElement = createDiv();
   /**********/ readonly stringCountDownButton: HTMLButtonElement =
     createButton();

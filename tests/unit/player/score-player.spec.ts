@@ -16,10 +16,10 @@ function scoreWithNotes() {
   const graph = createBarWithBeats(
     Array.from({ length: 4 }, () => ({ baseDuration: NoteDuration.Quarter }))
   );
-  graph.beats.forEach((b, i) => {
+  for (const [i, b] of graph.beats.entries()) {
     b.makeBeatWithNotes();
-    (required(b.notes)[0] as GuitarNote).fret = i;
-  });
+    (required(b.notes)[0] as GuitarNote).setFret(i);
+  }
   return graph;
 }
 
@@ -57,7 +57,9 @@ describe("ScorePlayer", () => {
     audio = installTransportAudio();
   });
   afterEach(() => {
-    players.splice(0).forEach((p) => p.dispose());
+    for (const p of players.splice(0)) {
+      p.dispose();
+    }
     audio.restore();
     globalThis.fetch = originalFetch;
     jest.restoreAllMocks();
@@ -123,22 +125,99 @@ describe("ScorePlayer", () => {
     expect(audio.sources).toEqual([]);
   });
 
-  test("loads required samples lazily when playback starts", async () => {
+  test("waits for a first-use sample before scheduling notes", async () => {
     const graph = scoreWithNotes();
-    const fetchSample = serveSample();
+    let resolveFetch!: (response: Response) => void;
+    globalThis.fetch = jest.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    ) as unknown as typeof fetch;
     const player = new ScorePlayer(graph.score, graph.track, {
       preloadAudio: false,
       samples,
     });
     players.push(player);
     expect(audio.construct).not.toHaveBeenCalled();
-    await player.start();
-    expect(audio.context.resume).toHaveBeenCalledTimes(1);
+    const start = player.start();
+
     await settleTransport();
-    expect(fetchSample).toHaveBeenCalledWith("/clean.wav");
-    expect(audio.context.decodeAudioData).toHaveBeenCalled();
-    expect(audio.sources.length + audio.bufferSources.length).toBe(4);
+    expect(audio.context.resume).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith("/clean.wav");
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toEqual([]);
+
+    resolveFetch({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    } as Response);
+    await start;
+
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toHaveLength(4);
     expect(player.playbackState).toBe(PlaybackState.Playing);
+  });
+
+  test("does not schedule after stopping while a sample is loading", async () => {
+    const graph = scoreWithNotes();
+    let resolveFetch!: (response: Response) => void;
+    globalThis.fetch = jest.fn(
+      () =>
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        })
+    ) as unknown as typeof fetch;
+    const player = new ScorePlayer(graph.score, graph.track, {
+      preloadAudio: false,
+      samples,
+    });
+    players.push(player);
+    const start = player.start();
+    await settleTransport();
+    player.stop();
+
+    resolveFetch({
+      ok: true,
+      arrayBuffer: async () => new ArrayBuffer(8),
+    } as Response);
+    await start;
+
+    expect(player.playbackState).toBe(PlaybackState.Idle);
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toEqual([]);
+  });
+
+  test("only schedules the newest run when both starts await the same sample", async () => {
+    const graph = scoreWithNotes();
+    serveSample();
+    let finishDecode!: (buffer: AudioBuffer) => void;
+    audio.context.decodeAudioData.mockImplementationOnce(
+      () =>
+        new Promise<AudioBuffer>((resolve) => {
+          finishDecode = resolve;
+        })
+    );
+    const player = new ScorePlayer(graph.score, graph.track, {
+      preloadAudio: false,
+      samples,
+    });
+    players.push(player);
+    const first = player.start();
+    await settleTransport();
+    player.stop();
+    const second = player.start({ startBeat: graph.beats[3] });
+    await settleTransport();
+
+    finishDecode({} as AudioBuffer);
+    await Promise.all([first, second]);
+
+    expect(player.playbackState).toBe(PlaybackState.Playing);
+    expect(player.playbackAnchorBeat).toBe(graph.beats[3]);
+    expect(audio.sources).toEqual([]);
+    expect(audio.bufferSources).toHaveLength(1);
+    jest.advanceTimersByTime(50);
+    expect(player.lastStartedBeat).toBe(graph.beats[3]);
   });
 
   test("ignores a stale start after stop", async () => {
@@ -229,6 +308,7 @@ describe("ScorePlayer", () => {
 
   test("cleans up an initial scheduling failure and retries from its anchor", async () => {
     const graph = scoreWithNotes();
+    graph.score.appendMasterBar();
     const onError = jest.fn();
     const player = playerFor(graph, onError);
     const error = Error("source creation failed");
@@ -236,6 +316,10 @@ describe("ScorePlayer", () => {
       audio.context.createOscillator.getMockImplementation()
     );
     audio.context.createOscillator
+      .mockImplementationOnce(createSource)
+      .mockImplementationOnce(createSource)
+      .mockImplementationOnce(createSource)
+      .mockImplementationOnce(createSource)
       .mockImplementationOnce(createSource)
       .mockImplementationOnce(() => {
         throw error;
@@ -249,12 +333,23 @@ describe("ScorePlayer", () => {
     });
     expect(player.playbackState).toBe(PlaybackState.Idle);
     expect(player.playbackAnchorBeat).toBe(graph.beats[2]);
-    expect(audio.sources).toHaveLength(1);
-    expect(audio.sources[0].disconnect).toHaveBeenCalled();
-    expect(audio.sources[0].stop).toHaveBeenLastCalledWith(0);
+    // The click and pitched note were both scheduled before the next click failed.
+    const partiallyScheduledSources = [...audio.allSources];
+    expect(partiallyScheduledSources.length).toBeGreaterThan(0);
+    expect(
+      partiallyScheduledSources.some(
+        (source) => !audio.sources.includes(source)
+      )
+    ).toBe(true);
+    for (const source of partiallyScheduledSources) {
+      expect(source.disconnect).toHaveBeenCalled();
+      expect(source.stop).toHaveBeenLastCalledWith(0);
+    }
     await player.start();
     expect(player.playbackState).toBe(PlaybackState.Playing);
-    expect(audio.sources).toHaveLength(3);
+    expect(audio.allSources.length).toBeGreaterThan(
+      partiallyScheduledSources.length
+    );
   });
 
   test("cleans up a rolling scheduling failure and permits retry", async () => {
@@ -263,12 +358,12 @@ describe("ScorePlayer", () => {
     graph.score.appendMasterBar();
     const nextBeat = graph.track.staves[0].bars[1].ensureVoiceBar(1).beats[0];
     nextBeat.makeBeatWithNotes();
-    (required(nextBeat.notes)[0] as GuitarNote).fret = 5;
+    (required(nextBeat.notes)[0] as GuitarNote).setFret(5);
     const onError = jest.fn();
     const player = playerFor(graph, onError);
     await player.start();
-    const buffered = [...audio.sources];
-    expect(buffered).toHaveLength(4);
+    const buffered = [...audio.allSources];
+    expect(buffered).toHaveLength(8);
     const error = Error("device failed");
     audio.context.createOscillator.mockImplementationOnce(() => {
       throw error;
@@ -281,11 +376,13 @@ describe("ScorePlayer", () => {
       message: "Failed to schedule playback",
       cause: error,
     });
-    for (const source of buffered) expect(source.disconnect).toHaveBeenCalled();
+    for (const source of buffered) {
+      expect(source.disconnect).toHaveBeenCalled();
+    }
     expect(player.playbackAnchorBeat).toBe(graph.beats[2]);
     await player.start();
     expect(player.playbackState).toBe(PlaybackState.Playing);
-    expect(audio.sources.length).toBeGreaterThan(buffered.length);
+    expect(audio.allSources.length).toBeGreaterThan(buffered.length);
   });
 
   test("stops after natural completion", async () => {
@@ -295,22 +392,26 @@ describe("ScorePlayer", () => {
     expect(player.playbackState).toBe(PlaybackState.Playing);
     jest.advanceTimersByTime(1);
     expect(player.playbackState).toBe(PlaybackState.Idle);
-    for (const source of audio.sources)
+    for (const source of audio.allSources) {
       expect(source.disconnect).toHaveBeenCalled();
+    }
   });
 
   test("applies live loop changes without restarting transport", async () => {
     const player = playerFor(scoreWithNotes());
     await player.start();
     const run = player.playbackRunId;
+    const initialSourceCount = audio.allSources.length;
     player.toggleLoop();
     expect(player.isLooped).toBe(true);
     expect(audio.sources.length).toBeGreaterThan(4);
-    const repeated = audio.sources.slice(4);
+    const repeated = audio.allSources.slice(initialSourceCount);
     player.toggleLoop();
     expect(player.isLooped).toBe(false);
     expect(player.playbackRunId).toBe(run);
-    for (const source of repeated) expect(source.disconnect).toHaveBeenCalled();
+    for (const source of repeated) {
+      expect(source.disconnect).toHaveBeenCalled();
+    }
     jest.advanceTimersByTime(2050);
     expect(player.playbackState).toBe(PlaybackState.Idle);
   });
@@ -328,8 +429,9 @@ describe("ScorePlayer", () => {
     expect(player.lastStartedBeat?.voiceBar.bar.staff.track).toBe(next);
     expect(player.playbackRunId).toBe(run);
     expect(audio.sources).toEqual(sources);
-    for (const source of sources)
+    for (const source of sources) {
       expect(source.disconnect).not.toHaveBeenCalled();
+    }
   });
 
   test("syncs live mix controls and disposes idempotently", async () => {
@@ -361,7 +463,8 @@ describe("ScorePlayer", () => {
     expect(audio.bufferSources).toHaveLength(bufferSourceCount);
     expect(audio.context.close).toHaveBeenCalledTimes(1);
     expect(player.playbackState).toBe(PlaybackState.Idle);
-    for (const source of audio.sources)
+    for (const source of audio.allSources) {
       expect(source.disconnect).toHaveBeenCalled();
+    }
   });
 });

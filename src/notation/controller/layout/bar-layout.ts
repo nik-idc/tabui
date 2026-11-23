@@ -85,11 +85,14 @@ function calculateAttackCollisionMinWidth(
   contentEndFraction: number,
   layoutDimensions: EditorLayoutDimensions
 ): number {
-  if (sortedColumns.length < 2 || contentEndFraction === 0) {
+  if (sortedColumns.length === 0 || contentEndFraction === 0) {
     return 0;
   }
 
-  let minColumnDelta = Infinity;
+  // The last column's gap to the content end is the last beat box width.
+  // It must also fit the minimum gap, so its fret text stays inside the bar.
+  const lastColumn = sortedColumns[sortedColumns.length - 1];
+  let minColumnDelta = contentEndFraction - lastColumn;
   for (let i = 1; i < sortedColumns.length; i++) {
     minColumnDelta = Math.min(
       minColumnDelta,

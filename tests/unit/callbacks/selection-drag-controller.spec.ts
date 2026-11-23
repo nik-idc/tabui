@@ -29,15 +29,16 @@ describe("SelectionDragController", () => {
     expect(controller.isSelectingBeats).toBe(false);
   });
 
-  test("move below threshold keeps drag pending and does not start selection", () => {
+  test("movement below the fixed threshold keeps drag pending", () => {
     const controller = new SelectionDragController();
     const {
       elements: [anchorBeat],
     } = createDragScore();
 
+    anchorBeat.boundingBox.width = 8;
     controller.begin(anchorBeat, new Point(0, 0), 1);
 
-    expect(controller.handleMove(new Point(11, 0), anchorBeat, 1)).toEqual({
+    expect(controller.handleMove(new Point(5.9, 0), anchorBeat, 1)).toEqual({
       shouldSelectCurrentBeat: false,
       startedSelection: false,
     });
@@ -45,16 +46,16 @@ describe("SelectionDragController", () => {
     expect(controller.isSelectingBeats).toBe(false);
   });
 
-  test("move at threshold starts selection and returns the anchor beat", () => {
+  test("movement at the fixed threshold starts selection", () => {
     const controller = new SelectionDragController();
     const {
       elements: [anchorBeat, currentBeat],
     } = createDragScore();
 
+    currentBeat.boundingBox.width = 120;
     controller.begin(anchorBeat, new Point(0, 0), 1);
 
-    // The public drag rule uses one quarter of the target beat's width.
-    const thresholdPoint = new Point(currentBeat.boundingBox.width / 4, 0);
+    const thresholdPoint = new Point(6, 0);
     expect(controller.handleMove(thresholdPoint, currentBeat, 1)).toEqual({
       shouldSelectCurrentBeat: true,
       startedSelection: true,

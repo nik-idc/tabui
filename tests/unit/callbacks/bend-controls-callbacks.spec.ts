@@ -41,17 +41,16 @@ describe("BendControlsDefaultCallbacks", () => {
       expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
     }
 
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.Bend,
         bendPitch: 1,
         bendDuration: 0.75,
-      })
-    );
+      }),
+    });
     controller.insertBeatAfterSelected();
     controller.setSelectedNoteFret(5);
-    controller.setTechnique(GuitarTechniqueType.LetRing);
+    controller.setTechnique(GuitarTechniqueType.Tie);
     for (const type of [BendType.Hold, BendType.Release]) {
       harness.open();
       component.template.bendTypesButtons[type].click();
@@ -76,19 +75,20 @@ describe("BendControlsDefaultCallbacks", () => {
   ])("disabled conditional bend type %s cannot be selected", (type) => {
     const { controller, component, callbacks } = harness;
     if (type === BendType.Bend || type === BendType.BendAndRelease) {
-      controller.setTechnique(
-        GuitarTechniqueType.Bend,
-        new BendTechniqueOptions({
+      controller.setTechnique(GuitarTechniqueType.Bend, {
+        bendOptions: new BendTechniqueOptions({
           type: BendType.Bend,
           bendPitch: 3,
           bendDuration: 0.75,
-        })
-      );
+        }),
+      });
       controller.insertBeatAfterSelected();
       controller.setSelectedNoteFret(5);
-      controller.setTechnique(GuitarTechniqueType.LetRing);
+      controller.setTechnique(GuitarTechniqueType.Tie);
     } else if (type !== BendType.Hold && type !== BendType.Release) {
-      controller.setTechnique(GuitarTechniqueType.LetRing);
+      controller.insertBeatAfterSelected();
+      controller.setSelectedNoteFret(5);
+      controller.setTechnique(GuitarTechniqueType.Tie);
     }
     callbacks.bind();
     harness.open();
@@ -136,15 +136,14 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(controller.selectionAsBeats[0].notes).toBeNull();
 
     controller.setSelectedNoteFret(5);
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
         type: BendType.BendAndRelease,
         bendPitch: 1,
         releasePitch: 0,
         bendDuration: 0.75,
-      })
-    );
+      }),
+    });
 
     harness.open();
     callbacks.unbind();
@@ -165,10 +164,12 @@ describe("BendControlsDefaultCallbacks", () => {
 
   test("remove closes the dialog and supports undo and redo", () => {
     const { callbacks, component, controller, selectedNote } = harness;
-    controller.setTechnique(
-      GuitarTechniqueType.Bend,
-      new BendTechniqueOptions({ type: BendType.Prebend, prebendPitch: 0.5 })
-    );
+    controller.setTechnique(GuitarTechniqueType.Bend, {
+      bendOptions: new BendTechniqueOptions({
+        type: BendType.Prebend,
+        prebendPitch: 0.5,
+      }),
+    });
     callbacks.bind();
     harness.open();
     expect(component.template.removeButton.disabled).toBe(false);
@@ -199,15 +200,17 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(controller.selectionAsBeats[0].notes).toBeNull();
   });
 
-  test("cancel releases keyboard ownership and detaches the old graph controls", () => {
-    const { callbacks, component, keyboard, selectedNote } = harness;
+  test("cancel detaches the old graph controls", () => {
+    const { callbacks, component, selectedNote } = harness;
     callbacks.bind();
     harness.open();
     const point =
       component.template.bendSelectorGraphSVG.querySelector<SVGCircleElement>(
         'circle[aria-label="Bend point"]'
       );
-    if (point === null) throw Error("Expected bend point");
+    if (point === null) {
+      throw Error("Expected bend point");
+    }
     point.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     point.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     const before = point.getAttribute("cy");
@@ -218,20 +221,20 @@ describe("BendControlsDefaultCallbacks", () => {
     expect(point.getAttribute("cy")).toBe(before);
     expect(component.dialog.open).toBe(false);
     expect(selectedNote().hasTechnique(GuitarTechniqueType.Bend)).toBe(false);
-    expect(keyboard).toEqual({ captures: 1, releases: 1 });
 
     harness.open();
     const reopenedPoint =
       component.template.bendSelectorGraphSVG.querySelector<SVGCircleElement>(
         'circle[aria-label="Bend point"]'
       );
-    if (reopenedPoint === null) throw Error("Expected reopened bend point");
+    if (reopenedPoint === null) {
+      throw Error("Expected reopened bend point");
+    }
     reopenedPoint.dispatchEvent(new FocusEvent("focusin", { bubbles: true }));
     reopenedPoint.dispatchEvent(
       new KeyboardEvent("keydown", { key: "ArrowUp" })
     );
     expect(reopenedPoint.getAttribute("cy")).toBe("175");
     component.template.cancelButton.click();
-    expect(keyboard).toEqual({ captures: 2, releases: 2 });
   });
 });

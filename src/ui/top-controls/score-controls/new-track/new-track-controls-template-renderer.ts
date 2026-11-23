@@ -2,7 +2,6 @@ import { NotationComponent } from "../../../../notation/notation-component";
 import {
   assembleDialog,
   renderOnce,
-  setImageAsset,
   setupDialogActionButtons,
 } from "../../../shared";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
@@ -13,6 +12,7 @@ import {
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   InstrumentType,
+  MAX_TRACK_STAVES,
   StringInstrumentType,
 } from "../../../../notation/model";
 
@@ -28,6 +28,7 @@ export class NewTrackControlsTemplateRenderer {
   private _currentTrackName: string = "New track";
   private _currentStringCount: number = 6;
   private _currentTuning: string = "E A D G B E";
+  private _currentStaffCount: number = 1;
 
   private _assembled: boolean;
 
@@ -57,7 +58,6 @@ export class NewTrackControlsTemplateRenderer {
           element: this.template.settingsContainer,
           className: "tu-nt-settings-container",
           children: [
-            this.template.instrFamiliesContainer,
             this.template.instrSelectContainer,
             this.template.trackInfoContainer,
           ],
@@ -69,9 +69,6 @@ export class NewTrackControlsTemplateRenderer {
         },
       ]
     );
-    this.template.instrFamiliesContainer.classList.add(
-      "tu-nt-families-container"
-    );
     this.template.instrSelectContainer.classList.add(
       "tu-nt-instr-settings-container"
     );
@@ -81,9 +78,6 @@ export class NewTrackControlsTemplateRenderer {
       "tu-nt-track-info-container"
     );
 
-    this.template.instrFamiliesContainer.append(
-      ...this.template.instrFamiliesButtons
-    );
     this.template.instrSelectContainer.append(
       this.template.instrTypesContainer,
       this.template.instrTonesContainer
@@ -97,11 +91,17 @@ export class NewTrackControlsTemplateRenderer {
     this.template.trackInfoContainer.append(
       this.template.trackNameInput,
       this.template.trackNameError,
+      this.template.staffCountContainer,
       this.template.stringCountContainer,
       this.template.stringCountError,
       this.template.tuningContainer,
       this.template.wholeTuningContainer,
       this.template.tuningError
+    );
+    this.template.staffCountContainer.append(
+      this.template.staffCountDownButton,
+      this.template.staffCountValue,
+      this.template.staffCountUpButton
     );
     this.template.stringCountContainer.append(
       this.template.stringCountDownButton,
@@ -112,35 +112,6 @@ export class NewTrackControlsTemplateRenderer {
       this.template.wholeTuningDownButton,
       this.template.wholeTuningUpButton
     );
-  }
-
-  private renderInstrumentFamiliesButtons(): void {
-    const families = Object.values(InstrumentFamily);
-    if (this.template.instrFamiliesButtons.length === 0) {
-      for (let i = 0; i < families.length; i++) {
-        this.template.instrFamiliesButtons.push(createButton());
-      }
-    }
-
-    // Mark applied/disabled
-    for (let i = 0; i < families.length; i++) {
-      const imageButton = this.template.instrFamiliesButtons[i];
-      const family = families[i];
-      imageButton.classList.toggle(
-        "tu-applied-img",
-        family === this._currentFamily
-      );
-      setImageAsset(
-        imageButton,
-        this.assetsPath,
-        `img/ui/${family.toLowerCase()}.svg`,
-        family
-      );
-      imageButton.setAttribute(
-        "aria-pressed",
-        `${family === this._currentFamily}`
-      );
-    }
   }
 
   private renderInstrumentTypesButtons(): void {
@@ -206,7 +177,7 @@ export class NewTrackControlsTemplateRenderer {
     this.template.stringCountDownButton.disabled =
       this._currentStringCount <= 1;
     this.template.stringCountValue.classList.add("tu-nt-string-count-value");
-    this.template.stringCountValue.textContent = `${this._currentStringCount}`;
+    this.template.stringCountValue.textContent = `Strings: ${this._currentStringCount}`;
     this.template.stringCountUpButton.textContent = "+";
     this.template.stringCountUpButton.ariaLabel = "Increase string count by 1";
     this.template.stringCountUpButton.disabled = this._currentStringCount >= 12;
@@ -214,6 +185,23 @@ export class NewTrackControlsTemplateRenderer {
 
     this.renderTuningControls();
     this.template.tuningError.classList.add(newTrackErrorCSSClass);
+
+    this.renderStaffCount();
+  }
+
+  private renderStaffCount(): void {
+    const count = this._currentStaffCount;
+    this.template.staffCountContainer.classList.add(
+      "tu-nt-staff-count-container"
+    );
+    this.template.staffCountDownButton.textContent = "-";
+    this.template.staffCountDownButton.ariaLabel = "Decrease staff count by 1";
+    this.template.staffCountDownButton.disabled = count <= 1;
+    this.template.staffCountValue.classList.add("tu-nt-staff-count-value");
+    this.template.staffCountValue.textContent = `Staves: ${count}`;
+    this.template.staffCountUpButton.textContent = "+";
+    this.template.staffCountUpButton.ariaLabel = "Increase staff count by 1";
+    this.template.staffCountUpButton.disabled = count >= MAX_TRACK_STAVES;
   }
 
   private renderTuningControls(): void {
@@ -306,7 +294,8 @@ export class NewTrackControlsTemplateRenderer {
     currentTone: string,
     currentTrackName: string,
     currentStringCount: number,
-    currentTuning: string
+    currentTuning: string,
+    currentStaffCount: number = 1
   ): void {
     if (this._currentFamily !== currentFamily) {
       this.template.instrTypesContainer.replaceChildren();
@@ -322,8 +311,8 @@ export class NewTrackControlsTemplateRenderer {
     this._currentTrackName = currentTrackName;
     this._currentStringCount = currentStringCount;
     this._currentTuning = currentTuning;
+    this._currentStaffCount = currentStaffCount;
 
-    this.renderInstrumentFamiliesButtons();
     this.renderInstrumentTypesButtons();
     this.renderInstrumentTonesButtons();
     this.renderInputs();

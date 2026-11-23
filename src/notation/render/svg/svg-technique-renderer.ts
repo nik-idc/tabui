@@ -1,26 +1,22 @@
-import { TechniqueElement, TrackController } from "../../controller";
+import { TechniquePathElement, TrackController } from "../../controller";
 import { createSVGG, createSVGPath } from "../../../shared";
 import { ElementRenderer } from "../element-renderer";
 import type { ResolvedAssetConfig } from "../../../assets";
 
 /**
- * Class for rendering a guitar technique element using SVG
+ * Renders a path-only technique element, owned by a note or a beat, using SVG
  */
 export class SVGTechniqueRenderer implements ElementRenderer {
   /** Track controller */
   readonly trackController: TrackController;
   /** Technique element to render */
-  techniqueElement: TechniqueElement;
+  techniqueElement: TechniquePathElement;
 
   /** Container SVG group  */
   private _containerGroupSVG?: SVGGElement;
 
   /** Technique SVG paths */
   private _techniquePathsSVG?: SVGPathElement[];
-  /** Reusable wider targets following each inline technique's geometry. */
-  private _hitPathsSVG: SVGPathElement[] = [];
-  /** Supplied callbacks keyed by event type. */
-  private _attachedEvents = new Map<string, EventListener>();
 
   /**
    * Class for rendering a guitar technique element using SVG
@@ -30,7 +26,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
    */
   constructor(
     trackController: TrackController,
-    techniqueElement: TechniqueElement,
+    techniqueElement: TechniquePathElement,
     assetsPath: ResolvedAssetConfig
   ) {
     this.trackController = trackController;
@@ -47,10 +43,12 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       return this._containerGroupSVG;
     }
 
-    const techniqueUUID = this.techniqueElement.technique.uuid;
+    // A wrapped tie has two visuals for one model technique.
+    const techniqueUUID = this.techniqueElement.uuid;
     this._containerGroupSVG = createSVGG();
     this._containerGroupSVG.setAttribute("id", `technique-${techniqueUUID}`);
     this._containerGroupSVG.setAttribute("class", "tu-inline-technique");
+    this._containerGroupSVG.setAttribute("pointer-events", "none");
 
     return this._containerGroupSVG;
   }
@@ -60,52 +58,11 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       return;
     }
 
-    for (const eventType of this._attachedEvents.keys()) {
-      this.detachMouseEvent(eventType as keyof SVGElementEventMap);
-    }
     this._containerGroupSVG.parentNode?.removeChild(this._containerGroupSVG);
   }
 
-  public updateElementReference(element: TechniqueElement): void {
+  public updateElementReference(element: TechniquePathElement): void {
     this.techniqueElement = element;
-  }
-
-  /** Attaches a supplied callback using the renderer's current element. */
-  public attachMouseEvent<K extends keyof SVGElementEventMap>(
-    eventType: K,
-    eventHandler: (
-      event: SVGElementEventMap[K],
-      techniqueElement: TechniqueElement
-    ) => void
-  ): void {
-    const group = this.ensureContainerGroup();
-    this.detachMouseEvent(eventType);
-    const listener = (this.dispatchMouseEvent<K>).bind(this, eventHandler);
-    group.addEventListener(eventType, listener);
-    this._attachedEvents.set(eventType, listener);
-  }
-
-  /** Dispatches an event using the renderer's current technique element. */
-  private dispatchMouseEvent<K extends keyof SVGElementEventMap>(
-    eventHandler: (
-      event: SVGElementEventMap[K],
-      techniqueElement: TechniqueElement
-    ) => void,
-    event: Event
-  ): void {
-    eventHandler(event as SVGElementEventMap[K], this.techniqueElement);
-  }
-
-  /** Detaches a previously supplied callback. */
-  public detachMouseEvent<K extends keyof SVGElementEventMap>(
-    eventType: K
-  ): void {
-    const listener = this._attachedEvents.get(eventType);
-    if (listener === undefined) {
-      return;
-    }
-    this._containerGroupSVG?.removeEventListener(eventType, listener);
-    this._attachedEvents.delete(eventType);
   }
 
   /**
@@ -129,7 +86,7 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       throw Error("Tried to render technique paths when descriptors undefined");
     }
 
-    const techniqueUUID = this.techniqueElement.technique.uuid;
+    const techniqueUUID = this.techniqueElement.uuid;
     if (this._techniquePathsSVG === undefined) {
       this._techniquePathsSVG = [];
     }
@@ -141,7 +98,6 @@ export class SVGTechniqueRenderer implements ElementRenderer {
         "id",
         `technique-path-${techniqueUUID}-${pathIndex}`
       );
-      pathElement.setAttribute("class", "tu-technique-visible-path");
       this._containerGroupSVG.appendChild(pathElement);
       this._techniquePathsSVG.push(pathElement);
     }
@@ -168,57 +124,6 @@ export class SVGTechniqueRenderer implements ElementRenderer {
         }
       }
     }
-    this.renderHitPaths();
-  }
-
-  /** Updates invisible stroke targets using the visible lines' geometry. */
-  private renderHitPaths(): void {
-    const group = this._containerGroupSVG;
-    if (group === undefined) {
-      throw Error(
-        "Tried to render technique hit paths before SVG group was initialized"
-      );
-    }
-    const descriptors = this.techniqueElement.pathDescriptors ?? [];
-
-    // TODO: Add a config option to disable wider hit targets for performance.
-    while (this._hitPathsSVG.length < descriptors.length) {
-      const path = createSVGPath();
-      const index = this._hitPathsSVG.length;
-      const uuid = this.techniqueElement.technique.uuid;
-      path.setAttribute("id", `technique-hit-path-${uuid}-${index}`);
-      path.setAttribute("fill", "none");
-      path.setAttribute("stroke", "transparent");
-      path.setAttribute("stroke-linecap", "round");
-      path.setAttribute("stroke-linejoin", "round");
-      path.setAttribute("pointer-events", "stroke");
-      group.appendChild(path);
-      this._hitPathsSVG.push(path);
-    }
-    while (this._hitPathsSVG.length > descriptors.length) {
-      const path = this._hitPathsSVG.pop();
-      if (path !== undefined) {
-        group.removeChild(path);
-      }
-    }
-
-    const origin = this.techniqueElement.pathOriginBarLocal;
-    const strokeWidth = `${this.trackController.trackElement.layoutDimensions.noteTextSize / 2}`;
-    for (let i = 0; i < descriptors.length; i++) {
-      const hasFill =
-        descriptors[i].attrs?.fill !== undefined &&
-        descriptors[i].attrs?.fill !== "none";
-      const fill = hasFill ? "transparent" : "none";
-      const pointerEvents = hasFill ? "all" : "stroke";
-      const descriptor = descriptors[i].d;
-      const transform = `translate(${origin.x}, ${origin.y})`;
-
-      this._hitPathsSVG[i].setAttribute("fill", fill);
-      this._hitPathsSVG[i].setAttribute("pointer-events", pointerEvents);
-      this._hitPathsSVG[i].setAttribute("stroke-width", strokeWidth);
-      this._hitPathsSVG[i].setAttribute("d", descriptor);
-      this._hitPathsSVG[i].setAttribute("transform", transform);
-    }
   }
 
   /**
@@ -237,10 +142,6 @@ export class SVGTechniqueRenderer implements ElementRenderer {
       this._containerGroupSVG.removeChild(pathElement);
     }
     this._techniquePathsSVG = undefined;
-    for (const path of this._hitPathsSVG) {
-      this._containerGroupSVG.removeChild(path);
-    }
-    this._hitPathsSVG = [];
   }
 
   /**

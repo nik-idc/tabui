@@ -1,5 +1,4 @@
 import {
-  InstrumentFamily,
   InstrumentType,
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
@@ -14,7 +13,6 @@ export interface TrackSettingsControlsCallbacks {
   readonly tuningErrorText: string;
 
   onDialogClicked(event: MouseEvent): void;
-  onFamilyClicked(family: InstrumentFamily): void;
   onTypeClicked(type: InstrumentType): void;
   onToneClicked(tone: StringInstrumentTone): void;
   onTuningStringStep(stringIndex: number, semitones: number): void;
@@ -30,8 +28,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   private _trackSettingsComponent: TrackSettingsControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly tuningErrorText: string = "Invalid tuning";
@@ -39,20 +35,11 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
   constructor(
     newTrackComponent: TrackSettingsControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._trackSettingsComponent = newTrackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
-  }
-
-  onFamilyClicked(family: InstrumentFamily): void {
-    this._trackSettingsComponent.setFamily(family);
-    this._renderFunc();
   }
 
   onTypeClicked(type: InstrumentType): void {
@@ -89,7 +76,7 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
 
   onConfirmClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       this._trackSettingsComponent.dialog.close();
       return;
     }
@@ -126,23 +113,6 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
-    configs.push({
-      element: this._trackSettingsComponent.template
-        .dialogContainer as HTMLElement,
-      event: "close",
-      handler: () => this._freeKeyboard(),
-    });
-
-    const families = Object.values(InstrumentFamily);
-    const familiesButtons =
-      this._trackSettingsComponent.template.instrFamiliesButtons;
-    for (let i = 0; i < families.length; i++) {
-      configs.push({
-        element: familiesButtons[i] as HTMLElement,
-        event: "click",
-        handler: () => this.onFamilyClicked(families[i]),
-      });
-    }
 
     const family = this._trackSettingsComponent.instrumentFamily;
     const types = INSTRUMENT_TYPES[family];
@@ -201,7 +171,9 @@ export class TrackSettingsControlsDefaultCallbacks implements TrackSettingsContr
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._trackSettingsComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },
