@@ -17,7 +17,7 @@ import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
 import { SelectedMoveDirection } from "../../../src/notation/controller";
 import { withNotationDialog } from "./notation-dialog-fixture";
 import { required } from "../required";
-import { serializeScore } from "../../../src/notation/model/serialization";
+import { serializeScore } from "../../../src/notation/format/tabui";
 import { ScorePlayer } from "../../../src/player/score-player";
 import { installTransportAudio } from "../player/transport-audio";
 

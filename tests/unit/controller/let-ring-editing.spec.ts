@@ -3,9 +3,9 @@ import {
   GuitarTechniqueType,
   NoteDuration,
   ScoreEditor,
-  serializeScore,
   NoteValue,
 } from "../../../src/notation/model";
+import { serializeScore } from "../../../src/notation/format";
 import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command/set-technique-command";
 import { SetFretCommand } from "../../../src/notation/controller/editor/command/set-fret-command";
 import { RemoveBeatsCommand } from "../../../src/notation/controller/editor/command/remove-beats-command";

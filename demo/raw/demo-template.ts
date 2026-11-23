@@ -83,6 +83,17 @@ export const DEMO_TEMPLATE = `
   <button id="deserialize-score" class="demo-button" type="button">Open file</button>
   <button id="serialize-score" class="demo-button" type="button">Save file</button>
   <input id="score-file" type="file" accept=".json,.tabui.json,application/json" hidden />
+  <div class="demo-exchange" role="group" aria-label="Import and export">
+    <label class="demo-field">
+      <span>Format</span>
+      <select id="exchange-format-select">
+        <option value="musicxml">MusicXML</option>
+      </select>
+    </label>
+    <button id="import-score" class="demo-button" type="button">Import</button>
+    <button id="export-score" class="demo-button" type="button">Export</button>
+  </div>
+  <input id="exchange-file" type="file" accept=".musicxml,.xml" hidden />
   <button id="reset-demo-settings" class="demo-button demo-button-quiet" type="button">Reset</button>
 
   <div

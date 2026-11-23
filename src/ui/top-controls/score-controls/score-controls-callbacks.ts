@@ -1,6 +1,7 @@
 import { NotationComponent } from "../../../notation/notation-component";
 import { Track } from "../../../notation";
 import { ScoreControlsComponent } from "../..";
+import { readVolumeSlider, showVolume } from "../../shared/volume-slider";
 import {
   ListenerManager,
   readClipboardText,
@@ -101,9 +102,12 @@ export class ScoreControlsDefaultCallbacks implements ScoreControlsCallbacks {
   }
 
   onMasterVolumeChanged(): void {
+    const input = this._scoreComponent.template.masterVolumeInput;
+    const volume = readVolumeSlider(input);
+    showVolume(input, volume, "Master volume");
     this._notationComponent.trackController.setMasterVolume(
       this._scoreComponent.score,
-      Number(this._scoreComponent.template.masterVolumeInput.value) / 100
+      volume
     );
   }
 

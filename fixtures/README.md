@@ -6,6 +6,9 @@ test-only tools stay in `tests/`.
 
 - `feature-showcase-score.json`: the showcase, saved from TabUI.
 - `feature-showcase-score.ts`: loads the showcase with `deserializeScore`.
+- `guitar-pro-7.musicxml`: a score made in Guitar Pro 7.5 and exported as
+  MusicXML, with one feature per bar. MusicXML import tests compare it with
+  what the score holds in Guitar Pro.
 - `performance-stress-score.ts`: the demo's dense stress score.
 - `update-benchmark-score.ts`: the dense controller-update benchmark score.
 - `score-builder.ts`: fills bars, staves, and tracks, and builds scores for the

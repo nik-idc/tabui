@@ -64,6 +64,13 @@
   color: var(--demo-muted);
 }
 
+/* The format selector with its Import and Export buttons. */
+.demo-exchange {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Radio groups that look like two joined buttons. */
 .demo-segmented {
   display: inline-flex;

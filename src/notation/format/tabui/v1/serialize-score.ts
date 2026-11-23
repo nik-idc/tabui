@@ -1,5 +1,6 @@
-import { Bar, VOICE_NUMBERS } from "../../bar";
-import { Guitar } from "../../instrument/guitar/guitar";
+import { MAX_VOLUME } from "../../../model/volume";
+import { Bar, VOICE_NUMBERS } from "../../../model/bar";
+import { Guitar } from "../../../model/instrument/guitar/guitar";
 import {
   MasterBar,
   MAX_MASTER_BAR_BEATS_COUNT,
@@ -8,10 +9,10 @@ import {
   MIN_MASTER_BAR_BEATS_COUNT,
   MIN_MASTER_BAR_REPEAT_COUNT,
   MIN_MASTER_BAR_TEMPO,
-} from "../../master-bar";
-import { Score, isReleaseDate } from "../../score";
-import { Staff } from "../../staff";
-import { Track } from "../../track";
+} from "../../../model/master-bar";
+import { Score, isReleaseDate } from "../../../model/score";
+import { Staff } from "../../../model/staff";
+import { Track } from "../../../model/track";
 import { ScoreSerializationError } from "../serialization-error";
 import { serializeArray } from "../serialize-array";
 import {
@@ -195,7 +196,12 @@ function serializeTrack(
     instrumentPath
   );
   validateString(track.name, propertyPath(path, "name"));
-  validateNumberInRange(track.volume, 0, 1, propertyPath(path, "volume"));
+  validateNumberInRange(
+    track.volume,
+    0,
+    MAX_VOLUME,
+    propertyPath(path, "volume")
+  );
   validateNumberInRange(track.pan, -1, 1, propertyPath(path, "pan"));
   validateBoolean(track.muted, propertyPath(path, "muted"));
   validateBoolean(track.soloed, propertyPath(path, "soloed"));
@@ -346,7 +352,7 @@ export function serializeScore(score: Score): SerializedScoreV1 {
   validateNumberInRange(
     score.masterVolume,
     0,
-    1,
+    MAX_VOLUME,
     propertyPath(ROOT_SERIALIZATION_PATH, "masterVolume")
   );
   validateNumberInRange(

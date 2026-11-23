@@ -1,9 +1,9 @@
-import { Beat } from "../beat";
-import { GuitarNote } from "../guitar-note";
-import { Guitar } from "../instrument/guitar/guitar";
-import { NoteValue, NoteType } from "../note";
-import { Score } from "../score";
-import { Track } from "../track";
+import { Beat } from "../../model/beat";
+import { GuitarNote } from "../../model/guitar-note";
+import { Guitar } from "../../model/instrument/guitar/guitar";
+import { NoteValue, NoteType } from "../../model/note";
+import { Score } from "../../model/score";
+import { Track } from "../../model/track";
 import {
   deserializeClipboardBeats,
   serializeClipboardBeat,

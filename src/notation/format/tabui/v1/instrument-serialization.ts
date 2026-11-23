@@ -1,5 +1,5 @@
-import { Guitar } from "../../instrument/guitar/guitar";
-import { InstrumentFamily } from "../../instrument/instrument-family";
+import { Guitar } from "../../../model/instrument/guitar/guitar";
+import { InstrumentFamily } from "../../../model/instrument/instrument-family";
 import {
   AcousticGuitarTone,
   BassGuitarTone,
@@ -7,10 +7,10 @@ import {
   OtherStringTone,
   STRING_TONES as TONES_BY_INSTRUMENT_TYPE,
   StringInstrumentTone,
-} from "../../instrument/instrument-tone";
-import { StringInstrumentType } from "../../instrument/instrument-type";
-import { TONE_TO_MIDI } from "../../instrument/tone-to-midi";
-import { NoteType, NoteValue } from "../../note";
+} from "../../../model/instrument/instrument-tone";
+import { StringInstrumentType } from "../../../model/instrument/instrument-type";
+import { TONE_TO_MIDI } from "../../../model/instrument/tone-to-midi";
+import { NoteType, NoteValue } from "../../../model/note";
 import { ScoreSerializationError } from "../serialization-error";
 import { serializeArray } from "../serialize-array";
 import { propertyPath, SerializationPath } from "../serialization-path";

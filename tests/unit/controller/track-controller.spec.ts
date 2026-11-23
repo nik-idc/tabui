@@ -29,9 +29,8 @@ import {
   StrokeOptions,
   TrackInstrumentChangeMode,
   VoiceBar,
-  deserializeScore,
-  serializeScore,
 } from "../../../src/notation/model";
+import { deserializeScore, serializeScore } from "../../../src/notation/format";
 import { SelectedMoveDirection } from "../../../src/notation/controller/selection/selection-cursor";
 import {
   createBarWithBeats,

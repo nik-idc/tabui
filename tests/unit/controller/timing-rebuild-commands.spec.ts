@@ -7,11 +7,8 @@ import {
   SetTimeSigCommand,
   SetTupletCommand,
 } from "../../../src/notation/controller/editor/command";
-import {
-  DEFAULT_MASTER_BAR,
-  NoteDuration,
-  serializeScore,
-} from "../../../src/notation/model";
+import { DEFAULT_MASTER_BAR, NoteDuration } from "../../../src/notation/model";
+import { serializeScore } from "../../../src/notation/format";
 import { required } from "../required";
 import {
   createBarWithBeats,

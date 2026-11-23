@@ -5,6 +5,11 @@ export interface MasterAudioBus {
   gainNode: GainNode;
   /** Panner node used for score-wide stereo output placement. */
   pannerNode: StereoPannerNode;
+  /**
+   * Limiter before the speakers. Volumes can boost by up to 10 dB, so a loud
+   * mix could otherwise clip.
+   */
+  limiterNode: DynamicsCompressorNode;
 }
 
 /** Score-wide click bus, deliberately independent of track mixing. */

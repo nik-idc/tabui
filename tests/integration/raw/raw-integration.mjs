@@ -71,6 +71,30 @@ async function checkShowcase(page, origin) {
     "Mounted score from showcase.tabui.json."
   );
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
+
+  const xmlDownloadEvent = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export", exact: true }).click();
+  const xmlDownload = await xmlDownloadEvent;
+  assert.equal(xmlDownload.suggestedFilename(), "sample-song.musicxml");
+  const xmlFilename = await xmlDownload.path();
+  assert(xmlFilename !== null);
+  const xml = await readFile(xmlFilename, "utf8");
+  assert.match(xml, /<score-partwise version="4.0">/);
+  await page.locator("#fixture-select").selectOption("empty");
+  await page.locator("#exchange-file").setInputFiles({
+    name: "showcase.musicxml",
+    mimeType: "application/vnd.recordare.musicxml+xml",
+    buffer: Buffer.from(xml),
+  });
+  await expect(page.locator("#score-persistence-status")).toHaveText(
+    "Imported showcase.musicxml."
+  );
+  await expect(page.locator("#fixture-select")).toHaveValue("empty");
+  await expect(root.locator(".tu-root-svg")).toHaveCount(1);
+  await expect(root.getByRole("textbox", { name: "Score name" })).toHaveValue(
+    "Sample song"
+  );
+
   await page.getByRole("radio", { name: "Single line" }).check();
   await expect(root.locator(".tu-root-svg")).toHaveCount(1);
   await expect(page).toHaveURL(/layoutMode=single-line/);
@@ -98,7 +122,7 @@ async function checkShowcase(page, origin) {
     assert.equal(bytes.toString("ascii", 8, 12), "WAVE");
   }
   console.log(
-    "  showcase: themes, fixture selection, save/load, layout, reset, sample files passed"
+    "  showcase: themes, fixture selection, save/load, MusicXML, layout, reset, sample files passed"
   );
   await checkSoundSources(page, origin);
 }

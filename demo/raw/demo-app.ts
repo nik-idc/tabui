@@ -29,6 +29,7 @@ import {
   resolveEditorThemeKey,
 } from "./data/theme";
 import { DEMO_TEMPLATE } from "./demo-template";
+import { bindScoreExchangeControls } from "./score-exchange-controls";
 import {
   bindScorePersistenceControls,
   downloadScoreDocument,
@@ -436,7 +437,16 @@ export function mountDemo(host: HTMLElement, options: DemoOptions): () => void {
     }
   }
 
-  function onControlChange(): void {
+  function onControlChange(event: Event): void {
+    // File inputs and the format selector do not change editor settings.
+    const target = event.target;
+    const isExchangeControl =
+      target instanceof HTMLElement &&
+      (target.matches("input[type=file]") ||
+        target.closest(".demo-exchange") !== null);
+    if (isExchangeControl) {
+      return;
+    }
     const next = readControls();
     showSettings(next);
     const isNewFixture = next.fixture !== settings.fixture;
@@ -513,6 +523,20 @@ export function mountDemo(host: HTMLElement, options: DemoOptions): () => void {
     replaceScore: (score) => remount(settings, score),
     downloadDocument: downloadScoreDocument,
   });
+  const unbindExchange = bindScoreExchangeControls({
+    formatSelect: requiredElement(
+      host,
+      "#exchange-format-select",
+      HTMLSelectElement
+    ),
+    importButton: requiredElement(host, "#import-score", HTMLButtonElement),
+    exportButton: requiredElement(host, "#export-score", HTMLButtonElement),
+    fileInput: requiredElement(host, "#exchange-file", HTMLInputElement),
+    status: requiredElement(host, "#score-persistence-status", HTMLElement),
+    getScore: () => editor.score,
+    replaceScore: (score) => remount(settings, score),
+    downloadDocument: downloadScoreDocument,
+  });
 
   return () => {
     controlsForm.removeEventListener("change", onControlChange);
@@ -522,6 +546,7 @@ export function mountDemo(host: HTMLElement, options: DemoOptions): () => void {
     panelsMenu.removeEventListener("toggle", onPanelsToggle);
     unsubscribeAppearance();
     unbindPersistence();
+    unbindExchange();
     editor.dispose();
     host.replaceChildren();
   };

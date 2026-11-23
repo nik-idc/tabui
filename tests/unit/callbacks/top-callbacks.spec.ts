@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { faderPositionToVolume } from "../../../src/ui/shared/volume-slider";
 import { TopControlsCallbacks } from "../../../src/ui/top-controls/top-controls-callbacks";
 import {
   TrackEvent,
@@ -52,7 +53,7 @@ describe("TopControlsCallbacks", () => {
       expect(notation.trackController.isLooped).toBe(true);
       volume.value = "30";
       volume.dispatchEvent(new Event("input"));
-      expect(score.masterVolume).toBe(0.3);
+      expect(score.masterVolume).toBe(faderPositionToVolume(30));
       render.mockClear();
       const playerUUID = required(notation.trackController.playerUUID);
       trackEvent.emit(TrackEventType.PlayerStateChanged, {
@@ -68,7 +69,7 @@ describe("TopControlsCallbacks", () => {
       volume.dispatchEvent(new Event("input"));
       trackEvent.emit(TrackEventType.PlayerStateChanged, { playerUUID });
       expect(notation.trackController.isLooped).toBe(true);
-      expect(score.masterVolume).toBe(0.3);
+      expect(score.masterVolume).toBe(faderPositionToVolume(30));
       expect(render).toHaveBeenCalledTimes(1);
       callbacks.bind();
       loop.click();

@@ -1,5 +1,6 @@
-import { Bar, VOICE_NUMBERS } from "../../bar";
-import { Guitar } from "../../instrument/guitar/guitar";
+import { MAX_VOLUME } from "../../../model/volume";
+import { Bar, VOICE_NUMBERS } from "../../../model/bar";
+import { Guitar } from "../../../model/instrument/guitar/guitar";
 import {
   MasterBar,
   MAX_MASTER_BAR_BEATS_COUNT,
@@ -8,10 +9,10 @@ import {
   MIN_MASTER_BAR_BEATS_COUNT,
   MIN_MASTER_BAR_REPEAT_COUNT,
   MIN_MASTER_BAR_TEMPO,
-} from "../../master-bar";
-import { Score, isReleaseDate } from "../../score";
-import { Staff } from "../../staff";
-import { Track } from "../../track";
+} from "../../../model/master-bar";
+import { Score, isReleaseDate } from "../../../model/score";
+import { Staff } from "../../../model/staff";
+import { Track } from "../../../model/track";
 import { SerializedValueReader } from "../serialized-value-reader";
 import { deserializeInstrument } from "./instrument-serialization";
 import { readClefType, readNoteDuration } from "./mappings";
@@ -104,7 +105,9 @@ function readScoreData(reader: SerializedValueReader): ScoreData {
     artist: reader.property("artist").readString(),
     album: readOptionalString(reader.property("album")),
     releaseDate: readReleaseDate(reader.property("releaseDate")),
-    masterVolume: reader.property("masterVolume").readNumberInRange(0, 1),
+    masterVolume: reader
+      .property("masterVolume")
+      .readNumberInRange(0, MAX_VOLUME),
     masterPan: reader.property("masterPan").readNumberInRange(-1, 1),
     masterBars,
     tracks,
@@ -216,7 +219,7 @@ function deserializeTrack(
     []
   );
   track.staves.splice(0, track.staves.length);
-  track.volume = reader.property("volume").readNumberInRange(0, 1);
+  track.volume = reader.property("volume").readNumberInRange(0, MAX_VOLUME);
   track.pan = reader.property("pan").readNumberInRange(-1, 1);
   track.muted = reader.property("muted").readBoolean();
   track.soloed = reader.property("soloed").readBoolean();
