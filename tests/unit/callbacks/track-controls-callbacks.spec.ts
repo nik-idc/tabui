@@ -4,6 +4,7 @@ import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { PlaybackState } from "../../../src/player";
 import { Guitar, Score } from "../../../src/notation/model";
+import { faderPositionToVolume } from "../../../src/ui/shared/volume-slider";
 import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
 import { ScoreControlsComponent } from "../../../src/ui/top-controls/score-controls/score-controls-component";
 import { TrackControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/track-controls/track-controls-callbacks";
@@ -158,7 +159,7 @@ describe("Track controls", () => {
       lead.track.pan,
       lead.track.muted,
       lead.track.soloed,
-    ]).toEqual([0.75, -0.5, true, true]);
+    ]).toEqual([faderPositionToVolume(75), -0.5, true, true]);
     lead.template.muteButton.click();
     lead.template.soloButton.click();
     expect([lead.track.muted, lead.track.soloed]).toEqual([false, false]);
@@ -180,7 +181,8 @@ describe("Track controls", () => {
       lead.track.muted,
       lead.track.soloed,
     ]).toEqual([0.5, 0, false, false]);
-    expect(lead.template.volumeInput.value).toBe("50");
+    // 0.5 is about -6 dB, at position 63 on the fader curve.
+    expect(lead.template.volumeInput.value).toBe("63");
     expect(lead.template.muteButton.getAttribute("aria-pressed")).toBe("false");
     expect(lead.template.soloButton.getAttribute("aria-pressed")).toBe("false");
   });

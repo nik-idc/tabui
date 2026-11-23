@@ -27,6 +27,15 @@ import type {
 } from "./scheduled-audio-node";
 
 /** Owns Web Audio resources and renders scheduled score material. */
+/** Level where the limiter starts, just below full scale. */
+const LIMITER_THRESHOLD_DECIBELS = -1;
+/** The highest ratio Web Audio allows, so the limiter barely lets peaks through. */
+const LIMITER_RATIO = 20;
+/** Fast enough to catch note attacks. */
+const LIMITER_ATTACK_SECONDS = 0.003;
+/** Slow enough that the limiter doesn't pump on every note. */
+const LIMITER_RELEASE_SECONDS = 0.25;
+
 export class PlaybackAudioEngine {
   private readonly _score: Score;
   private readonly _playbackSamples: ResolvedPlaybackSampleConfigs;
@@ -76,16 +85,34 @@ export class PlaybackAudioEngine {
 
     const gainNode = this._audioContext.createGain();
     let pannerNode: StereoPannerNode | undefined;
+    let limiterNode: DynamicsCompressorNode | undefined;
     try {
       pannerNode = this._audioContext.createStereoPanner();
+      limiterNode = this.createLimiter(this._audioContext);
       gainNode.connect(pannerNode);
-      pannerNode.connect(this._audioContext.destination);
-      return { gainNode, pannerNode };
+      pannerNode.connect(limiterNode);
+      limiterNode.connect(this._audioContext.destination);
+      return { gainNode, pannerNode, limiterNode };
     } catch (error) {
       gainNode.disconnect();
       pannerNode?.disconnect();
+      limiterNode?.disconnect();
       throw error;
     }
+  }
+
+  /**
+   * Creates a limiter: a compressor that leaves the sound alone until it
+   * nears full scale, then holds it just below.
+   */
+  private createLimiter(audioContext: AudioContext): DynamicsCompressorNode {
+    const limiter = audioContext.createDynamicsCompressor();
+    limiter.threshold.value = LIMITER_THRESHOLD_DECIBELS;
+    limiter.knee.value = 0;
+    limiter.ratio.value = LIMITER_RATIO;
+    limiter.attack.value = LIMITER_ATTACK_SECONDS;
+    limiter.release.value = LIMITER_RELEASE_SECONDS;
+    return limiter;
   }
 
   private createMetronomeAudioBus(): MetronomeAudioBus {
@@ -174,6 +201,7 @@ export class PlaybackAudioEngine {
     }
     this._masterAudioBus?.gainNode.disconnect();
     this._masterAudioBus?.pannerNode.disconnect();
+    this._masterAudioBus?.limiterNode.disconnect();
     this._metronomeAudioBus?.gainNode.disconnect();
     this._sampleManager = undefined;
     this._noteScheduler = undefined;

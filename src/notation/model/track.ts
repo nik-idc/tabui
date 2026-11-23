@@ -35,7 +35,7 @@ export class Track<I extends MusicInstrument = MusicInstrument> {
   /** This track's context */
   readonly context: TrackContext<I>;
 
-  /** Linear track gain, normally 0–1; this field does not validate assignments. */
+  /** Track gain, normally 0–MAX_VOLUME (+10 dB); this field does not validate assignments. */
   public volume: number;
   /** Stereo pan, normally -1 (left) to 1 (right); assignments are not validated. */
   public pan: number;

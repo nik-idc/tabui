@@ -74,8 +74,9 @@ app is built on top of `0.5.0`. These are in no particular order.
   that pin a style choice, such as a curve height or a spacing value, fail
   both. Check visual results by eye or with screenshot tests instead.
 
-- Formats and parsing. At least MusicXML, since that is a universally supported
-  format. But also preferably Guitar Pro (`.gp`) and MIDI too.
+- Formats and parsing. Version 0.5.0 has basic MusicXML import and export: tab
+  staves only, and no compressed `.mxl` files. Next are `.mxl` files, then
+  preferably Guitar Pro (`.gp`) and MIDI too.
 
 - Headless use. This entails being able to install TabUI and use it via CLI.
   Something like:

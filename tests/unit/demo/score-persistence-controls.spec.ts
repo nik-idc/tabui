@@ -1,7 +1,8 @@
 import { File } from "node:buffer";
 import { setImmediate } from "node:timers";
 import { JSDOM } from "jsdom";
-import { deserializeScore, Score } from "../../../src/notation/model";
+import { Score } from "../../../src/notation/model";
+import { deserializeScore } from "../../../src/notation/format";
 import { TabUIEditor } from "../../../src/tabui-editor";
 import {
   bindScorePersistenceControls,

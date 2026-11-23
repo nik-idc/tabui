@@ -1,22 +1,22 @@
-import { AccentType } from "../../accent-options";
-import { BeatDots } from "../../beat";
-import { BeatGuitarTechniqueType } from "../../beat-technique-type";
-import { StrokeDirection } from "../../stroke-options";
-import { BendType } from "../../bend-type";
-import { ClefType } from "../../clef-type";
-import { Dynamic } from "../../dynamic";
-import { GuitarTechniqueType } from "../../technique-type";
-import { NoteDuration } from "../../note-duration";
-import { NoteValue } from "../../note";
+import { AccentType } from "../../../model/accent-options";
+import { BeatDots } from "../../../model/beat";
+import { BeatGuitarTechniqueType } from "../../../model/beat-technique-type";
+import { StrokeDirection } from "../../../model/stroke-options";
+import { BendType } from "../../../model/bend-type";
+import { ClefType } from "../../../model/clef-type";
+import { Dynamic } from "../../../model/dynamic";
+import { GuitarTechniqueType } from "../../../model/technique-type";
+import { NoteDuration } from "../../../model/note-duration";
+import { NoteValue } from "../../../model/note";
 import {
   AcousticGuitarTone,
   BassGuitarTone,
   ElectricGuitarTone,
   OtherStringTone,
   StringInstrumentTone,
-} from "../../instrument/instrument-tone";
-import { InstrumentFamily } from "../../instrument/instrument-family";
-import { StringInstrumentType } from "../../instrument/instrument-type";
+} from "../../../model/instrument/instrument-tone";
+import { InstrumentFamily } from "../../../model/instrument/instrument-family";
+import { StringInstrumentType } from "../../../model/instrument/instrument-type";
 import { SerializedValueReader } from "../serialized-value-reader";
 import {
   SerializedBeatTechniqueType,

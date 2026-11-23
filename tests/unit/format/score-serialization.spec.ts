@@ -14,20 +14,22 @@ import {
   GuitarTechniqueType,
   MAX_MASTER_BAR_REPEAT_COUNT,
   NoteDuration,
-  SCORE_SERIALIZATION_FORMAT,
-  SCORE_SERIALIZATION_VERSION,
   Score,
   ScoreEditor,
+  StrokeDirection,
+  StrokeOptions,
+} from "../../../src/notation/model";
+import {
+  SCORE_SERIALIZATION_FORMAT,
+  SCORE_SERIALIZATION_VERSION,
   ScoreSerializationError,
   SerializedBendType,
   SerializedTechniqueType,
-  StrokeDirection,
-  StrokeOptions,
   deserializeScore,
   serializeScore,
-} from "../../../src/notation/model";
+} from "../../../src/notation/format";
 import { Staff } from "../../../src/notation/model/staff";
-import { createBarWithBeats } from "./helpers";
+import { createBarWithBeats } from "../model/helpers";
 import { required } from "../required";
 
 function deserializeError(value: unknown): ScoreSerializationError {
@@ -693,7 +695,8 @@ describe("score serialization", () => {
     [
       "invalid mix",
       (d: ReturnType<typeof serializeScore>) => {
-        d.masterVolume = 2;
+        // Above +10 dB.
+        d.masterVolume = 4;
       },
       "$.masterVolume",
     ],

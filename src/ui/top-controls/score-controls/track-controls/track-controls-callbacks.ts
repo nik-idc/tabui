@@ -1,6 +1,7 @@
 import { NotationComponent } from "../../../../notation/notation-component";
 import { TrackControlsComponent } from "../../..";
 import { ListenerManager } from "../../../../shared/misc";
+import { readVolumeSlider, showVolume } from "../../../shared/volume-slider";
 
 export interface TrackControlsCallbacks {
   onTrackRemoveClicked(): void;
@@ -150,10 +151,10 @@ export class TrackControlsDefaultCallbacks implements TrackControlsCallbacks {
 
   onTrackVolumeChanged(event: Event): void {
     const input = event.target as HTMLInputElement;
-    this._notationComponent.trackController.setTrackVolume(
-      this._trackComponent.track,
-      Number(input.value) / 100
-    );
+    const track = this._trackComponent.track;
+    const volume = readVolumeSlider(input);
+    showVolume(input, volume, `${track.name} volume`);
+    this._notationComponent.trackController.setTrackVolume(track, volume);
   }
 
   onTrackPanningChanged(event: Event): void {

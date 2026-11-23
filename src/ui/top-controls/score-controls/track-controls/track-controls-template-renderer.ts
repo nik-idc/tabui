@@ -1,12 +1,9 @@
 import { NotationComponent } from "../../../../notation/notation-component";
-import { renderOnce, setImageAsset } from "../../../shared";
+import { renderOnce, renderVolumeSlider, setImageAsset } from "../../../shared";
 import { TrackControlsTemplate } from "./track-controls-template";
 import { Track } from "../../../../notation";
 import type { ResolvedAssetConfig } from "../../../../assets";
 
-const minVolume = 0;
-const maxVolume = 100;
-const volumeStep = 5;
 const minPanning = -1;
 const maxPanning = 1;
 const panningStep = 0.05;
@@ -151,17 +148,11 @@ export class TrackControlsTemplateRenderer {
   private renderVolumeInput(): void {
     const cssClass = "tu-track-volume-input";
     this.template.volumeInput.classList.add(cssClass);
-    this.template.volumeInput.type = "range";
-    this.template.volumeInput.min = `${minVolume}`;
-    this.template.volumeInput.max = `${maxVolume}`;
-    this.template.volumeInput.step = `${volumeStep}`;
-    this.template.volumeInput.setAttribute(
-      "aria-label",
+    renderVolumeSlider(
+      this.template.volumeInput,
+      this.track.volume,
       `${this.track.name} volume`
     );
-    this.template.volumeInput.title = `${this.track.name} volume`;
-
-    this.template.volumeInput.value = `${this.track.volume * maxVolume}`;
     this.template.volumeInput.disabled =
       !this.notationComponent.trackController.canChangeMix;
     this.template.volumeControls.classList.add("tu-track-volume-controls");

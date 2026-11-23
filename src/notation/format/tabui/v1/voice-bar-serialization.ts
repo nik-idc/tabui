@@ -1,39 +1,39 @@
-import { AccentOptions } from "../../accent-options";
-import { Beat } from "../../beat";
-import { BeatGuitarTechnique } from "../../beat-guitar-technique";
-import { beatGuitarTechniquesIncompatible } from "../../beat-guitar-technique-lists";
-import { BeatGuitarTechniqueType } from "../../beat-technique-type";
-import { DEFAULT_DYNAMIC } from "../../dynamic";
+import { AccentOptions } from "../../../model/accent-options";
+import { Beat } from "../../../model/beat";
+import { BeatGuitarTechnique } from "../../../model/beat-guitar-technique";
+import { beatGuitarTechniquesIncompatible } from "../../../model/beat-guitar-technique-lists";
+import { BeatGuitarTechniqueType } from "../../../model/beat-technique-type";
+import { DEFAULT_DYNAMIC } from "../../../model/dynamic";
 import {
   MAX_STROKE_DURATION,
   MIN_STROKE_DURATION,
   STROKE_ALIGNMENT_FALLS_ON_TIME,
   STROKE_ALIGNMENT_STARTS_ON_TIME,
   StrokeOptions,
-} from "../../stroke-options";
+} from "../../../model/stroke-options";
 import {
   BendOptionsData,
   BendTechniqueOptions,
   MAX_BEND_PITCH,
-} from "../../bend-options";
-import { BendType, OPTIONS_PER_BEND_TYPE } from "../../bend-type";
-import { GuitarNote } from "../../guitar-note";
-import { GuitarTechnique } from "../../guitar-technique";
-import { TECHNIQUE_ALLOWED_ON_EMPTY_NOTES } from "../../guitar-technique-lists";
+} from "../../../model/bend-options";
+import { BendType, OPTIONS_PER_BEND_TYPE } from "../../../model/bend-type";
+import { GuitarNote } from "../../../model/guitar-note";
+import { GuitarTechnique } from "../../../model/guitar-technique";
+import { TECHNIQUE_ALLOWED_ON_EMPTY_NOTES } from "../../../model/guitar-technique-lists";
 import {
   guitarTechniquesIncompatible,
   isBendValidForContinuation,
-} from "../../guitar-technique-validation";
-import { Guitar } from "../../instrument/guitar/guitar";
-import { GuitarTechniqueType } from "../../technique-type";
+} from "../../../model/guitar-technique-validation";
+import { Guitar } from "../../../model/instrument/guitar/guitar";
+import { GuitarTechniqueType } from "../../../model/technique-type";
 import {
   MAX_TUPLET_NORMAL_COUNT,
   MAX_TUPLET_TUPLET_COUNT,
   MIN_TUPLET_NORMAL_COUNT,
   MIN_TUPLET_TUPLET_COUNT,
   TupletSettings,
-} from "../../tuplet-settings";
-import { VoiceBar } from "../../voice-bar";
+} from "../../../model/tuplet-settings";
+import { VoiceBar } from "../../../model/voice-bar";
 import { ScoreSerializationError } from "../serialization-error";
 import { serializeArray } from "../serialize-array";
 import {

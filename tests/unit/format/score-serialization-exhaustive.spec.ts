@@ -16,9 +16,8 @@ import {
   Score,
   StringInstrumentTone,
   StringInstrumentType,
-  deserializeScore,
-  serializeScore,
 } from "../../../src/notation/model";
+import { deserializeScore, serializeScore } from "../../../src/notation/format";
 
 const INSTRUMENTS: readonly [
   StringInstrumentType,

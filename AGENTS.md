@@ -23,7 +23,7 @@ It describes score structure, voice/rest conventions, and shared vocabulary.
 Brief overview of the `src/` folders:
 
 - `config/`: TabUI configuration code.
-- `notation/`: model, geometry, rendering, and editing.
+- `notation/`: model, file formats, geometry, rendering, and editing.
 - `player/`: playback.
 - `shared/`: code shared across the codebase.
 - `ui/`: editor UI layout and rendering (dialogs, buttons, etc.).

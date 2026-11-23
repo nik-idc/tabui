@@ -90,9 +90,10 @@ const dynamicGainMultipliers: Record<Dynamic, number> = {
   [Dynamic.Fortississimo]: 1.55,
 };
 /**
- * Highest envelope peak of one note. Sources reach at most full scale, and track
- * and master volumes are at most 1, so one note cannot clip; the limit leaves a
+ * Highest envelope peak of one note. Sources reach at most full scale, so at
+ * track and master volumes of 0 dB one note cannot clip; the limit leaves a
  * small safety margin. Only the loudest dynamics with accents can reach it.
+ * Boosts above 0 dB are caught by the master limiter.
  */
 export const MAX_NOTE_PEAK_GAIN = 0.9;
 /** Allows floating-point timing drift when comparing a tie with the playback boundary. */

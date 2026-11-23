@@ -1,5 +1,5 @@
-import { ScoreSerializationError } from "../../../src/notation/model/serialization/serialization-error";
-import { SerializedValueReader } from "../../../src/notation/model/serialization/serialized-value-reader";
+import { ScoreSerializationError } from "../../../src/notation/format/tabui/serialization-error";
+import { SerializedValueReader } from "../../../src/notation/format/tabui/serialized-value-reader";
 
 function getError(operation: () => unknown): ScoreSerializationError {
   try {

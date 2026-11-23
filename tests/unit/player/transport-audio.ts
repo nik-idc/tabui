@@ -63,6 +63,14 @@ export function installTransportAudio() {
     close: jest.fn(() => Promise.resolve()),
     createGain: jest.fn(gain),
     createStereoPanner: jest.fn(() => ({ ...node(true), pan: param() })),
+    createDynamicsCompressor: jest.fn(() => ({
+      ...node(),
+      threshold: param(),
+      knee: param(),
+      ratio: param(),
+      attack: param(),
+      release: param(),
+    })),
     createOscillator: jest.fn(() => {
       const result = oscillator();
       allSources.push(result);

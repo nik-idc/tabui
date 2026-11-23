@@ -128,7 +128,8 @@ See [Domain Model and Terms](docs/domain.md) for the musical concepts.
 
 The score format has its own version, a plain integer. It is separate from the
 TabUI package version. Each version lives in its own folder, such as
-`src/notation/model/serialization/v1/`.
+`src/notation/format/tabui/v1/`. Other file formats, such as MusicXML, live
+next to it in `src/notation/format/`.
 
 - New optional fields do not change the version. Older files still load, and
   missing fields get their default values.

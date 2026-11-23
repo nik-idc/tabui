@@ -2,6 +2,7 @@ import { NotationComponent } from "../../../notation/notation-component";
 import {
   labelGroup,
   renderOnce,
+  renderVolumeSlider,
   setImageAsset,
   setShortcutTooltip,
 } from "../../shared";
@@ -9,9 +10,6 @@ import { ScoreControlsTemplate } from "./score-controls-template";
 import { Score } from "../../../notation";
 import type { ResolvedAssetConfig } from "../../../assets";
 
-const minVolume = 0;
-const maxVolume = 100;
-const volumeStep = 5;
 const minPanning = -1;
 const maxPanning = 1;
 const panningStep = 0.05;
@@ -235,14 +233,11 @@ export class ScoreControlsTemplateRenderer {
       "tu-master-volume-controls"
     );
     this.template.masterVolumeInput.classList.add(cssClass);
-    this.template.masterVolumeInput.type = "range";
-    this.template.masterVolumeInput.min = `${minVolume}`;
-    this.template.masterVolumeInput.max = `${maxVolume}`;
-    this.template.masterVolumeInput.step = `${volumeStep}`;
-    this.template.masterVolumeInput.ariaLabel = "Master volume";
-    this.template.masterVolumeInput.title = "Master volume";
-
-    this.template.masterVolumeInput.value = `${score.masterVolume * 100}`;
+    renderVolumeSlider(
+      this.template.masterVolumeInput,
+      score.masterVolume,
+      "Master volume"
+    );
     this.template.masterVolumeInput.disabled =
       !this.notationComponent.trackController.canChangeMix;
   }

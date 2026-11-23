@@ -1,4 +1,5 @@
 /** @jest-environment jsdom */
+import { faderPositionToVolume } from "../../../src/ui/shared/volume-slider";
 
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
@@ -183,7 +184,7 @@ describe("Score controls", () => {
     expect(controls.template.masterPanningInput.disabled).toBe(false);
     input(controls.template.masterVolumeInput, "60");
     input(controls.template.masterPanningInput, "0.5");
-    expect(notation.score.masterVolume).toBe(0.6);
+    expect(notation.score.masterVolume).toBe(faderPositionToVolume(60));
     expect(notation.score.masterPan).toBe(0.5);
   });
 
@@ -231,7 +232,10 @@ describe("Score controls", () => {
     controls.render();
     expect(controls.template.masterVolumeInput.value).toBe("70");
     expect(controls.template.masterPanningInput.value).toBe("-0.25");
-    expect([score.masterVolume, score.masterPan]).toEqual([0.7, -0.25]);
+    expect([score.masterVolume, score.masterPan]).toEqual([
+      faderPositionToVolume(70),
+      -0.25,
+    ]);
     expect([
       score.tracks[0].volume,
       score.tracks[0].pan,

@@ -75,7 +75,7 @@ import {
   deserializeClipboard,
   serializeClipboardBeats,
   serializeClipboardNote,
-} from "../../model/serialization/clipboard-serialization";
+} from "../../format/tabui/clipboard-serialization";
 import { GuitarNote } from "../../model/guitar-note";
 import type { Guitar } from "../../model/instrument/guitar/guitar";
 

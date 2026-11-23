@@ -11,13 +11,8 @@ import {
   resolveEditorTheme,
   resolveEditorThemeKey,
 } from "../../../demo/raw/data/theme";
-import {
-  Bar,
-  deserializeScore,
-  NoteDuration,
-  serializeScore,
-  VoiceNumber,
-} from "../../../src/notation/model";
+import { Bar, NoteDuration, VoiceNumber } from "../../../src/notation/model";
+import { deserializeScore, serializeScore } from "../../../src/notation/format";
 import showcaseDocument from "../../../fixtures/feature-showcase-score.json";
 
 // Keys are fixture identifiers defined by the demo data contract.

@@ -381,7 +381,7 @@ export type SerializedStaff = {
   bars: SerializedBar[];
 };
 
-/** Instrument, finite linear volume 0–1, pan -1 (left) to 1 (right), and at least one staff. Muted tracks are silent; when any track is soloed, only unmuted soloed tracks are audible. */
+/** Instrument, finite volume gain from 0 to MAX_VOLUME (about 3.16, or +10 dB), pan -1 (left) to 1 (right), and at least one staff. Muted tracks are silent; when any track is soloed, only unmuted soloed tracks are audible. */
 export type SerializedTrack = {
   instrument: SerializedGuitarInstrument;
   name: string;
@@ -395,7 +395,7 @@ export type SerializedTrack = {
 /**
  * Root V1 wire contract, branded by fixed format and version literals and
  * containing score metadata, master bars, and tracks.
- * Master gain is finite in 0–1 and pan in -1–1; at least one master bar and track are required.
+ * Master gain is finite from 0 to MAX_VOLUME and pan in -1–1; at least one master bar and track are required.
  */
 export type SerializedScoreV1 = {
   format: typeof SCORE_SERIALIZATION_FORMAT;

@@ -5,12 +5,12 @@ import {
   GuitarNote,
   GuitarTechniqueType,
   NoteDuration,
-  serializeScore,
   ScoreEditor,
   StrokeDirection,
   StrokeOptions,
   STROKE_DURATION_EIGHTH,
 } from "../../../src/notation/model";
+import { serializeScore } from "../../../src/notation/format";
 import { SetFretCommand } from "../../../src/notation/controller/editor/command/set-fret-command";
 import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command/set-technique-command";
 import { SetRestCommand } from "../../../src/notation/controller/editor/command/set-rest-command";

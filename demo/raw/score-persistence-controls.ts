@@ -10,26 +10,31 @@ export type ScorePersistenceControlsOptions = {
   downloadDocument: (contents: string, filename: string) => void;
 };
 
-function errorMessage(error: unknown): string {
+export function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown persistence error";
 }
 
-function scoreFilename(score: Score): string {
+/** Returns a file name for the score, without an extension. */
+export function scoreBaseName(score: Score): string {
   const name = score.name
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
-  return `${name || "tabui-score"}.tabui.json`;
+  return name || "tabui-score";
 }
 
+function scoreFilename(score: Score): string {
+  return `${scoreBaseName(score)}.tabui.json`;
+}
+
+/** Downloads text as a file. The type defaults to JSON. */
 export function downloadScoreDocument(
   contents: string,
-  filename: string
+  filename: string,
+  type = "application/json"
 ): void {
-  const url = URL.createObjectURL(
-    new Blob([contents], { type: "application/json" })
-  );
+  const url = URL.createObjectURL(new Blob([contents], { type }));
   let anchor: HTMLAnchorElement | undefined;
   try {
     anchor = document.createElement("a");

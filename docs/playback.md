@@ -18,7 +18,13 @@ Audio nodes are scheduled on the audio context timeline.
   - release ramps back to `0`.
 - Each track has a persistent audio bus, and all track buses feed one master bus:
   `note source -> note gain -> track gain -> track panner -> master gain ->`
-  `master panner -> destination`.
+  `master panner -> limiter -> destination`.
+- Volumes are gains: 1 is 0 dB, and the highest, `MAX_VOLUME` (about 3.16), is
+  +10 dB. The volume sliders show decibels from -170 dB (silent) to +10 dB, on
+  a curve like Guitar Pro's faders: the middle of a slider is about -14 dB.
+- The limiter is a `DynamicsCompressorNode` that starts just below full scale
+  (-1 dB, ratio 20:1). It leaves normal mixes alone and keeps boosted ones from
+  clipping.
 - Track volume/mute/solo controls update the track bus gain.
 - Track pan updates the track bus `StereoPannerNode`.
 - The optional global pitch shift uses each pitched source's `detune` parameter;
@@ -206,10 +212,11 @@ scheduled note source rather than articulation-specific samples. See
   dynamic and the accent multiply: the peak is `dynamic × accent` times the
   other note gains. This applies to all attack kinds.
 - One note's envelope peak is limited to `MAX_NOTE_PEAK_GAIN` (0.9). Sources
-  reach at most full scale, and track and master volumes are at most 1, so one
-  note cannot clip, even with `fff` and a heavy accent. Only the loudest
-  dynamics with a heavy accent can reach the limit. Many notes that sound
-  together can still add up above full scale.
+  reach at most full scale, so at track and master volumes of 0 dB one note
+  cannot clip, even with `fff` and a heavy accent. Only the loudest dynamics
+  with a heavy accent can reach the limit. Many notes that sound together, or
+  volumes above 0 dB, can add up above full scale; the master limiter catches
+  those.
 - Slides pair the source note with the next playable same-string target note:
   - the source is scheduled through the target note's duration.
   - pitch ramps from source pitch to target pitch.

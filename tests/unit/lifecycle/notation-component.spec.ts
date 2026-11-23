@@ -6,8 +6,8 @@ import {
   GuitarNote,
   NoteDuration,
   Score,
-  serializeScore,
 } from "../../../src/notation/model";
+import { serializeScore } from "../../../src/notation/format";
 import { PlaybackState } from "../../../src/player";
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { createBarWithBeats, createScoreGraph } from "../model/helpers";

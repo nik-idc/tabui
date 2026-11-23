@@ -92,8 +92,9 @@ editor.init();
 
 A malformed document throws `ScoreSerializationError` with a JSONPath-like path,
 such as `$.tracks[0].staves[0].bars`. `deserializeScore()` reads only TabUI score
-documents, not Guitar Pro, MusicXML, MIDI, or plain-text tablature files. Newer
-TabUI versions keep reading scores saved by older versions.
+documents, not Guitar Pro, MIDI, or plain-text tablature files. For MusicXML,
+see [Import and export MusicXML](#import-and-export-musicxml). Newer TabUI
+versions keep reading scores saved by older versions.
 
 To show a different score, dispose the current editor and create a new one with
 that score.
@@ -130,6 +131,56 @@ editor.subscribe((event) => {
   }, 500);
 });
 ```
+
+### Import and export MusicXML
+
+TabUI can import and export scores in MusicXML. You can use this to move
+scores between TabUI and other notation software, such as Guitar Pro. TabUI
+reads and writes uncompressed MusicXML files (`.musicxml` or `.xml`):
+
+```ts
+import {
+  MusicXmlImportError,
+  TabUIEditor,
+  exportMusicXml,
+  importMusicXml,
+} from "@atikincode/tabui";
+
+const xml = exportMusicXml(editor.score);
+
+try {
+  const { score, warnings } = importMusicXml(await file.text());
+  console.log(warnings);
+  editor.dispose();
+  editor = new TabUIEditor(root, score);
+  editor.init();
+} catch (error) {
+  if (error instanceof MusicXmlImportError) {
+    console.error(error.message);
+  }
+}
+```
+
+Import has these limits:
+
+- Only parts with a tab staff are imported. A tab staff has a `TAB` clef or a
+  staff tuning, and its notes have string and fret numbers. Other parts are
+  skipped, and `warnings` says which ones. If no part has a tab staff,
+  `importMusicXml()` throws `MusicXmlImportError`.
+- Up to four voices per staff are kept.
+- Techniques that TabUI can't place, such as a slide into an open string, are
+  skipped and counted in `warnings`.
+- Compressed `.mxl` files aren't supported yet. An `.mxl` file is a zip
+  archive, so you can extract the `.musicxml` file from it.
+- Import needs `DOMParser`, which browsers provide.
+
+Export writes every staff as a tab staff. TabUI writes palm mutes, pinch harmonics,
+and bends the way Guitar Pro does. Let ring has no MusicXML element, so other apps
+may ignore it. MusicXML volume can't go above 0 dB, so boosted tracks are written at
+0 dB. Stroke timing, the master volume, and empty Let Ring slots aren't written.
+
+Guitar Pro 7 doesn't write let ring, vibrato, or strokes to MusicXML, so files
+from Guitar Pro come in without them.
 
 ### Build a score in code
 

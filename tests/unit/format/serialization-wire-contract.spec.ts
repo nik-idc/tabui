@@ -17,6 +17,8 @@ import {
   StringInstrumentTone,
   Score,
   Staff,
+} from "../../../src/notation/model";
+import {
   deserializeScore,
   serializeScore,
   SerializedAccentKind,
@@ -28,7 +30,7 @@ import {
   SerializedStringInstrumentTone,
   SerializedStringInstrumentType,
   SerializedTechniqueType,
-} from "../../../src/notation/model";
+} from "../../../src/notation/format";
 
 const DURATIONS: readonly (readonly [NoteDuration, string])[] = [
   [NoteDuration.Whole, "whole"],

@@ -1,9 +1,7 @@
 import { EditorMouseDefCallbacks } from "../../../src/notation/input/editor-mouse-callbacks";
 import { RenderType } from "../../../src/notation/input/render-type";
-import {
-  DEFAULT_MASTER_BAR,
-  serializeScore,
-} from "../../../src/notation/model";
+import { DEFAULT_MASTER_BAR } from "../../../src/notation/model";
+import { serializeScore } from "../../../src/notation/format";
 import { SVGBarRenderer } from "../../../src/notation/render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../../../src/notation/render/svg/svg-track-line-info-renderer";
 import { SVGTupletRenderer } from "../../../src/notation/render/svg/tuplet/svg-tuplet-renderer";

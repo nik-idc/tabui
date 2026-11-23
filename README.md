@@ -85,8 +85,9 @@ The following limits are planned work:
   later required rewriting every layer of the code.
 - **One track is displayed at a time.** Playback still includes all tracks.
   Showing several tracks together is planned.
-- **No import or export of other formats.** Scores are saved in TabUI's own JSON
-  format. Guitar Pro, MusicXML, and MIDI are not supported yet.
+- **Only basic MusicXML import and export.** Scores are saved in TabUI's own
+  JSON format. MusicXML import keeps only tab staves and doesn't read
+  compressed `.mxl` files. Guitar Pro and MIDI are not supported yet.
 
 These limits, on the other hand, are explicit design choices I made:
 

@@ -29,6 +29,18 @@ function createPanner() {
   };
 }
 
+function createLimiter() {
+  return {
+    threshold: createParam(),
+    knee: createParam(),
+    ratio: createParam(),
+    attack: createParam(),
+    release: createParam(),
+    connect: jest.fn(),
+    disconnect: jest.fn(),
+  };
+}
+
 function createOscillator() {
   return {
     type: "sine" as OscillatorType,
@@ -58,6 +70,7 @@ function createBufferSource() {
 function createAudioContext(failPannerAfter?: number) {
   const gains: ReturnType<typeof createGain>[] = [];
   const panners: ReturnType<typeof createPanner>[] = [];
+  const limiters: ReturnType<typeof createLimiter>[] = [];
   const oscillators: ReturnType<typeof createOscillator>[] = [];
   const bufferSources: ReturnType<typeof createBufferSource>[] = [];
   const decodedBuffer = { duration: 1 } as AudioBuffer;
@@ -80,6 +93,11 @@ function createAudioContext(failPannerAfter?: number) {
       panners.push(panner);
       return panner;
     }),
+    createDynamicsCompressor: jest.fn(() => {
+      const limiter = createLimiter();
+      limiters.push(limiter);
+      return limiter;
+    }),
     createOscillator: jest.fn(() => {
       const oscillator = createOscillator();
       oscillators.push(oscillator);
@@ -97,6 +115,7 @@ function createAudioContext(failPannerAfter?: number) {
     destination,
     gains,
     panners,
+    limiters,
     oscillators,
     bufferSources,
     decodedBuffer,
@@ -148,7 +167,7 @@ describe("PlaybackAudioEngine", () => {
     score.masterVolume = 0.8;
     score.masterPan = -0.25;
     const engine = new PlaybackAudioEngine(score, {});
-    const { context, gains, panners } = createAudioContext();
+    const { context, gains, panners, limiters } = createAudioContext();
     nextAudioContext = context;
 
     expect(AudioContext).not.toHaveBeenCalled();
@@ -164,7 +183,10 @@ describe("PlaybackAudioEngine", () => {
     expect(gains[0].gain.setValueAtTime).toHaveBeenCalledWith(0.8, 3);
     expect(panners[0].pan.setValueAtTime).toHaveBeenCalledWith(-0.25, 3);
     expect(gains[0].connect).toHaveBeenCalledWith(panners[0]);
-    expect(panners[0].connect).toHaveBeenCalledWith(context.destination);
+    expect(panners[0].connect).toHaveBeenCalledWith(limiters[0]);
+    expect(limiters[0].connect).toHaveBeenCalledWith(context.destination);
+    expect(limiters[0].threshold.value).toBe(-1);
+    expect(limiters[0].ratio.value).toBe(20);
     expect(gains[1].connect).toHaveBeenCalledWith(panners[1]);
     expect(panners[1].connect).toHaveBeenCalledWith(gains[0]);
 
@@ -176,7 +198,7 @@ describe("PlaybackAudioEngine", () => {
 
     expect(context.close).toHaveBeenCalledTimes(1);
     expect(engine.currentTime).toBeUndefined();
-    for (const node of [...gains, ...panners]) {
+    for (const node of [...gains, ...panners, ...limiters]) {
       expect(node.disconnect).toHaveBeenCalled();
     }
   });

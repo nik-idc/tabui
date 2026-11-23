@@ -58,7 +58,7 @@ export type MasterBarArrayOperationOutput = {
  * Class representing a full score
  */
 export class Score {
-  /** Linear master gain after track mixing, normally 0–1; assignments are not validated. */
+  /** Master gain after track mixing, normally 0–MAX_VOLUME (+10 dB); assignments are not validated. */
   public masterVolume: number;
   /** Master stereo pan after track mixing, normally -1 (left) to 1 (right); assignments are not validated. */
   public masterPan: number;

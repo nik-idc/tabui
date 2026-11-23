@@ -73,6 +73,16 @@ class AudioContextRecorder {
   public createStereoPanner(): AudioNodeRecorder {
     return new AudioNodeRecorder(true);
   }
+  public createDynamicsCompressor(): AudioNodeRecorder {
+    const limiter = new AudioNodeRecorder();
+    return Object.assign(limiter, {
+      threshold: new AudioParamRecorder(),
+      knee: new AudioParamRecorder(),
+      ratio: new AudioParamRecorder(),
+      attack: new AudioParamRecorder(),
+      release: new AudioParamRecorder(),
+    });
+  }
   public createOscillator(): AudioNodeRecorder {
     const source = new AudioNodeRecorder();
     this.allSources.push(source);
