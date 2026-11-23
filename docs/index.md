@@ -54,7 +54,7 @@ Please keep in mind that I have no formal music education and I can't read
 standard notation. Someone who knows music theory may find things in the editor
 or the code that look odd. If you do, I'd like to hear about it.
 
-## Status
+## Note
 
 TabUI is a project I build in my free time. Version 0.5.0 is the first one I'd
 call usable. It only does guitar tablature for now, and APIs can still change. See the

@@ -1,7 +1,7 @@
 # Keyboard shortcuts and controls
 
 This page lists every notation action with its keyboard shortcut and its mouse
-control. If you know Guitar Pro, most of TabUI works the same way.
+control.
 
 Letters do not need Shift unless it is shown. On macOS, use **Command** instead
 of **Ctrl** for select all, copy, cut, paste, undo, and redo. Bar navigation still
