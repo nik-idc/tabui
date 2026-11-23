@@ -30,13 +30,10 @@ describe("YesNoDefaultCallbacks", () => {
     component.render();
     // These callbacks are the consumer's confirmation and keyboard boundary.
     const onConfirm = jest.fn();
-    const freeKeyboard = jest.fn();
     const callbacks = new YesNoDefaultCallbacks(
       component,
       notation,
       () => component.render(),
-      () => {},
-      freeKeyboard,
       onConfirm
     );
     const { dialog } = component;
@@ -54,13 +51,11 @@ describe("YesNoDefaultCallbacks", () => {
       cancelButton.click();
       expect(dialog.open).toBe(false);
       expect(onConfirm).not.toHaveBeenCalled();
-      expect(freeKeyboard).toHaveBeenCalledTimes(1);
 
       dialog.showModal();
       component.template.dialogContainer.click();
       expect(dialog.open).toBe(false);
       expect(onConfirm).not.toHaveBeenCalled();
-      expect(freeKeyboard).toHaveBeenCalledTimes(2);
 
       dialog.showModal();
       confirmButton.disabled = true;
@@ -73,7 +68,6 @@ describe("YesNoDefaultCallbacks", () => {
       confirmButton.click();
       expect(dialog.open).toBe(false);
       expect(onConfirm).toHaveBeenCalledTimes(1);
-      expect(freeKeyboard).toHaveBeenCalledTimes(3);
 
       yesNoDialogContent.dispatchEvent(
         new Event("submit", { bubbles: true, cancelable: true })
@@ -91,14 +85,12 @@ describe("YesNoDefaultCallbacks", () => {
       expect(onConfirm).toHaveBeenCalledTimes(1);
       expect(submit.defaultPrevented).toBe(false);
       dialog.close();
-      expect(freeKeyboard).toHaveBeenCalledTimes(3);
 
       callbacks.bind();
       dialog.showModal();
       confirmButton.click();
       expect(dialog.open).toBe(false);
       expect(onConfirm).toHaveBeenCalledTimes(2);
-      expect(freeKeyboard).toHaveBeenCalledTimes(4);
     } finally {
       callbacks.unbind();
       dialog.close();

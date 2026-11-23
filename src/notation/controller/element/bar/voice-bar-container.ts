@@ -1,6 +1,5 @@
-import { VoiceBar, Beat, Bar, VoiceNumber } from "../../../model";
+import { VoiceBar, Beat, VoiceNumber } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
-import { EditorLayoutDimensions } from "../../editor-layout-dimensions";
 import { TrackElement } from "../track-element";
 import {
   NotationContainer,
@@ -11,7 +10,7 @@ import { NotationStyle } from "../staff/staff-line-container";
 
 import { TabBeatElement } from "../beat/tab-beat-element";
 import { SheetBeatContainer } from "../beat/sheet-beat-container";
-import { BeatElement, getBeatWidth } from "../beat/beat-element";
+import { BeatElement } from "../beat/beat-element";
 
 import { BarElement } from "./bar-element";
 import type { TrackLineElement } from "../track/track-line-element";
@@ -308,33 +307,4 @@ export class VoiceBarContainer implements NotationContainer {
       this.barElement.globalCoords.y + this._boundingBox.y
     );
   }
-}
-
-export function getVoiceBarWidth(
-  voiceBar: VoiceBar,
-  layoutDimensions: EditorLayoutDimensions
-): number {
-  let width = 0;
-
-  if (voiceBar.bar.masterBar.isRepeatStart) {
-    width += layoutDimensions.repeatSignWidth;
-  }
-
-  const prevBar: Bar | null = voiceBar.bar.staff.getPrevBar(voiceBar.bar);
-  if (
-    prevBar === null ||
-    prevBar.masterBar.maxDuration !== voiceBar.bar.masterBar.maxDuration
-  ) {
-    width += layoutDimensions.timeSigRectWidth;
-  }
-
-  for (const beat of voiceBar.beats) {
-    width += getBeatWidth(beat, layoutDimensions);
-  }
-
-  if (voiceBar.bar.masterBar.isRepeatEnd) {
-    width += layoutDimensions.repeatSignWidth;
-  }
-
-  return width;
 }

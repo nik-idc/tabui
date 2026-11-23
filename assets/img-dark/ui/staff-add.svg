@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   version="1.1"
+   width="64"
+   height="64"
+   viewBox="0 0 64 64"
+   id="svg6"
+   xmlns="http://www.w3.org/2000/svg">
+  <g
+     fill="#ffffff"
+     id="g6"
+     transform="matrix(1.0588235,0,0,1.2,-2.3529414,-4)">
+    <rect
+       x="6"
+       y="10"
+       width="34"
+       height="4"
+       rx="1"
+       id="rect1" />
+    <rect
+       x="6"
+       y="22"
+       width="34"
+       height="4"
+       rx="1"
+       id="rect2" />
+    <rect
+       x="6"
+       y="34"
+       width="34"
+       height="4"
+       rx="1"
+       id="rect3" />
+    <rect
+       x="6"
+       y="46"
+       width="34"
+       height="4"
+       rx="1"
+       id="rect4" />
+  </g>
+  <g
+     id="g8"
+     transform="matrix(0.4,0,0,0.39999995,13.6,19.200002)">
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:15.6239;stroke-linejoin:round;stroke-miterlimit:5.6;paint-order:stroke fill markers"
+       id="rect7"
+       width="40"
+       height="8"
+       x="76"
+       y="28"
+       ry="3" />
+    <rect
+       style="fill:#ffffff;stroke:none;stroke-width:15.6234;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dasharray:none;paint-order:stroke fill markers"
+       id="rect7-7"
+       width="40.000004"
+       height="7.9996095"
+       x="-52.000046"
+       y="91.999977"
+       transform="matrix(-1.2889091e-5,-1,1,-4.8328635e-7,0,0)"
+       rx="3.75" />
+    <rect
+       style="fill:none;stroke-width:3;stroke-linejoin:round;stroke-miterlimit:5.6;stroke-dashoffset:5.03168"
+       id="rect8"
+       width="40"
+       height="40"
+       x="76"
+       y="12" />
+  </g>
+</svg>

@@ -1,4 +1,82 @@
 import { expect, test } from "@playwright/test";
+import { TabUILayoutMode } from "../../src/config/tabui-config";
+
+for (const layoutMode of [
+  TabUILayoutMode.Wrapped,
+  TabUILayoutMode.SingleLine,
+]) {
+  test(`uses subdued and custom bar number colors in ${layoutMode} mode`, async ({
+    page,
+  }) => {
+    await page.goto("/tabui/?fixture=empty");
+    for (const colors of [
+      { text: "#000000" },
+      { text: "#ffffff" },
+      { text: "#ffffff", barNumber: "#123456" },
+    ]) {
+      const mounted = await page.evaluateHandle(
+        async ({ colors, layoutMode }) => {
+          const path = "/tabui/e2e-fixture.js";
+          const { TabUIEditor: editorClass, resolveEditorFixture } =
+            (await import(path)) as typeof import("./browser-fixture");
+          const root = document.createElement("div");
+          root.id = "bar-number-editor";
+          document.body.appendChild(root);
+          const editor = new editorClass(
+            root,
+            resolveEditorFixture(new URLSearchParams("fixture=empty")),
+            { layout: { mode: layoutMode }, theme: { notation: { colors } } }
+          );
+          editor.init();
+          return { editor, root };
+        },
+        { colors, layoutMode }
+      );
+      try {
+        const editor = page.locator("#bar-number-editor");
+        await editor.locator('[id^="note-rect-"]').first().click();
+        await page.keyboard.press("5");
+        const note = editor.locator('[id^="note-text-"]').first();
+        const number = editor.locator(".tu-bar-number").first();
+        const normalFill =
+          colors.text === "#000000" ? "rgb(0, 0, 0)" : "rgb(255, 255, 255)";
+        await expect(note).toHaveCSS("fill", normalFill);
+        if (colors.barNumber !== undefined) {
+          await expect(number).toHaveCSS("fill", "rgb(18, 52, 86)");
+        } else {
+          // Resolve color-mix through the browser, not its engine-specific serialization.
+          const channels = await number.evaluate((element) => {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            if (context === null) {
+              throw Error("Expected a canvas context");
+            }
+            context.fillStyle = getComputedStyle(element).fill;
+            context.fillRect(0, 0, 1, 1);
+            return [...context.getImageData(0, 0, 1, 1).data];
+          });
+          const channel = colors.text === "#000000" ? 0 : 255;
+          // Canvas premultiplied-alpha rounding can differ by one between engines.
+          for (const value of channels.slice(0, 3)) {
+            expect(Math.abs(value - channel)).toBeLessThanOrEqual(1);
+          }
+          expect(channels[3]).toBeCloseTo(140, 0);
+        }
+        await editor.evaluate((root) =>
+          root.style.setProperty("--tu-notation-bar-number", "#654321")
+        );
+        await expect(number).toHaveCSS("fill", "rgb(101, 67, 33)");
+        await expect(note).toHaveCSS("fill", normalFill);
+      } finally {
+        await mounted.evaluate(({ editor, root }) => {
+          editor.dispose();
+          root.remove();
+        });
+        await mounted.dispose();
+      }
+    }
+  });
+}
 
 test("accepts timed keyboard fret input", async ({ page }) => {
   // Load one deterministic editable score.
@@ -54,14 +132,17 @@ test("clicks an underfilled bar end gap to append and select a beat", async ({
   const secondBeat = await beats.nth(1).boundingBox();
   expect(firstBeat).not.toBeNull();
   expect(secondBeat).not.toBeNull();
-  if (firstBeat === null || secondBeat === null)
+  if (firstBeat === null || secondBeat === null) {
     throw Error("Expected beat bounds");
+  }
   await page.mouse.move(firstBeat.x + firstBeat.width / 2, firstBeat.y + 10);
   await page.mouse.down();
   await page.mouse.move(secondBeat.x + secondBeat.width / 2, secondBeat.y + 10);
   const gapBounds = await gap.boundingBox();
   expect(gapBounds).not.toBeNull();
-  if (gapBounds === null) throw Error("Expected gap bounds");
+  if (gapBounds === null) {
+    throw Error("Expected gap bounds");
+  }
   await page.mouse.move(
     gapBounds.x + gapBounds.width / 2,
     gapBounds.y + gapBounds.height / 2
@@ -77,33 +158,146 @@ test("clicks an underfilled bar end gap to append and select a beat", async ({
   await expect(editor.locator("[data-beat-uuid]")).toHaveCount(4);
 });
 
-test("hides the end-gap hint during playback and restores hover visibility", async ({
+for (const layoutMode of ["wrapped", "single-line"] as const) {
+  test(`appends a bar from the final-bar plus in ${layoutMode} mode`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1200, height: 720 });
+    const layoutQuery =
+      layoutMode === "single-line" ? "&layoutMode=single-line" : "";
+    await page.goto(`/tabui/?fixture=empty${layoutQuery}`);
+    const editor = page.locator("#tabui-editor");
+    await expect(editor.locator(".tu-root-svg")).toBeVisible();
+
+    const append = editor.locator("rect.tu-append-bar");
+    await expect(append).toHaveCount(1);
+    const appendText = editor.locator("text.tu-append-bar");
+    await expect(appendText).toBeHidden();
+    await append.hover();
+    await expect(appendText).toBeVisible();
+
+    // Put the final bar on a later wrapped line and far to the right in single-line mode.
+    for (let index = 0; index < 4; index += 1) {
+      await append.click();
+      await expect(editor.locator('g[id^="bar-"]')).toHaveCount(index + 2);
+    }
+
+    const bounds = await append.boundingBox();
+    const rootBounds = await editor.locator(".tu-root-svg").boundingBox();
+    expect(bounds).not.toBeNull();
+    expect(rootBounds).not.toBeNull();
+    if (bounds === null || rootBounds === null) {
+      throw Error("Expected append affordance bounds");
+    }
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(
+      rootBounds.x + rootBounds.width + 1
+    );
+
+    const finalBar = editor.locator('g[id^="bar-"]').last();
+    const finalBorder = await finalBar
+      .locator('[id^="bar-border-"]')
+      .last()
+      .boundingBox();
+    expect(finalBorder).not.toBeNull();
+    if (finalBorder === null) {
+      throw Error("Expected final bar border bounds");
+    }
+    expect(Math.abs(bounds.x - finalBorder.x)).toBeLessThan(1);
+
+    const bars = editor.locator('g[id^="bar-"]');
+    await append.click();
+    await expect(bars).toHaveCount(6);
+    await expect(editor.locator("rect.tu-append-bar")).toHaveCount(1);
+    await page.keyboard.press("7");
+    await expect(editor.locator('[id^="note-text-"]')).toHaveText("7");
+  });
+}
+
+test("suppresses editing feedback during playback and restores it after stopping", async ({
   page,
 }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
+  await editor.locator('[id^="note-rect-"]').first().click();
+  await page.keyboard.press("5");
+  await page.keyboard.press("-");
+  await page.keyboard.press("a");
+  await page.keyboard.press("6");
+  await editor.locator('[data-duration="8"]').click();
   const gap = editor.locator("[data-bar-end-gap-uuid]");
   const hint = editor.locator(".tu-end-gap-hint");
+  const rootSvg = editor.locator("svg.tu-root-svg");
+  const append = editor.locator("rect.tu-append-bar");
+  const appendText = editor.locator("text.tu-append-bar");
   await expect(gap).toHaveCount(1);
+  await expect(append).toHaveCount(1);
 
   await gap.hover();
   await expect(hint).toBeVisible();
+  await append.hover();
+  await expect(appendText).toBeVisible();
+  const tempoHitArea = editor.locator(".tu-tempo-hit-area").first();
+  const beamHitArea = editor.locator(".tu-beam-hit").first();
+  const tempoSymbol = editor.locator(".tu-tempo-symbol").first();
+  const beamVisible = editor.locator(".tu-beam-visible").first();
+  await expect(tempoHitArea).toHaveCount(1);
+  await expect(beamHitArea).toHaveCount(1);
 
-  await editor.getByRole("button", { name: "Play" }).click();
+  const moveToCenter = async (target: typeof tempoHitArea) => {
+    await target.scrollIntoViewIfNeeded();
+    const bounds = await target.boundingBox();
+    expect(bounds).not.toBeNull();
+    if (bounds === null) {
+      throw Error("Expected notation editing hit target bounds");
+    }
+    await page.mouse.move(
+      bounds.x + bounds.width / 2,
+      bounds.y + bounds.height / 2
+    );
+  };
+  await moveToCenter(tempoHitArea);
+  const hoveredTempoFill = await tempoSymbol.evaluate(
+    (element) => getComputedStyle(element).fill
+  );
+  // Keep the small score playing while all disabled targets are exercised.
+  await editor.getByRole("button", { name: "Loop", exact: true }).click();
+  await editor.getByRole("button", { name: "Play", exact: true }).focus();
+  await moveToCenter(beamHitArea);
+  const hoveredBeamFill = await beamVisible.evaluate(
+    (element) => getComputedStyle(element).fill
+  );
+
+  // Start without moving off the beam, so an existing group highlight is covered.
+  await page.keyboard.press("Enter");
   await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
     "aria-pressed",
     "true"
   );
+  await expect(rootSvg).toHaveAttribute("data-playback-active", "true");
   await gap.hover();
   await expect(hint).toBeHidden();
+  await moveToCenter(append);
+  await expect(appendText).toBeHidden();
+  await expect(append).toHaveCSS("pointer-events", "none");
+  await moveToCenter(tempoHitArea);
+  await expect(tempoSymbol).not.toHaveCSS("fill", hoveredTempoFill);
+  await moveToCenter(beamHitArea);
+  await expect(beamVisible).not.toHaveCSS("fill", hoveredBeamFill);
 
   await editor.getByRole("button", { name: "Pause" }).click();
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
+  await expect(rootSvg).toHaveAttribute("data-playback-active", "false");
+  await expect(beamVisible).not.toHaveCSS("fill", hoveredBeamFill);
   await gap.hover();
   await expect(hint).toBeVisible();
+  await append.hover();
+  await expect(appendText).toBeVisible();
+  await moveToCenter(tempoHitArea);
+  await expect(tempoSymbol).toHaveCSS("fill", hoveredTempoFill);
+  await moveToCenter(beamHitArea);
+  await expect(beamVisible).toHaveCSS("fill", hoveredBeamFill);
 });
 
 for (const fixture of ["empty", "feature_showcase"] as const) {
@@ -210,9 +404,8 @@ test("announces a fret change but not an unchanged fret DOM write", async ({
   });
   try {
     await page.keyboard.press("5");
-    await expect(announcement).toHaveText(
-      /Track .*Staff .*Bar .*Beat .*String 1, fret 5\./
-    );
+    // The cursor stayed in place, so only the edited slot is read.
+    await expect(announcement).toHaveText("String 1, fret 5.");
     // Finish the first edit and digit window before observing the unchanged edit.
     await page.clock.runFor(300);
     const changedMutations = await observation.evaluate((state) => {
@@ -247,7 +440,7 @@ test("keeps concise arrow announcements after the automatic flush", async ({
   await page.clock.runFor(100);
 
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, empty."
+    "Beat 2, eighth, 1 dot, String 1, empty."
   );
 });
 
@@ -265,7 +458,9 @@ test("starts and pauses playback from the transport control", async ({
       /** Captures native-clock cursor motion before stopping playback. */
       const observe = () => {
         const cursor = element.querySelector("#playerCursor");
-        if (cursor === null) throw Error("Expected playback cursor");
+        if (cursor === null) {
+          throw Error("Expected playback cursor");
+        }
         const visible = cursor.getAttribute("width") === "5";
         const x = Number(cursor.getAttribute("x"));
         if (visible && before === undefined) {
@@ -289,7 +484,7 @@ test("starts and pauses playback from the transport control", async ({
       requestAnimationFrame(observe);
     });
   });
-  await editor.getByRole("button", { name: "Play" }).click();
+  await editor.getByRole("button", { name: "Play", exact: true }).click();
   const movement = await page.evaluate(async () => {
     const result = await (window as any).__tabuiPlaybackMovement;
     delete (window as any).__tabuiPlaybackMovement;
@@ -299,10 +494,9 @@ test("starts and pauses playback from the transport control", async ({
   expect(movement.pressed).toBe("true");
   expect(movement.after).toBeGreaterThan(movement.before);
 
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
   await expect(editor.locator("#playerCursor")).toHaveAttribute("width", "0");
 });
 
@@ -337,14 +531,42 @@ test("starts and pauses playback with Space", async ({ page }) => {
   await expect(cursor).toHaveAttribute("width", "5");
   const cursorXBefore = await cursor.getAttribute("x");
   await page.clock.runFor(100);
-  if (cursorXBefore === null) throw Error("Expected playback cursor position");
+  if (cursorXBefore === null) {
+    throw Error("Expected playback cursor position");
+  }
   await expect(cursor).not.toHaveAttribute("x", cursorXBefore);
 
   // A second Space press uses the same keyboard path to pause playback.
   await page.keyboard.press("Space");
-  await expect(editor.getByRole("button", { name: "Play" })).toHaveAttribute(
-    "aria-pressed",
-    "false"
-  );
+  await expect(
+    editor.getByRole("button", { name: "Play", exact: true })
+  ).toHaveAttribute("aria-pressed", "false");
   await expect(cursor).toHaveAttribute("width", "0");
+});
+
+test("removing a voice's only beat makes every voice 1 slot selectable again", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=empty");
+  const editor = page.locator("#tabui-editor");
+  const slots = editor.locator('.tu-root-svg [id^="note-rect-"]');
+  const status = editor.locator(".tu-announcement-host");
+  await slots.first().click();
+  await page.keyboard.press("5");
+
+  // Voice 2 owns the empty slots; voice 1 keeps only its played note.
+  await page.keyboard.press("Shift+V");
+  await expect(status).toContainText(/voice 2/i);
+
+  // Removing voice 2's only beat switches back to voice 1 as a side effect.
+  await page.keyboard.press("Delete");
+  await expect(status).toContainText(/voice 1/i);
+  await expect(slots).toHaveCount(6);
+  await slots.nth(2).click();
+  await expect(status).toContainText("String 3, empty");
+
+  // Undo brings voice 2 back, and its slots are selectable too.
+  await page.keyboard.press("Control+z");
+  await expect(status).toContainText(/voice 2/i);
+  await expect(slots).toHaveCount(6);
 });

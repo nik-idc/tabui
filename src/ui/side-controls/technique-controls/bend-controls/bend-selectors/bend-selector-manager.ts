@@ -57,6 +57,9 @@ export class BendSelectorManager {
 
   private initGrid(): void {
     this._bendGraphSVG.innerHTML = "";
+    // The graph is drawn in these units, and CSS scales it to fit the dialog.
+    const { width, height } = this._currentOptions;
+    this._bendGraphSVG.setAttribute("viewBox", `0 0 ${width} ${height}`);
 
     // Draw rows
     for (let i = 0; i <= this._currentOptions.rowsCount; i++) {

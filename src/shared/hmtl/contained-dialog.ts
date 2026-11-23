@@ -105,6 +105,11 @@ export class ContainedDialog {
     return this._element.hasAttribute("open");
   }
 
+  /** Element hosting this dialog's controls. */
+  public get element(): HTMLDivElement {
+    return this._element;
+  }
+
   private hide(dispatchClose: boolean): void {
     if (!this._element.hasAttribute("open")) {
       return;
@@ -117,7 +122,7 @@ export class ContainedDialog {
     const previousFocus = this._previousFocus;
     this._previousFocus = undefined;
     this._enforcer.release();
-    previousFocus?.focus();
+    this._enforcer.restoreFocus(previousFocus);
     if (dispatchClose) {
       this._element.dispatchEvent(new Event("close"));
     }

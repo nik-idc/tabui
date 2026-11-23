@@ -70,6 +70,8 @@ export class TabUIEditor {
   private _layoutResizeRafId?: number;
   /** Whether a cursor announcement check is queued for the current turn. */
   private _selectionAnnouncementQueued = false;
+  /** Whether an edit event is queued for the current turn. */
+  private _editEventQueued = false;
   /** Current responsive restriction applied above the configured mode. */
   private _responsiveInteractionMode: ResponsiveInteractionMode =
     ResponsiveInteractionMode.Normal;
@@ -83,6 +85,7 @@ export class TabUIEditor {
    * @param rootDiv Dedicated empty host element
    * @param score Score model to edit
    * @param config Optional editor configuration
+   * @throws If modes, placements, layout numbers, thresholds, or sample configuration shape are invalid.
    */
   constructor(rootDiv: HTMLDivElement, score: Score, config: TabUIConfig = {}) {
     this.score = score;
@@ -179,8 +182,10 @@ export class TabUIEditor {
       this._layoutDimensions,
       this.onNotationComponentError.bind(this)
     );
+    this._notationComponent.onScoreEdited = this.queueEditEvent.bind(this);
     this._uiComponent = new UIComponent(
       this._shellComponent.template.scorePanelHost,
+      this.rootDiv,
       this._shellComponent.template.sidePanelHost,
       this._shellComponent.dialogEnforcer,
       this._notationComponent,
@@ -351,7 +356,10 @@ export class TabUIEditor {
     );
   }
 
-  /** Mounts the editor. May be called once per instance. */
+  /**
+   * Mounts the editor once. Failed initialization attempts cleanup and disposes the instance.
+   * @throws If already initialized or disposed, or component initialization fails.
+   */
   public init(): void {
     if (this._state === TabUIEditorLifecycleState.Disposed) {
       throw new Error("TabUIEditor already disposed");
@@ -394,6 +402,7 @@ export class TabUIEditor {
   /**
    * Releases owned listeners, rendering, playback, and mounted DOM.
    * Disposal is terminal and idempotent.
+   * @throws If resource cleanup fails; the instance remains disposed.
    */
   public dispose(): void {
     if (this._state === TabUIEditorLifecycleState.Disposed) {
@@ -451,9 +460,30 @@ export class TabUIEditor {
   }
 
   /**
-   * Subscribes to this editor instance.
-   * @param listener Listener receiving change and actionable error events
+   * Sends one edit event per user action, after that action's change event.
+   * An action can report several edits, such as a paste or a slider step that
+   * also re-renders, so the reports are combined in a microtask.
+   */
+  private queueEditEvent(): void {
+    if (this._editEventQueued) {
+      return;
+    }
+
+    this._editEventQueued = true;
+    queueMicrotask(() => {
+      this._editEventQueued = false;
+      if (this._state !== TabUIEditorLifecycleState.Initialized) {
+        return;
+      }
+      this._stateStore.emitEdit();
+    });
+  }
+
+  /**
+   * Subscribes to future change, edit, and playback-error events; does not call the listener immediately.
+   * @param listener Listener receiving change, edit, and actionable error events
    * @returns Idempotent subscription disposer
+   * @throws If the editor is not initialized or is disposed.
    */
   public subscribe(listener: TabUIEditorListener): () => void {
     this.assertInitialized();
@@ -478,7 +508,8 @@ export class TabUIEditor {
 
   /**
    * Re-measures or explicitly sets width and rebuilds active-track layout.
-   * @param width Optional notation content width in CSS pixels
+   * @param width Finite, non-negative CSS pixels; omitted uses configured width, measured width, then current width.
+   * @throws If inactive, width is invalid, or layout fails after best-effort restoration.
    */
   public refreshLayout(width?: number): void {
     this.assertInitialized();
@@ -522,13 +553,18 @@ export class TabUIEditor {
   /**
    * Returns the current host-observable snapshot. Its identity remains stable
    * until the next change event.
+   * Model references remain live; readonly fields do not freeze the score graph.
+   * @throws If the editor is not initialized or is disposed.
    */
   public getState(): TabUIEditorStateSnapshot {
     this.assertInitialized();
     return this._stateStore.getState();
   }
 
-  /** Instance-scoped layout dimensions after initialization. */
+  /**
+   * Live mutable layout dimensions; direct changes do not trigger a redraw.
+   * @throws If layout is not initialized or has been disposed.
+   */
   public get layoutDimensions(): EditorLayoutDimensions {
     if (this._layoutDimensions === undefined) {
       throw new Error("TabUIEditor layout is not initialized");

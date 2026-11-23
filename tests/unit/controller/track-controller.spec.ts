@@ -2,11 +2,17 @@ import { TrackController as BaseTrackController } from "../../../src/notation/co
 import { ScorePlayer } from "../../../src/player";
 import { BeatElement } from "../../../src/notation/controller/element/beat/beat-element";
 import {
+  AccentType,
+  AccentOptions,
   BarRepeatStatus,
+  BeatGuitarTechniqueType,
   BendTechniqueOptions,
   BendType,
   DEFAULT_MASTER_BAR,
+  DEFAULT_STROKE_DURATION,
   Beat,
+  Dynamic,
+  DynamicDirection,
   Guitar,
   GuitarNote,
   GuitarTechnique,
@@ -14,10 +20,17 @@ import {
   NoteDuration,
   NoteValue,
   Score,
+  ScoreEditor,
+  StrokeDirection,
+  STROKE_DURATION_EIGHTH,
+  STROKE_DURATION_QUARTER,
+  STROKE_DURATION_SIXTEENTH,
+  SetBeatTechniqueOptions,
+  StrokeOptions,
   TrackInstrumentChangeMode,
   VoiceBar,
-  serializeScore,
 } from "../../../src/notation/model";
+import { deserializeScore, serializeScore } from "../../../src/notation/format";
 import { SelectedMoveDirection } from "../../../src/notation/controller/selection/selection-cursor";
 import {
   createBarWithBeats,
@@ -52,7 +65,9 @@ function realTransport(
 }
 
 afterEach(() => {
-  realPlayers.splice(0).forEach((p) => p.dispose());
+  for (const p of realPlayers.splice(0)) {
+    p.dispose();
+  }
   if (transportAudio !== undefined) {
     transportAudio.restore();
     transportAudio = undefined;
@@ -116,6 +131,52 @@ function getBeatElement(
   return element;
 }
 
+/** Copies a passage through the public selection and clipboard API. */
+function copyPassage(
+  controller: TrackController,
+  first: Beat,
+  last: Beat = first
+): string {
+  controller.clearSelection();
+  controller.trackElement.update();
+  controller.selectBeat(
+    required(controller.trackElement.getBeatElement(first))
+  );
+  if (last !== first) {
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(last))
+    );
+  }
+  const clipboard = controller.copy();
+  controller.clearSelection();
+  if (clipboard === undefined) {
+    throw Error("Expected clipboard text");
+  }
+  return clipboard;
+}
+
+/** Places the public cursor after a beat and pastes explicit clipboard text. */
+/**
+ * Gives a paste anchor a played note. Pasting at an empty beat or rest
+ * replaces it, so tests of insert-after need a played anchor.
+ */
+function playAnchor(beat: Beat): void {
+  beat.makeBeatWithNotes();
+  (required(beat.notes)[0] as GuitarNote).setFret(1);
+}
+
+function pasteAfter(
+  controller: TrackController,
+  beat: Beat,
+  clipboard: string
+) {
+  controller.clearSelection();
+  controller.selectNoteElement(
+    required(controller.trackElement.getBeatElement(beat)).noteElements[0]
+  );
+  controller.paste(clipboard);
+}
+
 function setBarDurations(
   controller: TrackController,
   barIndex: number,
@@ -177,6 +238,38 @@ class TrackController extends BaseTrackController {
 }
 
 describe("TrackController", () => {
+  test("a dead note drops pitch-only techniques, saves and loads, and undo restores them", () => {
+    const { track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.setSelectedNoteFret(5);
+    const note = required(controller.selectionCursor?.note) as GuitarNote;
+    note.setTechnique(GuitarTechniqueType.Tap);
+    note.setTechnique(GuitarTechniqueType.Vibrato);
+    note.setTechnique(
+      GuitarTechniqueType.Accent,
+      new AccentOptions({ kind: AccentType.Heavy })
+    );
+    note.setTechnique(GuitarTechniqueType.PalmMute);
+
+    controller.setSelectedNoteFret(-1);
+
+    expect(note.techniques.map((t) => t.type).sort()).toEqual(
+      [GuitarTechniqueType.Accent, GuitarTechniqueType.PalmMute].sort()
+    );
+    const saved = serializeScore(track.score);
+    expect(serializeScore(deserializeScore(saved))).toEqual(saved);
+    controller.undo();
+    const restored = required(controller.selectionCursor?.note);
+    expect(restored.techniques.map((t) => t.type).sort()).toEqual(
+      [
+        GuitarTechniqueType.Tap,
+        GuitarTechniqueType.Vibrato,
+        GuitarTechniqueType.Accent,
+        GuitarTechniqueType.PalmMute,
+      ].sort()
+    );
+  });
+
   test("explicit dot removal clears both dots and preserves selection through undo", () => {
     const { track } = createScoreGraph();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -200,12 +293,10 @@ describe("TrackController", () => {
     controller.undo();
     expect(first.beat.dots).toBe(2);
     expect(second.beat.dots).toBe(1);
-    expect(controller.selectionCursor).toBe(cursor);
     expect(controller.selectionCursor?.beat).toBe(second.beat);
     expect(controller.selectionCursor?.noteIndex).toBe(0);
     controller.redo();
     expect(first.beat.dots).toBe(0);
-    expect(controller.selectionCursor).toBe(cursor);
     expect(controller.selectionCursor?.beat).toBe(second.beat);
     expect(controller.selectionCursor?.noteIndex).toBe(0);
   });
@@ -227,7 +318,9 @@ describe("TrackController", () => {
       beat.dots = 2;
       if (mode === "playing") {
         const player = mockScorePlayerInstances.at(-1);
-        if (player === undefined) throw Error("Expected test player");
+        if (player === undefined) {
+          throw Error("Expected test player");
+        }
         player.isPlaying = true;
       }
       expect(controller.setBeatDots(beat, 0)).toBe(false);
@@ -282,7 +375,8 @@ describe("TrackController", () => {
     controller.undo();
     expect(bar.masterBar.isRepeatEnd).toBe(true);
     expect(bar.masterBar.repeatCount).toBe(4);
-    expect(controller.selectionCursor).toBe(cursor);
+    expect(controller.selectionCursor?.beat).toBe(cursor?.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(cursor?.noteIndex);
   });
 
   test("repeat-start removal targets its bar, preserves selection, and supports undo", () => {
@@ -306,7 +400,9 @@ describe("TrackController", () => {
     const otherBeat = getBeatElements(controller).find(
       (e) => e.beat.voiceBar.bar === otherBar
     );
-    if (otherBeat === undefined) throw Error("Expected beat in the other bar");
+    if (otherBeat === undefined) {
+      throw Error("Expected beat in the other bar");
+    }
     controller.selectNoteElement(otherBeat.noteElements[0]);
     const cursor = controller.selectionCursor;
     expect(
@@ -353,100 +449,176 @@ describe("TrackController", () => {
     expect(bar.masterBar.isRepeatStart).toBe(true);
   });
 
-  test("removes only a supplied note's technique with undo and unchanged cursor", () => {
-    const { track, bar } = createScoreGraph();
-    const notes = required(
-      required(bar.getVoiceBar(1)).beats[0].notes
-    ) as GuitarNote[];
-    for (const note of notes.slice(0, 2)) {
-      note.fret = 5;
-      note.addTechnique(
-        new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
-      );
-    }
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    controller.trackElement.update();
-    const beat = required(bar.getVoiceBar(1)).beats[0];
-    const beatElement = required(controller.trackElement.getBeatElement(beat));
-    controller.selectNoteElement(beatElement.noteElements[3]);
-    const cursor = controller.selectionCursor;
-    expect(
-      controller.removeTechniques(
-        [notes[1]],
-        GuitarTechniqueType.NaturalHarmonic
-      )
-    ).toBe(true);
-    expect(notes[0].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      true
-    );
-    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      false
-    );
-    expect(controller.selectionCursor).toBe(cursor);
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-    expect(
-      controller.removeTechniques(
-        [notes[1]],
-        GuitarTechniqueType.NaturalHarmonic
-      )
-    ).toBe(false);
-    controller.undo();
-    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      true
-    );
-    controller.redo();
-    expect(notes[1].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      false
-    );
-    expect(notes[0].hasTechnique(GuitarTechniqueType.NaturalHarmonic)).toBe(
-      true
-    );
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-  });
-  test("removes matching techniques together with one undo and unchanged cursor", () => {
-    const { track, bar } = createScoreGraph();
-    const notes = required(
-      required(bar.getVoiceBar(1)).beats[0].notes
-    ) as GuitarNote[];
-    for (const note of notes.slice(0, 2)) {
-      note.fret = 5;
-      note.addTechnique(
-        new GuitarTechnique(note, GuitarTechniqueType.PalmMute)
-      );
-    }
-    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
-    controller.trackElement.update();
-    const beat = required(bar.getVoiceBar(1)).beats[0];
-    const beatElement = required(controller.trackElement.getBeatElement(beat));
-    controller.selectNoteElement(beatElement.noteElements[3]);
-    const cursor = controller.selectionCursor;
-    expect(
-      controller.removeTechniques(notes, GuitarTechniqueType.PalmMute)
-    ).toBe(true);
-    expect(
-      notes.every((note) => !note.hasTechnique(GuitarTechniqueType.PalmMute))
-    ).toBe(true);
-    expect(controller.selectionCursor).toBe(cursor);
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-    expect(
-      controller.removeTechniques(notes, GuitarTechniqueType.PalmMute)
-    ).toBe(false);
-    controller.undo();
-    expect(
-      notes
-        .slice(0, 2)
-        .every((note) => note.hasTechnique(GuitarTechniqueType.PalmMute))
-    ).toBe(true);
-    expect(notes[2].hasTechnique(GuitarTechniqueType.PalmMute)).toBe(false);
-    controller.redo();
-    expect(
-      notes.every((note) => !note.hasTechnique(GuitarTechniqueType.PalmMute))
-    ).toBe(true);
-    expect(controller.selectionCursor?.note).toBe(notes[3]);
-  });
-
   beforeEach(() => {
     mockScorePlayerInstances.length = 0;
+  });
+
+  test("beat techniques target the cursor beat, then the selected range, with undo", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    const strokeOptions: SetBeatTechniqueOptions = {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Up,
+        duration: STROKE_DURATION_SIXTEENTH,
+      }),
+    };
+
+    expect(controller.canSetBeatTechnique(stroke)).toBe(true);
+    controller.setBeatTechnique(stroke, strokeOptions);
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([true, false]);
+    expect(controller.hasSelectedBeatTechnique(stroke)).toBe(true);
+
+    ScoreEditor.setBeatTechnique([beats[1]], stroke, strokeOptions);
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.setSelectionAnchor();
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    controller.setBeatTechnique(stroke);
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([
+      false,
+      false,
+    ]);
+
+    controller.undo();
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([true, true]);
+  });
+
+  test("stroke toggles set one direction, keep existing timing, and remove matching strokes", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    const strokes = () =>
+      beats.map((b) => {
+        const options = b.getBeatTechnique(stroke)?.options;
+        return (
+          options && [options.direction, options.duration, options.alignment]
+        );
+      });
+
+    controller.toggleStroke(StrokeDirection.Down);
+    expect(strokes()).toEqual([
+      [StrokeDirection.Down, DEFAULT_STROKE_DURATION, 0],
+      undefined,
+    ]);
+
+    ScoreEditor.setBeatTechnique([beats[0]], stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Down,
+        duration: STROKE_DURATION_EIGHTH,
+        alignment: 40,
+      }),
+    });
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.setSelectionAnchor();
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+    expect(controller.getSelectedBeatTechnique(stroke)?.beat).toBe(beats[0]);
+
+    // Mixed beats take the direction with the first stroke's timing.
+
+    controller.toggleStroke(StrokeDirection.Up);
+    const up = [StrokeDirection.Up, STROKE_DURATION_EIGHTH, 40];
+    expect(strokes()).toEqual([up, up]);
+
+    controller.toggleStroke(StrokeDirection.Up);
+    expect(strokes()).toEqual([undefined, undefined]);
+    controller.undo();
+    expect(strokes()).toEqual([up, up]);
+  });
+
+  test("removing a beat technique clears it from every selected beat that has it", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    controller.toggleStroke(StrokeDirection.Down);
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.setSelectionAnchor();
+    controller.selectBeat(getBeatElement(controller, 0, 1));
+
+    controller.removeBeatTechnique(stroke);
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([
+      false,
+      false,
+    ]);
+    controller.undo();
+    expect(beats.map((b) => b.hasBeatTechnique(stroke))).toEqual([true, false]);
+  });
+
+  test("copy and paste keep a beat's stroke through clipboard text", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const stroke = BeatGuitarTechniqueType.Stroke;
+    ScoreEditor.setBeatTechnique([beats[0]], stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Up,
+        duration: STROKE_DURATION_QUARTER,
+      }),
+    });
+
+    const clipboard = copyPassage(controller, beats[0]);
+    playAnchor(beats[1]);
+    pasteAfter(controller, beats[1], clipboard);
+
+    const pasted = required(track.staves[0].bars[0].getVoiceBar(1)).beats[2];
+    const pastedStroke = pasted.getBeatTechnique(stroke);
+    expect(pastedStroke?.beat).toBe(pasted);
+    expect(pastedStroke?.options.direction).toBe(StrokeDirection.Up);
+    expect(pastedStroke?.options.duration).toBe(STROKE_DURATION_QUARTER);
+  });
+
+  test("dynamic edits skip no-op history and are blocked in playback and view-only", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(true);
+
+    // A no-op edit adds no undo step, so one undo restores mf.
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(false);
+    controller.undo();
+    expect(beats[0].dynamic).toBe(Dynamic.MezzoForte);
+
+    mockScorePlayerInstances[0].isPlaying = true;
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(false);
+    expect(controller.shiftSelectedDynamics(DynamicDirection.Louder)).toBe(
+      false
+    );
+    mockScorePlayerInstances[0].isPlaying = false;
+
+    controller.setEditingEnabled(false);
+    expect(controller.setDynamic(Dynamic.Piano)).toBe(false);
+    expect(controller.shiftSelectedDynamics(DynamicDirection.Louder)).toBe(
+      false
+    );
+    expect(beats[0].dynamic).toBe(Dynamic.MezzoForte);
+  });
+
+  test("pasted beats keep their own dynamics", () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    beats[0].dynamic = Dynamic.Pianissimo;
+    beats[1].dynamic = Dynamic.Fortissimo;
+
+    const clipboard = copyPassage(controller, beats[0]);
+    playAnchor(beats[1]);
+    pasteAfter(controller, beats[1], clipboard);
+
+    const pasted = required(track.staves[0].bars[0].getVoiceBar(1)).beats[2];
+    expect(pasted.dynamic).toBe(Dynamic.Pianissimo);
   });
 
   test("explicit beat insertion supports undo, redo, playback, and view-only guards", () => {
@@ -484,6 +656,56 @@ describe("TrackController", () => {
     expect(voiceBar.beats).toHaveLength(3);
   });
 
+  test("restores a backward explicit range across bars through undo and redo", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const secondBar = track.staves[0].bars[1];
+    const secondVoiceBar = secondBar.getVoiceBar(1);
+    if (secondVoiceBar === null) {
+      throw Error("Expected voice 1 in second test bar");
+    }
+    secondVoiceBar.beats.push(createBeat(secondVoiceBar, NoteDuration.Quarter));
+    secondVoiceBar.rebuildTiming();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const firstBarLast = getBeatElement(controller, 0, 0);
+    const secondBarFirst = getBeatElement(controller, 1, 0);
+
+    controller.selectBeat(secondBarFirst);
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(firstBarLast);
+    expect(controller.selectionAsBeats).toEqual([
+      firstBarLast.beat,
+      secondBarFirst.beat,
+    ]);
+    expect(controller.selectionEndBeat).toBe(firstBarLast.beat);
+
+    controller.setDots(1);
+
+    controller.selectBeat(secondBarFirst);
+    controller.undo();
+    expect(controller.selectionAsBeats).toEqual([
+      firstBarLast.beat,
+      secondBarFirst.beat,
+    ]);
+    expect(controller.selectionEndBeat).toBe(firstBarLast.beat);
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
+    expect(firstBarLast.beat.dots).toBe(0);
+    expect(secondBarFirst.beat.dots).toBe(0);
+
+    controller.selectBeat(secondBarFirst);
+    controller.redo();
+    expect(controller.selectionAsBeats).toEqual([
+      firstBarLast.beat,
+      secondBarFirst.beat,
+    ]);
+    expect(controller.selectionEndBeat).toBe(firstBarLast.beat);
+    expect(controller.hasSelectionAnchor).toBe(true);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
+    expect(firstBarLast.beat.dots).toBe(1);
+    expect(secondBarFirst.beat.dots).toBe(1);
+  });
+
   test("supports headless use without a score player", () => {
     const { track } = createScoreGraph();
     const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -516,6 +738,159 @@ describe("TrackController", () => {
     expect(voiceBar.beats).toHaveLength(2);
     expect(controller.selectionCursor?.bar).toBe(bar);
     expect(controller.selectionCursor?.beatIndex).toBe(1);
+    controller.undo();
+    expect(voiceBar.beats).toHaveLength(1);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
+    controller.redo();
+    expect(voiceBar.beats).toHaveLength(2);
+    expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[1]);
+  });
+
+  test("moving right past a full bar restores the cursor around bar append", () => {
+    const { score, track } = createScoreGraph();
+    score.masterBars[0].tempo = 150;
+    score.masterBars[0].duration = NoteDuration.Eighth;
+    score.masterBars[0].isRepeatStart = true;
+    score.masterBars[0].isRepeatEnd = true;
+    score.masterBars[0].repeatCount = 3;
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+    ]);
+    const firstVoiceBar = required(track.staves[0].bars[0].getVoiceBar(1));
+
+    for (let i = 0; i < 4; i++) {
+      controller.moveSelectedNote(SelectedMoveDirection.Right);
+    }
+    expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars[1].barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 150,
+      duration: NoteDuration.Eighth,
+    });
+    const appendedMasterBar = score.masterBars[1];
+    expect(controller.selectionCursor?.beat).toBe(
+      required(track.staves[0].bars[1].getVoiceBar(1)).beats[0]
+    );
+
+    controller.undo();
+    expect(score.masterBars).toHaveLength(1);
+    expect(controller.selectionCursor?.beat).toBe(firstVoiceBar.beats[3]);
+    controller.redo();
+    expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars[1]).toBe(appendedMasterBar);
+    expect(controller.selectionCursor?.beat).toBe(
+      required(track.staves[0].bars[1].getVoiceBar(1)).beats[0]
+    );
+  });
+
+  test("moving right from a backward range restores the range around bar append", () => {
+    const { score, track } = createScoreGraph();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const beats = track.staves[0].bars[0].getVoiceBar(1)?.beats;
+    if (beats === undefined) {
+      throw Error("Expected voice 1 in test bar");
+    }
+    const firstBeat = getBeatElement(controller, 0, 0);
+    const lastBeat = getBeatElement(controller, 0, 3);
+
+    controller.selectBeat(lastBeat);
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(firstBeat);
+    expect(controller.selectionEndBeat).toBe(firstBeat.beat);
+
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    expect(score.masterBars).toHaveLength(2);
+
+    controller.undo();
+    expect(controller.selectionAsBeats).toEqual(beats);
+    expect(controller.selectionEndBeat).toBe(firstBeat.beat);
+    controller.redo();
+    expect(score.masterBars).toHaveLength(2);
+  });
+
+  test("during playback, bar moves seek like the bar buttons and edits are off", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    const next = jest.spyOn(controller, "selectNextBar");
+    const previous = jest.spyOn(controller, "selectPreviousBar");
+    expect(controller.canEdit).toBe(true);
+    controller.startPlayer();
+    await settleTransport();
+    expect(controller.canEdit).toBe(false);
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Right)).toBe(
+      true
+    );
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Left)).toBe(
+      true
+    );
+    expect(controller.moveSelectionByBar(SelectedMoveDirection.Up)).toBe(false);
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(previous).toHaveBeenCalledTimes(1);
+    controller.stopPlayer();
+    controller.setEditingEnabled(false);
+    expect(controller.canEdit).toBe(false);
+  });
+
+  test("action rules follow playback and view-only mode", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    const rules = () => ({
+      edit: controller.canEdit,
+      mix: controller.canChangeMix,
+      select: controller.canSelect,
+    });
+    expect(rules()).toEqual({ edit: true, mix: true, select: true });
+
+    // Mix changes work during playback; edits and selection don't.
+    controller.startPlayer();
+    await settleTransport();
+    expect(rules()).toEqual({ edit: false, mix: true, select: false });
+    controller.stopPlayer();
+
+    // View-only mode still allows selection and copying.
+    controller.setEditingEnabled(false);
+    expect(rules()).toEqual({ edit: false, mix: false, select: true });
+  });
+
+  test("track move and remove rules match what the actions do", () => {
+    const { score, track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    // A score keeps at least one track; out-of-range moves are refused.
+    expect(controller.canRemoveTrack(score)).toBe(false);
+    expect(controller.removeTrack(score, track)).toBeUndefined();
+    expect(controller.canMoveTrack(track, 1)).toBe(false);
+    expect(controller.moveTrack(track, 1)).toBe(false);
+    expect(controller.canMoveTrack(track, -1)).toBe(false);
+
+    const second = required(controller.addTrack(score, new Guitar(), "Two"));
+    expect(controller.canRemoveTrack(score)).toBe(true);
+    expect(controller.canMoveTrack(track, 1)).toBe(true);
+    expect(controller.moveTrack(track, 1)).toBe(true);
+    expect(score.tracks).toEqual([second, track]);
+
+    controller.setEditingEnabled(false);
+    expect(controller.canRemoveTrack(score)).toBe(false);
+    expect(controller.canMoveTrack(track, 0)).toBe(false);
+    expect(controller.moveTrack(track, 0)).toBe(false);
+  });
+
+  test("copy returns nothing during playback", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    expect(controller.copy()).toBeDefined();
+    controller.startPlayer();
+    await settleTransport();
+    expect(controller.copy()).toBeUndefined();
   });
 
   test("playback start does not disable an existing loop choice", async () => {
@@ -548,6 +923,23 @@ describe("TrackController", () => {
     expect(player.playbackState).toBe("playing");
   });
 
+  test("playback start selects the first slot in a chord", async () => {
+    const { track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    const beatElement = getBeatElements(controller)[0];
+    const notes = required(beatElement.beat.notes);
+    required(notes[0]).setNote(NoteValue.E, 4);
+    required(notes[1]).setNote(NoteValue.E, 4);
+    controller.selectNoteElement(beatElement.noteElements[1]);
+
+    controller.startPlayer();
+    await settleTransport();
+    controller.stopPlayer();
+
+    expect(controller.selectionCursor?.beat).toBe(beatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+  });
+
   test("playback start loops an explicitly anchored single beat", async () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -555,10 +947,10 @@ describe("TrackController", () => {
       { baseDuration: NoteDuration.Quarter },
     ]);
     const frets = [0, 3, 7];
-    beats.forEach((b, i) => {
+    for (const [i, b] of beats.entries()) {
       b.makeBeatWithNotes();
-      (required(b.notes)[0] as GuitarNote).fret = frets[i];
-    });
+      (required(b.notes)[0] as GuitarNote).setFret(frets[i]);
+    }
     const { controller, player, audio } = realTransport(track);
     const beatElement = getBeatElements(controller)[1];
     controller.selectBeat(beatElement);
@@ -567,6 +959,8 @@ describe("TrackController", () => {
 
     await settleTransport();
     expect(controller.isLooped).toBe(true);
+    expect(controller.selectionCursor?.beat).toBe(beatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
     jest.advanceTimersByTime(2100);
 
     // The middle beat is G4. Neither neighboring E4 nor B4 may be scheduled.
@@ -578,9 +972,9 @@ describe("TrackController", () => {
     );
     expect(startedSources).toHaveLength(5);
     const expectedStarts = [0.05, 0.55, 1.05, 1.55, 2.05];
-    startedSources.forEach((s, i) => {
+    for (const [i, s] of startedSources.entries()) {
       expect(s.start.mock.calls[0][0]).toBeCloseTo(expectedStarts[i]);
-    });
+    }
     expect(player.lastStartedBeat).toBe(beatElement.beat);
     expect(player.playbackState).toBe("playing");
   });
@@ -640,7 +1034,7 @@ describe("TrackController", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     score.addTrack(new Guitar(), "Track 2");
     note.addTechnique(
       new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
@@ -648,7 +1042,7 @@ describe("TrackController", () => {
     const { controller } = realTransport(track);
     controller.setSelectedNoteFret(3);
     controller.setSelectedNoteFret(4);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.undo();
     const before = serializeScore(score);
     const trackOrder = [...score.tracks];
@@ -673,11 +1067,17 @@ describe("TrackController", () => {
       enabled: true,
     });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
+    expect(controller.canSetBeatTechnique(BeatGuitarTechniqueType.Stroke)).toBe(
+      false
+    );
+    controller.setBeatTechnique(BeatGuitarTechniqueType.Stroke, {
+      strokeOptions: new StrokeOptions({
+        direction: StrokeDirection.Down,
+        duration: STROKE_DURATION_EIGHTH,
+      }),
+    });
     controller.moveSelectedNote(SelectedMoveDirection.Right);
-    expect(
-      controller.removeTechniques([note], GuitarTechniqueType.NaturalHarmonic)
-    ).toBe(false);
-    controller.paste();
+    controller.paste(clipboard);
     controller.deleteSelectedBeats();
     controller.insertBeatBeforeSelected();
     controller.insertBeatAfterSelected();
@@ -697,7 +1097,7 @@ describe("TrackController", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     const secondTrack = score.addTrack(new Guitar(), "Track 2").tracks[0];
     note.addTechnique(
       new GuitarTechnique(note, GuitarTechniqueType.NaturalHarmonic)
@@ -705,12 +1105,15 @@ describe("TrackController", () => {
     const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);
     controller.setSelectedNoteFret(3);
     controller.setSelectedNoteFret(4);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.undo();
     controller.setEditingEnabled(false);
     const before = serializeScore(score);
 
     controller.setScoreName(score, "Blocked");
+    controller.setScoreArtist(score, "Blocked");
+    controller.setScoreAlbum(score, "Blocked");
+    controller.setScoreReleaseDate(score, "2024");
     controller.setMasterVolume(score, 0.25);
     controller.setMasterPan(score, -0.5);
     controller.addTrack(score, new Guitar(), "Blocked");
@@ -742,10 +1145,7 @@ describe("TrackController", () => {
       enabled: true,
     });
     controller.setTechnique(GuitarTechniqueType.Vibrato);
-    controller.paste();
-    expect(
-      controller.removeTechniques([note], GuitarTechniqueType.NaturalHarmonic)
-    ).toBe(false);
+    controller.paste(clipboard);
     controller.deleteSelectedBeats();
     controller.insertBeatBeforeSelected();
     controller.insertBeatAfterSelected();
@@ -759,11 +1159,84 @@ describe("TrackController", () => {
     expect(serializeScore(score)).toEqual(before);
   });
 
-  test("playback seek clears edit selection and restarts from the target beat", async () => {
+  test("reports each score edit once and skips unchanged values", () => {
+    const { score, track } = createScoreGraph();
+    const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);
+    let edits = 0;
+    controller.onScoreEdited = () => edits++;
+    const expectEdits = (action: () => unknown, count: number) => {
+      edits = 0;
+      action();
+      expect(edits).toBe(count);
+    };
+
+    expectEdits(() => controller.setSelectedNoteFret(3), 1);
+    expectEdits(() => controller.undo(), 1);
+    expectEdits(() => controller.redo(), 1);
+    expectEdits(() => controller.redo(), 0);
+
+    expectEdits(() => controller.setScoreName(score, "Song"), 1);
+    expectEdits(() => controller.setScoreName(score, "Song"), 0);
+    expectEdits(() => controller.setScoreArtist(score, "Band"), 1);
+    expectEdits(() => controller.setScoreArtist(score, "Band"), 0);
+    expectEdits(() => controller.setScoreAlbum(score, "Record"), 1);
+    expectEdits(() => controller.setScoreAlbum(score, "Record"), 0);
+    expectEdits(() => controller.setScoreReleaseDate(score, "2024-05"), 1);
+    expectEdits(() => controller.setScoreReleaseDate(score, "2024-05"), 0);
+    // An invalid date is rejected, and an empty one clears the date.
+    expect(controller.setScoreReleaseDate(score, "2024-13")).toBe(false);
+    expect(score.releaseDate).toBe("2024-05");
+    expectEdits(() => controller.setScoreReleaseDate(score, ""), 1);
+    expect(score.releaseDate).toBeNull();
+    expectEdits(() => controller.setMasterVolume(score, 0.25), 1);
+    expectEdits(() => controller.setMasterVolume(score, 0.25), 0);
+    expectEdits(() => controller.setMasterPan(score, -0.5), 1);
+    expectEdits(() => controller.setMasterPan(score, -0.5), 0);
+
+    let added: ReturnType<typeof controller.addTrack>;
+    expectEdits(() => {
+      added = controller.addTrack(score, new Guitar(), "Second");
+    }, 1);
+    const second = required(added);
+    expectEdits(() => controller.moveTrack(second, 0), 1);
+    expectEdits(() => controller.moveTrack(second, 0), 0);
+    expectEdits(() => controller.setTrackName(second, "Lead"), 1);
+    expectEdits(() => controller.setTrackName(second, "Lead"), 0);
+    expectEdits(() => controller.setTrackVolume(second, 0.8), 1);
+    expectEdits(() => controller.setTrackVolume(second, 0.8), 0);
+    expectEdits(() => controller.setTrackPan(second, 0.5), 1);
+    expectEdits(() => controller.setTrackPan(second, 0.5), 0);
+    expectEdits(() => controller.toggleTrackMuted(second), 1);
+    expectEdits(() => controller.toggleTrackSoloed(second), 1);
+    expectEdits(
+      () =>
+        controller.setTrackInstrument(
+          second,
+          new Guitar(),
+          TrackInstrumentChangeMode.KeepFrets
+        ),
+      1
+    );
+    expectEdits(() => controller.removeTrack(score, second), 1);
+
+    controller.setEditingEnabled(false);
+    expectEdits(() => controller.setScoreName(score, "Blocked"), 0);
+    expectEdits(() => controller.setSelectedNoteFret(4), 0);
+  });
+
+  test("playback seek selects the first slot in the target beat", async () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
+    score.appendMasterBar(DEFAULT_MASTER_BAR);
     const { controller, player } = realTransport(track);
-    const targetBeatElement = getBeatElements(controller)[1];
+    const beatElements = getBeatElements(controller);
+    const targetBeatElement = beatElements[1];
+    const followingBeat = beatElements[2].beat;
+    followingBeat.makeBeatWithNotes();
+    required(followingBeat.notes)[0].setNote(NoteValue.E, 4);
+    targetBeatElement.beat.makeBeatWithNotes();
+    const targetNotes = required(targetBeatElement.beat.notes);
+    required(targetNotes[1]).setNote(NoteValue.E, 4);
     controller.selectBeat(getBeatElements(controller)[0]);
     controller.selectBeat(targetBeatElement);
     expect(controller.selectionBeats).toHaveLength(2);
@@ -774,13 +1247,37 @@ describe("TrackController", () => {
 
     controller.restartPlayerFromBeat(targetBeatElement.beat);
 
-    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionCursor?.beat).toBe(targetBeatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
     expect(controller.selectionBeats).toEqual([]);
     await settleTransport();
     expect(player.playbackAnchorBeat).toBe(targetBeatElement.beat);
     expect(player.playbackState).toBe("playing");
+    jest.advanceTimersByTime(2050);
+    expect(player.lastStartedBeat).toBe(followingBeat);
+    expect(controller.selectionCursor?.beat).toBe(targetBeatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    controller.stopPlayer();
+    expect(controller.selectionCursor?.beat).toBe(targetBeatElement.beat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
     expect(score.masterBars).toHaveLength(masterBarCount);
     expect(track.staves[0].bars).toHaveLength(barCount);
+  });
+
+  test("playback seek keeps a cursor for a rest target beat", async () => {
+    const { track, beats } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    beats[1].makeRest();
+    const { controller, player } = realTransport(track);
+
+    await player.start({ startBeat: beats[0] });
+    controller.restartPlayerFromBeat(beats[1]);
+
+    expect(controller.selectionCursor?.beat).toBe(beats[1]);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    expect(controller.selectionBeats).toEqual([]);
   });
 
   test("bar traversal selects first beats without editing the score", () => {
@@ -842,6 +1339,68 @@ describe("TrackController", () => {
     expect(controller.selectionCursor?.bar).toBe(track.staves[0].bars[0]);
   });
 
+  test("select all stays in the active voice and skips missing and empty voice bars", () => {
+    const { score, track, staff, bar } = createScoreGraph();
+    for (let i = 0; i < 3; i++) {
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+    }
+    const first = bar.insertVoiceBar(2).beats[0];
+    const empty = staff.bars[2].insertVoiceBar(2);
+    empty.beats.splice(0);
+    empty.rebuildTiming();
+    const last = staff.bars[3].insertVoiceBar(2).beats[0];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.setActiveVoiceNumber(2);
+    controller.clearSelection();
+
+    expect(controller.selectAllBeats()).toBe(true);
+    expect(controller.selectionBeats).toEqual([first, last]);
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.activeVoiceNumber).toBe(2);
+    expect(staff.bars[1].getVoiceBar(2)).toBeNull();
+    expect(empty.beats).toEqual([]);
+  });
+
+  test.each(["note", "rest"])(
+    "select all handles a single %s beat without adding history",
+    (state) => {
+      const { track, score, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      if (state === "rest") {
+        controller.setSelectedBeatRest();
+      } else {
+        controller.setSelectedNoteFret(5);
+      }
+      const before = serializeScore(score);
+      expect(controller.selectAllBeats()).toBe(true);
+      expect(controller.selectionBeats).toEqual(beats);
+      expect(controller.selectionCursor).toBeUndefined();
+      expect(serializeScore(score)).toEqual(before);
+      controller.undo();
+      expect(beats[0].isRest()).toBe(false);
+      expect(beats[0].notes?.[0]).toEqual(
+        expect.objectContaining({ fret: null })
+      );
+    }
+  );
+
+  test("select all preserves selection during playback preparation and playback", async () => {
+    const { track } = createScoreGraph();
+    const { controller, player } = realTransport(track);
+    const selected = controller.selectionCursor;
+    const start = player.start();
+    expect(player.playbackState).toBe("starting");
+    expect(controller.selectAllBeats()).toBe(false);
+    expect(controller.selectionCursor).toBe(selected);
+    await start;
+    expect(player.playbackState).toBe("playing");
+    expect(controller.selectAllBeats()).toBe(false);
+    expect(controller.selectionCursor).toBe(selected);
+    expect(controller.selectionBeats).toEqual([]);
+  });
+
   test("beat selection extension keeps its anchor while moving the endpoint", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -855,18 +1414,39 @@ describe("TrackController", () => {
     expect(controller.extendSelectionByBeat(SelectedMoveDirection.Right)).toBe(
       true
     );
-    expect(controller.selectionBeats).toEqual([beats[1], beats[2]]);
+    expect(controller.selectionBeats).toEqual([beats[1]]);
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionEndBeat).toBe(beats[1]);
+    expect(controller.hasSelectionAnchor).toBe(true);
 
     controller.extendSelectionByBeat(SelectedMoveDirection.Right);
-    expect(controller.selectionBeats).toEqual([beats[1], beats[2], beats[3]]);
+    expect(controller.selectionBeats).toEqual([beats[1], beats[2]]);
 
-    controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     expect(controller.selectionBeats).toEqual([beats[1]]);
 
     controller.extendSelectionByBeat(SelectedMoveDirection.Left);
     expect(controller.selectionBeats).toEqual([beats[0], beats[1]]);
   });
+
+  test.each([
+    [SelectedMoveDirection.Left, "left"],
+    [SelectedMoveDirection.Right, "right"],
+  ])(
+    "first beat extension stays selected at a lone beat moving %s",
+    (direction) => {
+      const { track, beats } = createBarWithBeats([
+        { baseDuration: NoteDuration.Quarter },
+      ]);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+
+      expect(controller.extendSelectionByBeat(direction)).toBe(true);
+      expect(controller.selectionCursor).toBeUndefined();
+      expect(controller.selectionBeats).toEqual([beats[0]]);
+      expect(controller.selectionEndBeat).toBe(beats[0]);
+      expect(controller.hasSelectionAnchor).toBe(true);
+    }
+  );
 
   test("bar selection extension moves from its active endpoint", () => {
     const { score, track } = createScoreGraph();
@@ -1104,7 +1684,9 @@ describe("TrackController", () => {
 
     controller.selectNextBar();
 
-    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionCursor?.beat).toBe(
+      track.staves[0].bars[1].getVoiceBar(1)?.beats[0]
+    );
     await settleTransport();
     expect(player.playbackAnchorBeat).toBe(
       track.staves[0].bars[1].getVoiceBar(1)?.beats[0]
@@ -1140,7 +1722,7 @@ describe("TrackController", () => {
     expect(player.playbackState).toBe("playing");
   });
 
-  test("first and last bar follow playback state after selection is cleared", async () => {
+  test("first and last bar follow playback state after a playback seek", async () => {
     const { score, track } = createScoreGraph();
     score.appendMasterBar(DEFAULT_MASTER_BAR);
     score.appendMasterBar(DEFAULT_MASTER_BAR);
@@ -1155,7 +1737,7 @@ describe("TrackController", () => {
     await player.start({ startBeat: playbackAnchorBeat });
     controller.restartPlayerFromBeat(playbackAnchorBeat);
     await settleTransport();
-    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionCursor?.beat).toBe(playbackAnchorBeat);
     controller.selectFirstBar();
     await settleTransport();
     expect(player.playbackAnchorBeat).toBe(firstBeat);
@@ -1185,7 +1767,7 @@ describe("TrackController", () => {
       move();
       await settleTransport();
       expect(player.playbackAnchorBeat).toBe(expected);
-      expect(controller.selectionCursor).toBeUndefined();
+      expect(controller.selectionCursor?.beat).toBe(expected);
     }
   });
 
@@ -1198,7 +1780,9 @@ describe("TrackController", () => {
     if (emptyTargetVoice === null) {
       throw Error("Expected target voice bar");
     }
-    emptyTargetVoice.replaceBeats([]);
+    // Model assembly can contain an empty bar before an edit completes.
+    emptyTargetVoice.beats.splice(0);
+    emptyTargetVoice.rebuildTiming();
     const playbackAnchorBeat = secondStaff.bars[1].getVoiceBar(1)?.beats[0];
     const fallbackBeat = track.staves[0].bars[2].getVoiceBar(1)?.beats[0];
     const { controller, player } = realTransport(track);
@@ -1234,7 +1818,7 @@ describe("TrackController", () => {
     const existingVoiceBar = bar.insertVoiceBar(2);
     existingVoiceBar.beats[0].makeBeatWithNotes();
     const note = required(existingVoiceBar.beats[0].notes)[0] as GuitarNote;
-    note.fret = 7;
+    note.setFret(7);
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
 
     controller.setActiveVoiceNumber(2);
@@ -1357,6 +1941,32 @@ describe("TrackController", () => {
     );
   });
 
+  test("history keeps a nonzero string cursor through navigation and redo", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const firstBeat = required(bar.getVoiceBar(1)).beats[0];
+    const secondBeat = required(bar.getVoiceBar(1)).beats[1];
+    controller.selectNoteElement(
+      getBeatElement(controller, 0, 0).noteElements[2]
+    );
+
+    controller.setSelectedNoteFret(5);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    controller.moveSelectedNote(SelectedMoveDirection.Right);
+    expect(controller.selectionCursor?.beat).toBe(secondBeat);
+
+    controller.undo();
+    expect(controller.selectionCursor?.beat).toBe(firstBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    controller.redo();
+    expect(controller.selectionCursor?.beat).toBe(firstBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(2);
+    expect(firstBeat.notes?.[2]).toEqual(expect.objectContaining({ fret: 5 }));
+  });
+
   test("bend redo follows fret history from an actual rest", () => {
     const score = new Score();
     const track = score.tracks[0];
@@ -1378,7 +1988,7 @@ describe("TrackController", () => {
       releasePitch: 0,
       bendDuration: 1,
     });
-    controller.setTechnique(GuitarTechniqueType.Bend, bendOptions);
+    controller.setTechnique(GuitarTechniqueType.Bend, { bendOptions });
     const initialNote = beat.notes?.[2];
     if (!(initialNote instanceof GuitarNote)) {
       throw Error("Expected guitar note after setting fret");
@@ -1584,6 +2194,9 @@ describe("TrackController", () => {
 
   test("insert bar after selected note inserts and selects the new bar", () => {
     const { track, score } = createScoreGraph();
+    score.masterBars[0].tempo = 150;
+    score.masterBars[0].beatsCount = 6;
+    score.masterBars[0].duration = NoteDuration.Eighth;
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
     const originalUUID = score.masterBars[0].uuid;
 
@@ -1596,6 +2209,12 @@ describe("TrackController", () => {
 
     expect(score.masterBars).toHaveLength(2);
     expect(score.masterBars[0].uuid).toBe(originalUUID);
+    expect(score.masterBars[1].barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 150,
+      beatsCount: 6,
+      duration: NoteDuration.Eighth,
+    });
     expect(controller.selectionBeats).toHaveLength(0);
     expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
   });
@@ -1767,6 +2386,53 @@ describe("TrackController", () => {
     expect(controller.selectionCursor?.beat).toBe(firstBarFirstBeat);
   });
 
+  test("restores a nondefault voice cursor through repeated bar removal history", () => {
+    const { score, track } = createScoreGraph();
+    score.appendMasterBar({
+      tempo: 120,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      isRepeatStart: false,
+      isRepeatEnd: false,
+      repeatCount: null,
+    });
+    const firstBar = track.staves[0].bars[0];
+    const secondBar = track.staves[0].bars[1];
+    const voiceTwo = firstBar.insertVoiceBar(2);
+    const originalBars = [...track.staves[0].bars];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    controller.trackElement.update();
+    const voiceTwoElement = controller.trackElement.getBeatElement(
+      voiceTwo.beats[0]
+    );
+    if (voiceTwoElement === undefined) {
+      throw Error("Expected voice two beat element");
+    }
+    controller.selectNoteElement(voiceTwoElement.noteElements[0]);
+    expect(controller.activeVoiceNumber).toBe(2);
+
+    controller.removeSelectedBar();
+    expect(track.staves[0].bars).toEqual([secondBar]);
+    expect(controller.selectionCursor?.beat.voiceBar.voiceNumber).toBe(1);
+
+    controller.undo();
+    expect(track.staves[0].bars).toEqual(originalBars);
+    expect(controller.selectionCursor?.beat).toBe(
+      firstBar.getVoiceBar(2)?.beats[0]
+    );
+    expect(controller.activeVoiceNumber).toBe(2);
+
+    controller.redo();
+    expect(track.staves[0].bars).toEqual([secondBar]);
+    expect(controller.selectionCursor?.beat.voiceBar.voiceNumber).toBe(1);
+    controller.undo();
+    expect(controller.selectionCursor?.beat).toBe(
+      firstBar.getVoiceBar(2)?.beats[0]
+    );
+    controller.redo();
+    expect(controller.selectionCursor?.beat.voiceBar.voiceNumber).toBe(1);
+  });
+
   test.each([2, 3])("remove %i touched bars keeps the last bar", (count) => {
     const { track, score } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
@@ -1815,9 +2481,9 @@ describe("TrackController", () => {
     controller.undo();
     expect(score.masterBars).toEqual(originalMasterBars);
     expect(track.staves[0].bars).toHaveLength(3);
-    originalStaffBars.forEach((v, i) => {
+    for (const [i, v] of originalStaffBars.entries()) {
       expect(track.staves[0].bars[i]).toBe(v);
-    });
+    }
 
     controller.redo();
     expect(score.masterBars).toEqual([originalMasterBars[2]]);
@@ -1884,6 +2550,44 @@ describe("TrackController", () => {
     expect(controller.selectionBeats).toHaveLength(0);
     expect(controller.selectionCursor?.beat).toBe(voiceBar.beats[0]);
     expect(controller.selectionCursor?.note).toBeNull();
+  });
+
+  test("undo restores a backward range after recovery-cursor navigation", () => {
+    const { track, bar } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const beats = required(bar.getVoiceBar(1)).beats;
+
+    controller.selectBeat(getBeatElement(controller, 0, 2));
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(getBeatElement(controller, 0, 0));
+    controller.removeSelectedBeat();
+    const recoveryBeat = required(controller.selectionCursor).beat;
+    expect(recoveryBeat.isRest()).toBe(true);
+
+    controller.undo();
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionBeats).toEqual(beats);
+    expect(controller.selectionBeats[0]).toBe(beats[0]);
+    expect(controller.selectionBeats.at(-1)).toBe(beats[2]);
+    expect(controller.selectionEndBeat).toBe(beats[0]);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
+
+    controller.selectNoteElement(
+      getBeatElement(controller, 0, 2).noteElements[0]
+    );
+    expect(controller.selectionCursor?.beat).toBe(beats[2]);
+    controller.redo();
+    expect(controller.selectionCursor?.beat).toBe(
+      required(bar.getVoiceBar(1)).beats[0]
+    );
+    expect(controller.selectionCursor?.note).toBeNull();
+    controller.undo();
+    expect(controller.selectionBeats).toEqual(beats);
+    expect(controller.selectionEndBeat).toBe(beats[0]);
   });
 
   test("setDuration changes only the selected note beat", () => {
@@ -1979,11 +2683,11 @@ describe("TrackController", () => {
 
     controller.selectBeat(beatElements[0]);
     controller.selectBeat(beatElements[2]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
     controller.selectBeat(beatElements[3]);
     controller.selectBeat(beatElements[4]);
-    controller.paste();
+    controller.paste(clipboard);
 
     expect(
       noteBeats(barOneVoiceBar.beats).map((beat) => beat.baseDuration)
@@ -2019,11 +2723,11 @@ describe("TrackController", () => {
     }
 
     controller.selectBeat(beatElements[0]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
     controller.selectBeat(beatElements[1]);
     controller.selectBeat(beatElements[4]);
-    controller.paste();
+    controller.paste(clipboard);
 
     expect(
       noteBeats(barOneVoiceBar.beats).map((beat) => beat.baseDuration)
@@ -2047,11 +2751,11 @@ describe("TrackController", () => {
     }
 
     controller.selectBeat(beatElements[0]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
     controller.selectBeat(beatElements[1]);
     controller.selectBeat(beatElements[2]);
-    controller.paste();
+    controller.paste(clipboard);
 
     expect(targetVoiceBar.beats.map((b) => b.baseDuration)).toEqual([
       NoteDuration.Whole,
@@ -2090,11 +2794,12 @@ describe("TrackController", () => {
 
     controller.selectBeat(beatElements[0]);
     controller.selectBeat(beatElements[2]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
-    controller.selectBeat(beatElements[3]);
     controller.selectBeat(beatElements[6]);
-    controller.paste();
+    expect(controller.setSelectionAnchor()).toBe(true);
+    controller.selectBeat(beatElements[3]);
+    controller.paste(clipboard);
 
     expect(barOneVoiceBar.beats.map((b) => b.baseDuration)).toEqual([
       NoteDuration.ThirtySecond,
@@ -2114,6 +2819,15 @@ describe("TrackController", () => {
     ).toEqual([NoteDuration.Half, NoteDuration.Half]);
     expect(barOneVoiceBar.beats).toHaveLength(2);
     expect(barTwoVoiceBar.beats).toHaveLength(2);
+    expect(controller.selectionCursor).toBeUndefined();
+    expect(controller.selectionBeats).toEqual([
+      ...barOneVoiceBar.beats,
+      ...barTwoVoiceBar.beats,
+    ]);
+    expect(controller.selectionBeats[0]).toBe(barOneVoiceBar.beats[0]);
+    expect(controller.selectionBeats.at(-1)).toBe(barTwoVoiceBar.beats[1]);
+    expect(controller.selectionEndBeat).toBe(barOneVoiceBar.beats[0]);
+    expect(controller.hasExplicitSelectionAnchor).toBe(true);
 
     controller.redo();
     expect(barOneVoiceBar.beats.map((b) => b.baseDuration)).toEqual([
@@ -2123,6 +2837,918 @@ describe("TrackController", () => {
     ]);
     expect(barTwoVoiceBar.beats).toHaveLength(1);
     expect(barTwoVoiceBar.beats[0].isRest()).toBe(true);
+    expect(controller.selectionCursor).toBeDefined();
+    expect(controller.selectionBeats).toEqual([]);
+    expect(controller.selectionCursor?.beat).toBe(barOneVoiceBar.beats[0]);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+  });
+
+  test("range paste reuses a sole empty ending suffix and preserves the other voice's boundary tie", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, Array(5).fill(NoteDuration.Quarter));
+    setBarDurations(controller, 1, [NoteDuration.Quarter]);
+    setBarDurations(controller, 2, [NoteDuration.Quarter, NoteDuration.Eighth]);
+    const voiceBars = track.staves[0].bars.map((b) =>
+      required(b.getVoiceBar(1))
+    );
+    const otherSource = track.staves[0].bars[1].ensureVoiceBar(2).beats[0];
+    const otherTarget = track.staves[0].bars[2].ensureVoiceBar(2).beats[0];
+    for (const beat of [otherSource, otherTarget]) {
+      beat.makeBeatWithNotes();
+      (required(beat.notes)[0] as GuitarNote).setFret(5);
+    }
+    (required(otherTarget.notes)[0] as GuitarNote).setTechnique(
+      GuitarTechniqueType.Tie
+    );
+    const before = serializeScore(score);
+    controller.trackElement.update();
+    const clipboard = copyPassage(
+      controller,
+      voiceBars[0].beats[0],
+      voiceBars[0].beats[4]
+    );
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(voiceBars[1].beats[0]))
+    );
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(voiceBars[2].beats[0]))
+    );
+    controller.paste(clipboard);
+    expect(score.masterBars).toHaveLength(3);
+    expect(voiceBars[1].beats).toHaveLength(4);
+    expect(voiceBars[2].beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+    ]);
+    expect(otherTarget.hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
+    const after = serializeScore(score);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+  });
+
+  test.each([GuitarTechniqueType.Tie, GuitarTechniqueType.LetRing])(
+    "multi-bar range paste keeps the ending suffix in its original bar and cleans its %s",
+    (technique) => {
+      const { track, score } = createScoreGraph();
+      score.appendMasterBar();
+      score.appendMasterBar();
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      setBarDurations(controller, 0, [NoteDuration.Eighth]);
+      setBarDurations(controller, 1, [NoteDuration.Quarter]);
+      setBarDurations(controller, 2, [
+        NoteDuration.Quarter,
+        NoteDuration.Eighth,
+      ]);
+      const voiceBars = track.staves[0].bars.map((b) =>
+        required(b.getVoiceBar(1))
+      );
+      const source = voiceBars[2].beats[0];
+      const suffix = voiceBars[2].beats[1];
+      (required(source.notes)[0] as GuitarNote).setFret(5);
+      if (technique === GuitarTechniqueType.LetRing) {
+        (required(source.notes)[0] as GuitarNote).setTechnique(technique);
+      } else {
+        (required(suffix.notes)[0] as GuitarNote).setFret(5);
+      }
+      (required(suffix.notes)[0] as GuitarNote).setTechnique(technique);
+      const originalMasters = [...score.masterBars];
+      const before = serializeScore(score);
+      controller.trackElement.update();
+      const clipboard = copyPassage(controller, voiceBars[0].beats[0]);
+      controller.selectBeat(
+        required(controller.trackElement.getBeatElement(voiceBars[1].beats[0]))
+      );
+      controller.selectBeat(
+        required(controller.trackElement.getBeatElement(source))
+      );
+      controller.paste(clipboard);
+      expect(score.masterBars).toEqual(originalMasters);
+      expect(voiceBars[1].beats.map((b) => b.baseDuration)).toEqual([
+        NoteDuration.Eighth,
+      ]);
+      expect(voiceBars[2].beats).toEqual([suffix]);
+      expect(suffix.hasTechnique(technique)).toBe(false);
+      const after = serializeScore(score);
+      controller.undo();
+      expect(serializeScore(score)).toEqual(before);
+      controller.redo();
+      expect(serializeScore(score)).toEqual(after);
+    }
+  );
+
+  test("paste uses each reused bar's meter, accepts oversized first beats, and leaves gaps unpadded", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar({ ...DEFAULT_MASTER_BAR, beatsCount: 3, tempo: 145 });
+    score.appendMasterBar({ ...DEFAULT_MASTER_BAR, beatsCount: 2, tempo: 155 });
+    score.appendMasterBar({ ...DEFAULT_MASTER_BAR, beatsCount: 1, tempo: 165 });
+    score.appendMasterBar({ ...DEFAULT_MASTER_BAR, tempo: 175 });
+    score.masterBars[2].isRepeatStart = true;
+    score.masterBars[3].isRepeatEnd = true;
+    score.masterBars[3].repeatCount = 3;
+    const masters = [...score.masterBars];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Whole,
+      NoteDuration.Quarter,
+      NoteDuration.Half,
+      NoteDuration.Whole,
+    ]);
+    const source = track.staves[0].bars[0].ensureVoiceBar(1);
+    source.beats[0].dots = 1;
+    source.beats[3].dots = 1;
+    source.rebuildTiming();
+    controller.trackElement.update();
+    const clipboard = copyPassage(controller, source.beats[0], source.beats[3]);
+    pasteAfter(
+      controller,
+      track.staves[0].bars[1].ensureVoiceBar(1).beats[0],
+      clipboard
+    );
+    expect(
+      track.staves[0].bars
+        .slice(1)
+        .map((b) =>
+          b.getVoiceBar(1)?.beats.map((beat) => [beat.baseDuration, beat.dots])
+        )
+    ).toEqual([
+      [[NoteDuration.Whole, 1]],
+      [[NoteDuration.Quarter, 0]],
+      [[NoteDuration.Half, 0]],
+      [[NoteDuration.Whole, 1]],
+    ]);
+    expect(
+      score.masterBars.slice(1).map((b) => [b.beatsCount, b.duration, b.tempo])
+    ).toEqual([
+      [3, NoteDuration.Quarter, 145],
+      [2, NoteDuration.Quarter, 155],
+      [1, NoteDuration.Quarter, 165],
+      [4, NoteDuration.Quarter, 175],
+    ]);
+    expect(score.masterBars).toEqual(masters);
+    expect(score.masterBars[2].isRepeatStart).toBe(true);
+    expect(score.masterBars[3]).toMatchObject({
+      isRepeatEnd: true,
+      repeatCount: 3,
+    });
+    const after = serializeScore(score);
+    controller.undo();
+    expect(score.masterBars).toEqual(masters);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+  });
+
+  test.each(["rest", "empty", "playable"])(
+    "cursor paste into a sole %s uses the active voice in the selected later bar",
+    (kind) => {
+      const { track, score } = createScoreGraph();
+      score.appendMasterBar();
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      setBarDurations(controller, 0, [NoteDuration.Eighth]);
+      const source = track.staves[0].bars[0].ensureVoiceBar(1).beats[0];
+      (required(source.notes)[0] as GuitarNote).setFret(4);
+      const bar = track.staves[0].bars[1];
+      const untouched = bar.ensureVoiceBar(1).beats[0];
+      const voiceBar = bar.ensureVoiceBar(2);
+      const target = voiceBar.beats[0];
+      if (kind !== "rest") {
+        target.makeBeatWithNotes();
+      }
+      if (kind === "playable") {
+        (required(target.notes)[0] as GuitarNote).setFret(7);
+      }
+      const before = serializeScore(score);
+      controller.trackElement.update();
+      const clipboard = copyPassage(controller, source);
+      pasteAfter(controller, target, clipboard);
+      expect(controller.activeVoiceNumber).toBe(2);
+      expect(
+        voiceBar.beats.map((b) => (b.notes?.[0] as GuitarNote).fret)
+      ).toEqual(kind === "playable" ? [7, 4] : [4]);
+      expect(bar.getVoiceBar(1)?.beats).toEqual([untouched]);
+      expect(track.staves[0].bars[0].getVoiceBar(2)).toBeNull();
+      const after = serializeScore(score);
+      controller.undo();
+      expect(serializeScore(score)).toEqual(before);
+      controller.redo();
+      expect(serializeScore(score)).toEqual(after);
+      expect(bar.getVoiceBar(1)?.beats).toEqual([untouched]);
+    }
+  );
+
+  test("range paste streams across clipboard bar boundaries before the initial tail and occupied following bar", () => {
+    const { track, score } = createScoreGraph();
+    for (let i = 0; i < 3; i++) {
+      score.appendMasterBar();
+    }
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    setBarDurations(controller, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    setBarDurations(controller, 2, [
+      NoteDuration.Half,
+      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+    ]);
+    setBarDurations(controller, 3, [NoteDuration.Half]);
+    const voiceBars = track.staves[0].bars.map((b) =>
+      required(b.getVoiceBar(1))
+    );
+    for (const [i, fret] of [1, 2, 3, 4, 5, 7, 9, 8, 6].entries()) {
+      (
+        required(voiceBars.flatMap((v) => v.beats)[i].notes)[0] as GuitarNote
+      ).setFret(fret);
+    }
+    score.masterBars[2].tempo = 155;
+    score.masterBars[2].isRepeatStart = true;
+    const originalMasters = [...score.masterBars];
+    const before = serializeScore(score);
+    controller.trackElement.update();
+    const clipboard = copyPassage(
+      controller,
+      voiceBars[0].beats[0],
+      voiceBars[1].beats[2]
+    );
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(voiceBars[2].beats[1]))
+    );
+    controller.paste(clipboard);
+    const pastedBeat = voiceBars[2].beats[1];
+    expect(controller.selectionCursor?.beat).toBe(pastedBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    expect(controller.selectionBeats).toEqual([]);
+    const frets = (voiceBar: VoiceBar) =>
+      voiceBar.beats.map((b) => (b.notes?.[0] as GuitarNote).fret);
+    expect(score.masterBars).toHaveLength(5);
+    expect(score.masterBars.filter((b) => originalMasters.includes(b))).toEqual(
+      originalMasters
+    );
+    expect(frets(voiceBars[2])).toEqual([7, 1, 2]);
+    const overflow = required(track.staves[0].bars[3].getVoiceBar(1));
+    expect(frets(overflow)).toEqual([3, 4, 5, 8]);
+    expect(frets(voiceBars[3])).toEqual([6]);
+    expect(voiceBars[3].beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+    ]);
+    expect(score.masterBars[4]).toBe(originalMasters[3]);
+    expect(score.masterBars[3]).toMatchObject({
+      tempo: 155,
+      beatsCount: 4,
+      duration: NoteDuration.Quarter,
+      isRepeatStart: false,
+      isRepeatEnd: false,
+      repeatCount: null,
+    });
+    const afterPaste = serializeScore(score);
+    controller.setDuration(NoteDuration.Eighth);
+    expect(pastedBeat.baseDuration).toBe(NoteDuration.Eighth);
+    expect(overflow.beats[0].baseDuration).toBe(NoteDuration.Quarter);
+    const afterEdit = serializeScore(score);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(afterPaste);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(afterPaste);
+    expect(track.staves[0].bars[3].getVoiceBar(1)).toBe(overflow);
+    expect(frets(voiceBars[3])).toEqual([6]);
+    expect(voiceBars[3].beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+    ]);
+    expect(controller.selectionCursor?.beat).toBe(pastedBeat);
+    expect(controller.selectionCursor?.noteIndex).toBe(0);
+    expect(frets(voiceBars[2])).toEqual([7, 1, 2]);
+    expect(frets(overflow)).toEqual([3, 4, 5, 8]);
+    expect(frets(voiceBars[3])).toEqual([6]);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(afterEdit);
+    expect(voiceBars[2].beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+      NoteDuration.Eighth,
+      NoteDuration.Quarter,
+    ]);
+    expect(overflow.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+    ]);
+    expect(() => serializeScore(score)).not.toThrow();
+  });
+
+  test("range paste restores exact voice-two slots and reuses its fallback voice bar through two history steps", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    const voiceBars = track.staves[0].bars.map((bar, i) => {
+      const voiceBar = bar.ensureVoiceBar(2);
+      voiceBar.beats[0].baseDuration =
+        i === 0 ? NoteDuration.Eighth : NoteDuration.Quarter;
+      voiceBar.rebuildTiming();
+      bar.removeVoiceBar(1);
+      return voiceBar;
+    });
+    const originalMasters = [...score.masterBars];
+    const before = serializeScore(score);
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const clipboard = copyPassage(controller, voiceBars[0].beats[0]);
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(voiceBars[1].beats[0]))
+    );
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(voiceBars[2].beats[0]))
+    );
+    controller.paste(clipboard);
+    expect(score.masterBars).toEqual(originalMasters);
+    const ending = track.staves[0].bars[2];
+    const fallback = required(ending.getVoiceBar(1));
+    expect(ending.voiceBarsAsArray).toEqual([fallback]);
+    expect(track.staves[0].bars[1].voiceBarsAsArray).toEqual([voiceBars[1]]);
+    expect(voiceBars[1].beats).toMatchObject([
+      { baseDuration: NoteDuration.Eighth, notes: null },
+    ]);
+    const after = serializeScore(score);
+    controller.selectNoteElement(
+      required(controller.trackElement.getBeatElement(fallback.beats[0]))
+        .noteElements[0]
+    );
+    controller.setDuration(NoteDuration.Half);
+    controller.undo();
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    expect(ending.voiceBarsAsArray).toEqual([voiceBars[2]]);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+    expect(ending.voiceBarsAsArray).toEqual([fallback]);
+    expect(voiceBars[1].beats).toMatchObject([
+      { baseDuration: NoteDuration.Eighth, notes: null },
+    ]);
+    controller.redo();
+    expect(ending.getVoiceBar(1)).toBe(fallback);
+    expect(fallback.beats[0].baseDuration).toBe(NoteDuration.Half);
+    expect(ending.getVoiceBar(2)).toBeNull();
+  });
+
+  test.each([GuitarTechniqueType.Tie, GuitarTechniqueType.LetRing])(
+    "paste cleans downstream %s without overflow and undo restores every marker",
+    (technique) => {
+      const { track, score } = createScoreGraph();
+      for (let i = 0; i < 4; i++) {
+        score.appendMasterBar();
+      }
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      setBarDurations(controller, 0, [NoteDuration.Quarter]);
+      setBarDurations(controller, 4, [NoteDuration.Eighth]);
+      const source = track.staves[0].bars[0].ensureVoiceBar(1).beats[0];
+      (required(source.notes)[0] as GuitarNote).setFret(5);
+      if (technique === GuitarTechniqueType.LetRing) {
+        (required(source.notes)[0] as GuitarNote).setTechnique(technique);
+      }
+      for (const bar of track.staves[0].bars.slice(1, 4)) {
+        const beat = bar.ensureVoiceBar(1).beats[0];
+        beat.makeBeatWithNotes();
+        if (technique === GuitarTechniqueType.Tie) {
+          (required(beat.notes)[0] as GuitarNote).setFret(5);
+        }
+        (required(beat.notes)[0] as GuitarNote).setTechnique(technique);
+      }
+      const before = serializeScore(score);
+      controller.trackElement.update();
+      const clipboard = copyPassage(
+        controller,
+        track.staves[0].bars[4].ensureVoiceBar(1).beats[0]
+      );
+      pasteAfter(controller, source, clipboard);
+      expect(score.masterBars).toHaveLength(5);
+      expect(
+        track.staves[0].bars[1].getVoiceBar(1)?.beats[0].hasTechnique(technique)
+      ).toBe(false);
+      if (technique === GuitarTechniqueType.LetRing) {
+        expect(
+          track.staves[0].bars
+            .slice(1, 4)
+            .map((b) => b.getVoiceBar(1)?.beats[0].hasTechnique(technique))
+        ).toEqual([false, false, false]);
+        expect(
+          [1, 2, 3].map((i) =>
+            getBeatElement(
+              controller,
+              i,
+              0
+            ).noteElements[0].techniqueElements.map((t) => t.technique.type)
+          )
+        ).toEqual([[], [], []]);
+      }
+      const after = serializeScore(score);
+      controller.undo();
+      expect(serializeScore(score)).toEqual(before);
+      if (technique === GuitarTechniqueType.LetRing) {
+        expect(
+          [1, 2, 3].map((i) =>
+            getBeatElement(
+              controller,
+              i,
+              0
+            ).noteElements[0].techniqueElements.map((t) => t.technique.type)
+          )
+        ).toEqual([[technique], [technique], [technique]]);
+      }
+      controller.redo();
+      expect(serializeScore(score)).toEqual(after);
+    }
+  );
+
+  test("paste removes an unsupported copied tie continuation without overflow", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    setBarDurations(controller, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const source = track.staves[0].bars[0].ensureVoiceBar(1);
+    const target = track.staves[0].bars[1].ensureVoiceBar(1);
+    for (const beat of source.beats) {
+      (required(beat.notes)[0] as GuitarNote).setFret(5);
+    }
+    (required(source.beats[1].notes)[0] as GuitarNote).setTechnique(
+      GuitarTechniqueType.Tie
+    );
+    (required(target.beats[0].notes)[0] as GuitarNote).setFret(2);
+    const sourceTie = required(source.beats[1].notes)[0];
+    const before = serializeScore(score);
+    controller.trackElement.update();
+    const clipboard = copyPassage(controller, source.beats[1]);
+    pasteAfter(controller, target.beats[0], clipboard);
+
+    expect(score.masterBars).toHaveLength(2);
+    expect(target.beats).toHaveLength(3);
+    expect(target.beats[1].hasTechnique(GuitarTechniqueType.Tie)).toBe(false);
+    expect(sourceTie.hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
+    const after = serializeScore(score);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+  });
+
+  test("paste removes an unsupported copied empty Let Ring marker without overflow", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    setBarDurations(controller, 1, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    const source = track.staves[0].bars[0].ensureVoiceBar(1);
+    const target = track.staves[0].bars[1].ensureVoiceBar(1);
+    for (const index of [0, 2]) {
+      const note = required(source.beats[index].notes)[0] as GuitarNote;
+      note.setFret(5);
+      note.setTechnique(GuitarTechniqueType.LetRing);
+    }
+    const sourceMarker = required(source.beats[1].notes)[0] as GuitarNote;
+    sourceMarker.setTechnique(GuitarTechniqueType.LetRing);
+    expect(sourceMarker.fret).toBeNull();
+    expect(sourceMarker.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+    (required(target.beats[0].notes)[0] as GuitarNote).setFret(2);
+    const before = serializeScore(score);
+    controller.trackElement.update();
+    const clipboard = copyPassage(controller, source.beats[1]);
+    pasteAfter(controller, target.beats[0], clipboard);
+
+    expect(score.masterBars).toHaveLength(2);
+    expect((required(target.beats[1].notes)[0] as GuitarNote).fret).toBeNull();
+    expect(
+      (required(target.beats[1].notes)[0] as GuitarNote).hasTechnique(
+        GuitarTechniqueType.LetRing
+      )
+    ).toBe(false);
+    expect(sourceMarker.hasTechnique(GuitarTechniqueType.LetRing)).toBe(true);
+    const after = serializeScore(score);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+  });
+
+  test("paste preserves copied ties across reused bars and cleans other-track ties at an inserted bar boundary", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    const other = score.addTrack(new Guitar(), "Other").tracks[0].staves[0];
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Whole,
+      NoteDuration.Whole,
+      NoteDuration.Eighth,
+    ]);
+    setBarDurations(controller, 1, [NoteDuration.Quarter]);
+    setBarDurations(controller, 2, [NoteDuration.Quarter]);
+    const occupiedLaterBeat =
+      track.staves[0].bars[2].ensureVoiceBar(1).beats[0];
+    occupiedLaterBeat.makeBeatWithNotes();
+    (required(occupiedLaterBeat.notes)[0] as GuitarNote).setFret(3);
+    const source = required(track.staves[0].bars[0].getVoiceBar(1));
+    for (const beat of source.beats.slice(0, 2)) {
+      (required(beat.notes)[0] as GuitarNote).setFret(5);
+    }
+    (required(source.beats[1].notes)[0] as GuitarNote).setTechnique(
+      GuitarTechniqueType.Tie
+    );
+    const otherSource = other.bars[1].ensureVoiceBar(1).beats[0];
+    const otherTarget = other.bars[2].ensureVoiceBar(1).beats[0];
+    otherSource.makeBeatWithNotes();
+    otherTarget.makeBeatWithNotes();
+    (required(otherSource.notes)[0] as GuitarNote).setFret(7);
+    (required(otherTarget.notes)[0] as GuitarNote).setFret(7);
+    (required(otherTarget.notes)[0] as GuitarNote).setTechnique(
+      GuitarTechniqueType.Tie
+    );
+    const originalMasters = [...score.masterBars];
+    const before = serializeScore(score);
+    controller.trackElement.update();
+    const clipboard = copyPassage(controller, source.beats[0], source.beats[2]);
+    pasteAfter(
+      controller,
+      track.staves[0].bars[1].ensureVoiceBar(1).beats[0],
+      clipboard
+    );
+    expect(score.masterBars).toHaveLength(5);
+    expect(score.masterBars.filter((b) => originalMasters.includes(b))).toEqual(
+      originalMasters
+    );
+    expect(
+      (
+        track.staves[0].bars[2].getVoiceBar(1)?.beats[0]
+          .notes?.[0] as GuitarNote
+      ).isTieContinuation
+    ).toBe(true);
+    expect(otherTarget.hasTechnique(GuitarTechniqueType.Tie)).toBe(false);
+    expect(otherSource.baseDuration).toBe(NoteDuration.Quarter);
+    expect(otherTarget.baseDuration).toBe(NoteDuration.Quarter);
+    const after = serializeScore(score);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    expect(otherTarget.hasTechnique(GuitarTechniqueType.Tie)).toBe(true);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+    expect(otherTarget.hasTechnique(GuitarTechniqueType.Tie)).toBe(false);
+  });
+
+  test("paste preserves exact dotted and tuplet capacity without padding", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+      NoteDuration.Eighth,
+      NoteDuration.Eighth,
+    ]);
+    const source = required(track.staves[0].bars[0].getVoiceBar(1));
+    source.beats[0].dots = 1;
+    source.beats[1].tupletSettings = { normalCount: 3, tupletCount: 2 };
+    source.beats[2].tupletSettings = { normalCount: 3, tupletCount: 2 };
+    source.rebuildTiming();
+    setBarDurations(controller, 1, [NoteDuration.Quarter]);
+    const target = required(track.staves[0].bars[1].getVoiceBar(1));
+    target.beats[0].dots = 1;
+    (required(target.beats[0].notes)[0] as GuitarNote).setFret(3);
+    target.rebuildTiming();
+    controller.trackElement.update();
+    const clipboard = copyPassage(controller, source.beats[0], source.beats[3]);
+    pasteAfter(controller, target.beats[0], clipboard);
+    // 3/8 + 3/8 + 1/6 + 1/12 = 1 exactly; the last eighth starts a new bar.
+    expect(score.masterBars).toHaveLength(3);
+    expect(
+      target.beats.map((b) => [b.baseDuration, b.dots, b.tupletSettings])
+    ).toEqual([
+      [NoteDuration.Quarter, 1, null],
+      [NoteDuration.Quarter, 1, null],
+      [NoteDuration.Quarter, 0, { normalCount: 3, tupletCount: 2 }],
+      [NoteDuration.Eighth, 0, { normalCount: 3, tupletCount: 2 }],
+    ]);
+    expect(target.getActualBarDuration()).toBe(1);
+    expect(
+      track.staves[0].bars[2].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+    ).toEqual([NoteDuration.Eighth]);
+    controller.undo();
+    expect(target.beats.map((b) => [b.baseDuration, b.dots])).toEqual([
+      [NoteDuration.Quarter, 1],
+    ]);
+    controller.redo();
+    expect(target.getActualBarDuration()).toBe(1);
+  });
+
+  test("select-all copy, delete, and paste restores packed bars without growing the score", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    for (let i = 0; i < 3; i++) {
+      setBarDurations(controller, i, Array(4).fill(NoteDuration.Quarter));
+      for (const [j, beat] of track.staves[0].bars[i]
+        .ensureVoiceBar(1)
+        .beats.entries()) {
+        (required(beat.notes)[0] as GuitarNote).setFret(i * 4 + j + 1);
+      }
+    }
+    const masters = [...score.masterBars];
+    const bars = [...track.staves[0].bars];
+    const before = serializeScore(score);
+    controller.trackElement.update();
+    controller.selectNoteElement(
+      getBeatElement(controller, 0, 0).noteElements[0]
+    );
+    controller.selectAllBeats();
+    const clipboard = required(controller.copy());
+    controller.deleteSelectedBeats();
+    const cut = serializeScore(score);
+    pasteAfter(controller, bars[0].ensureVoiceBar(1).beats[0], clipboard);
+    expect(serializeScore(score)).toEqual(before);
+    expect(score.masterBars).toEqual(masters);
+    expect(track.staves[0].bars).toEqual(bars);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(cut);
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(cut);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(before);
+    expect(score.masterBars).toEqual(masters);
+  });
+
+  test("paste creates a missing destination voice without changing other voices and restores null on undo", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [NoteDuration.Half, NoteDuration.Quarter]);
+    const source = track.staves[0].bars[0].ensureVoiceBar(1);
+    for (const beat of source.beats) {
+      (required(beat.notes)[0] as GuitarNote).setFret(4);
+    }
+    const target = track.staves[0].bars[1].ensureVoiceBar(2);
+    target.beats[0].makeBeatWithNotes();
+    target.beats[0].baseDuration = NoteDuration.Whole;
+    (required(target.beats[0].notes)[0] as GuitarNote).setFret(7);
+    target.rebuildTiming();
+    const destination = track.staves[0].bars[2];
+    const otherVoice = destination.ensureVoiceBar(1);
+    otherVoice.beats[0].makeBeatWithNotes();
+    (required(otherVoice.beats[0].notes)[0] as GuitarNote).setFret(9);
+    const otherBeat = otherVoice.beats[0];
+    const otherStaff = score.addTrack(new Guitar(), "Other").tracks[0]
+      .staves[0];
+    const untouched = serializeScore(score).tracks[1];
+    const before = serializeScore(score);
+    const clipboard = copyPassage(controller, source.beats[0], source.beats[1]);
+    pasteAfter(controller, target.beats[0], clipboard);
+    const createdVoice = required(destination.getVoiceBar(2));
+    expect(score.masterBars).toHaveLength(3);
+    expect(createdVoice.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+      NoteDuration.Quarter,
+    ]);
+    expect(destination.getVoiceBar(1)).toBe(otherVoice);
+    expect(otherVoice.beats).toEqual([otherBeat]);
+    expect(serializeScore(score).tracks[1]).toEqual(untouched);
+    expect(otherStaff.bars).toHaveLength(3);
+    const after = serializeScore(score);
+    controller.undo();
+    expect(destination.getVoiceBar(2)).toBeNull();
+    expect(serializeScore(score)).toEqual(before);
+    controller.redo();
+    expect(destination.getVoiceBar(2)).toBe(createdVoice);
+    expect(serializeScore(score)).toEqual(after);
+    expect(otherVoice.beats).toEqual([otherBeat]);
+  });
+
+  test("paste fills only consecutive placeholders, then inserts before occupied music without skipping ahead", () => {
+    const { track, score } = createScoreGraph();
+    for (let i = 0; i < 7; i++) {
+      score.appendMasterBar();
+    }
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    for (const i of [0, 1, 2, 3, 6]) {
+      setBarDurations(controller, i, [NoteDuration.Whole]);
+    }
+    const bars = track.staves[0].bars;
+    const voices = bars.map((b) => b.ensureVoiceBar(1));
+    for (const [i, fret] of [2, 3, 4, 1].entries()) {
+      (required(voices[i].beats[0].notes)[0] as GuitarNote).setFret(fret);
+    }
+    voices[5].beats[0].makeBeatWithNotes();
+    (required(voices[6].beats[0].notes)[0] as GuitarNote).setFret(6);
+    score.masterBars[4].tempo = 157;
+    score.masterBars[4].isRepeatStart = true;
+    const masters = [...score.masterBars];
+    const originals = [...bars];
+    const before = serializeScore(score);
+    const clipboard = copyPassage(
+      controller,
+      voices[0].beats[0],
+      voices[2].beats[0]
+    );
+    pasteAfter(controller, voices[3].beats[0], clipboard);
+    expect(score.masterBars).toHaveLength(9);
+    expect(score.masterBars.slice(7)).toEqual(masters.slice(6));
+    expect(bars.slice(7)).toEqual(originals.slice(6));
+    expect(voices[4].beats[0].notes?.[0]).toMatchObject({ fret: 2 });
+    expect(voices[5].beats[0].notes?.[0]).toMatchObject({ fret: 3 });
+    expect(score.masterBars[4]).toMatchObject({
+      tempo: 157,
+      isRepeatStart: true,
+    });
+    expect(bars[6].getVoiceBar(1)?.beats[0].notes?.[0]).toMatchObject({
+      fret: 4,
+    });
+    expect(voices[7].beats[0].isEmpty()).toBe(true);
+    const after = serializeScore(score);
+    const reusedBeat = voices[4].beats[0];
+    controller.selectNoteElement(
+      required(controller.trackElement.getBeatElement(reusedBeat))
+        .noteElements[0]
+    );
+    controller.setDuration(NoteDuration.Half);
+    controller.undo();
+    controller.undo();
+    expect(serializeScore(score)).toEqual(before);
+    expect(score.masterBars).toEqual(masters);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+    expect(voices[4].beats[0]).toBe(reusedBeat);
+    controller.redo();
+    expect(reusedBeat.baseDuration).toBe(NoteDuration.Half);
+  });
+
+  test.each(["playable", "multiple rests"])(
+    "paste after a full prefix inserts before %s rather than skipping to a later placeholder",
+    (kind) => {
+      const { track, score } = createScoreGraph();
+      score.appendMasterBar();
+      score.appendMasterBar();
+      const later = score.masterBars[2];
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      setBarDurations(controller, 0, Array(4).fill(NoteDuration.Quarter));
+      setBarDurations(
+        controller,
+        1,
+        kind === "playable"
+          ? [NoteDuration.Half]
+          : [NoteDuration.Quarter, NoteDuration.Quarter]
+      );
+      const occupied = track.staves[0].bars[1].ensureVoiceBar(1);
+      if (kind === "playable") {
+        (required(occupied.beats[0].notes)[0] as GuitarNote).setFret(6);
+      } else {
+        for (const beat of occupied.beats) {
+          beat.makeRest();
+        }
+      }
+      playAnchor(track.staves[0].bars[0].ensureVoiceBar(1).beats[3]);
+      const before = serializeScore(score);
+      controller.trackElement.update();
+      const elements = getBeatElements(controller);
+      const following = score.masterBars[1];
+      controller.selectBeat(elements[0]);
+      const clipboard = required(controller.copy());
+      controller.clearSelection();
+      controller.selectNoteElement(elements[3].noteElements[0]);
+      controller.paste(clipboard);
+      expect(score.masterBars).toHaveLength(4);
+      expect(score.masterBars[2]).toBe(following);
+      expect(score.masterBars[3]).toBe(later);
+      expect(
+        track.staves[0].bars[0].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+      ).toEqual(Array(4).fill(NoteDuration.Quarter));
+      expect(
+        track.staves[0].bars[1].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+      ).toEqual([NoteDuration.Quarter]);
+      const created = score.masterBars[1];
+      const after = serializeScore(score);
+      controller.undo();
+      expect(serializeScore(score)).toEqual(before);
+      expect(score.masterBars).toEqual([score.masterBars[0], following, later]);
+      controller.redo();
+      expect(score.masterBars[1]).toBe(created);
+      expect(serializeScore(score)).toEqual(after);
+    }
+  );
+
+  test("cursor paste removes the initial tail before an oversized clipboard beat", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [NoteDuration.Whole]);
+    setBarDurations(controller, 1, [NoteDuration.Half, NoteDuration.Quarter]);
+    setBarDurations(controller, 2, [NoteDuration.Quarter]);
+    const source = track.staves[0].bars[0].ensureVoiceBar(1).beats[0];
+    const target = track.staves[0].bars[1].ensureVoiceBar(1);
+    const following = track.staves[0].bars[2].ensureVoiceBar(1);
+    (required(following.beats[0].notes)[0] as GuitarNote).setFret(6);
+    playAnchor(target.beats[0]);
+    const originalMasters = [...score.masterBars];
+    controller.trackElement.update();
+    const clipboard = copyPassage(controller, source);
+    pasteAfter(controller, target.beats[0], clipboard);
+
+    expect(score.masterBars).toHaveLength(5);
+    expect(target.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+    ]);
+    expect(
+      track.staves[0].bars[2].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+    ).toEqual([NoteDuration.Whole]);
+    expect(
+      track.staves[0].bars[3].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+    ).toEqual([NoteDuration.Quarter]);
+    expect(score.masterBars[4]).toBe(originalMasters[2]);
+    const after = serializeScore(score);
+
+    controller.undo();
+    expect(score.masterBars).toEqual(originalMasters);
+    expect(target.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+      NoteDuration.Quarter,
+    ]);
+    expect(following.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+    ]);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
+  });
+
+  test("range paste removes the selected beat before an oversized clipboard beat", () => {
+    const { track, score } = createScoreGraph();
+    score.appendMasterBar();
+    score.appendMasterBar();
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    setBarDurations(controller, 0, [NoteDuration.Whole]);
+    setBarDurations(controller, 1, [
+      NoteDuration.Half,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    setBarDurations(controller, 2, [NoteDuration.Quarter]);
+    const source = track.staves[0].bars[0].ensureVoiceBar(1).beats[0];
+    const target = track.staves[0].bars[1].ensureVoiceBar(1);
+    const following = track.staves[0].bars[2].ensureVoiceBar(1);
+    (required(following.beats[0].notes)[0] as GuitarNote).setFret(6);
+    const originalMasters = [...score.masterBars];
+    controller.trackElement.update();
+    const clipboard = copyPassage(controller, source);
+    controller.selectBeat(
+      required(controller.trackElement.getBeatElement(target.beats[1]))
+    );
+    controller.paste(clipboard);
+
+    expect(score.masterBars).toHaveLength(5);
+    expect(target.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+    ]);
+    expect(
+      track.staves[0].bars[2].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+    ).toEqual([NoteDuration.Whole]);
+    expect(
+      track.staves[0].bars[3].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+    ).toEqual([NoteDuration.Quarter]);
+    expect(score.masterBars[4]).toBe(originalMasters[2]);
+    const after = serializeScore(score);
+
+    controller.undo();
+    expect(score.masterBars).toEqual(originalMasters);
+    expect(target.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Half,
+      NoteDuration.Quarter,
+      NoteDuration.Quarter,
+    ]);
+    expect(following.beats.map((b) => b.baseDuration)).toEqual([
+      NoteDuration.Quarter,
+    ]);
+    controller.redo();
+    expect(serializeScore(score)).toEqual(after);
   });
 
   test("paste keeps long clipboard content in the target bar through undo and redo", () => {
@@ -2148,11 +3774,11 @@ describe("TrackController", () => {
 
     controller.selectBeat(beatElements[0]);
     controller.selectBeat(beatElements[15]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
     controller.selectBeat(beatElements[16]);
     controller.selectBeat(beatElements[17]);
-    controller.paste();
+    controller.paste(clipboard);
 
     expect(score.masterBars).toHaveLength(2);
     expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual(
@@ -2199,11 +3825,11 @@ describe("TrackController", () => {
 
     controller.selectBeat(beatElements[2]);
     controller.selectBeat(beatElements[0]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
     controller.selectBeat(beatElements[4]);
     controller.selectBeat(beatElements[3]);
-    controller.paste();
+    controller.paste(clipboard);
 
     expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       NoteDuration.ThirtySecond,
@@ -2277,19 +3903,21 @@ describe("TrackController", () => {
 
     controller.selectBeat(beatElements[0]);
     controller.selectBeat(beatElements[7]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
     controller.selectBeat(beatElements[8]);
     controller.selectBeat(beatElements[9]);
-    controller.paste();
+    controller.paste(clipboard);
 
-    expect(noteBeats(voiceBar.beats)).toHaveLength(10);
+    expect(score.masterBars).toHaveLength(3);
+    expect(noteBeats(voiceBar.beats)).toHaveLength(8);
     expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       ...Array.from({ length: 8 }, () => NoteDuration.Eighth),
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
     ]);
-    expect(track.staves[0].bars[1].checkDurationsFit()).toBe(false);
+    expect(track.staves[0].bars[1].checkDurationsFit()).toBe(true);
+    expect(
+      track.staves[0].bars[2].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+    ).toEqual([NoteDuration.Quarter, NoteDuration.Quarter]);
 
     controller.undo();
     expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
@@ -2300,15 +3928,13 @@ describe("TrackController", () => {
     ]);
 
     controller.redo();
-    expect(noteBeats(voiceBar.beats)).toHaveLength(10);
+    expect(noteBeats(voiceBar.beats)).toHaveLength(8);
     expect(noteBeats(voiceBar.beats).map((beat) => beat.baseDuration)).toEqual([
       ...Array.from({ length: 8 }, () => NoteDuration.Eighth),
-      NoteDuration.Quarter,
-      NoteDuration.Quarter,
     ]);
   });
 
-  test("paste at note selection inserts locally into selected bar", () => {
+  test("paste at note selection packs before the surviving tail", () => {
     const { track, score } = createScoreGraph();
     score.appendMasterBar();
     const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
@@ -2329,21 +3955,26 @@ describe("TrackController", () => {
 
     controller.selectBeat(beatElements[0]);
     controller.selectBeat(beatElements[1]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
+    playAnchor(beatElements[3].beat);
     controller.selectNoteElement(beatElements[3].noteElements[0]);
-    controller.paste();
+    controller.paste(clipboard);
 
-    expect(score.masterBars).toHaveLength(2);
+    expect(score.masterBars).toHaveLength(3);
     expect(voiceBar.beats.map((b) => b.baseDuration)).toEqual([
       NoteDuration.Quarter,
       NoteDuration.Quarter,
       NoteDuration.Half,
+    ]);
+    expect(
+      track.staves[0].bars[2].getVoiceBar(1)?.beats.map((b) => b.baseDuration)
+    ).toEqual([
       NoteDuration.Eighth,
       NoteDuration.Quarter,
       NoteDuration.Quarter,
     ]);
-    expect(track.staves[0].bars[1].checkDurationsFit()).toBe(false);
+    expect(track.staves[0].bars[1].checkDurationsFit()).toBe(true);
   });
 
   test("paste copies playable guitar notes without invalid intermediate state", () => {
@@ -2369,10 +4000,10 @@ describe("TrackController", () => {
     const beatElements = getBeatElements(controller);
 
     controller.selectBeat(beatElements[0]);
-    controller.copy();
+    const clipboard = required(controller.copy());
     controller.clearSelection();
     controller.selectBeat(beatElements[1]);
-    controller.paste();
+    controller.paste(clipboard);
 
     const pastedNote = targetVoiceBar.beats[0].notes?.[0];
     if (pastedNote === undefined) {
@@ -2383,6 +4014,377 @@ describe("TrackController", () => {
     expect(pastedNote.octave).toBe(5);
     expect(sourceNote.noteValue).toBe(NoteValue.A);
     expect(sourceNote.octave).toBe(5);
+  });
+
+  test.each([
+    "null beat",
+    "missing notes",
+    "string fret",
+    "zero source slots",
+    "empty note with vibrato",
+    "foreign text",
+    "newer version",
+  ])("rejects malformed clipboard source data: %s", (invalidCase) => {
+    const { score, track } = createScoreGraph();
+    const { controller } = realTransport(track);
+    const note = track.staves[0].bars[0].getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(note instanceof GuitarNote)) {
+      throw Error("Expected guitar note");
+    }
+    controller.setSelectedNoteFret(5);
+    const payload = JSON.parse(copyPassage(controller, note.beat));
+    controller.selectNoteElement(
+      required(controller.trackElement.getBeatElement(note.beat))
+        .noteElements[0]
+    );
+    switch (invalidCase) {
+      case "null beat":
+        payload.beats[0] = null;
+        break;
+      case "missing notes":
+        delete payload.beats[0].notes;
+        break;
+      case "string fret":
+        payload.beats[0].notes[0].fret = "3";
+        break;
+      case "zero source slots":
+        payload.beats[0].notes = [];
+        break;
+      case "empty note with vibrato":
+        payload.beats[0].notes[0] = {
+          fret: null,
+          techniques: [{ type: "vibrato" }],
+        };
+        break;
+      case "newer version":
+        payload.version = 2;
+        break;
+    }
+    const text =
+      invalidCase === "foreign text" ? "hello" : JSON.stringify(payload);
+    const before = serializeScore(score);
+    expect(controller.paste(text)).toBe(false);
+    expect(serializeScore(score)).toEqual(before);
+    controller.undo();
+    expect(
+      track.staves[0].bars[0].getVoiceBar(1)?.beats[0].notes?.[0]
+    ).toMatchObject({ fret: null });
+  });
+
+  test.each([
+    { rest: false, range: false },
+    { rest: true, range: false },
+    { rest: false, range: true },
+    { rest: true, range: true },
+  ])(
+    "rejects nine-string passage on six strings without changing history or selection (rest: $rest, range: $range)",
+    ({ rest, range }) => {
+      const source = createScoreGraph();
+      source.track.context.instrument = new Guitar(
+        undefined,
+        undefined,
+        undefined,
+        9
+      );
+      const sourceVoiceBar = required(source.bar.getVoiceBar(1));
+      const sourceBeat = createBeat(sourceVoiceBar, NoteDuration.Eighth);
+      sourceVoiceBar.beats.splice(0, sourceVoiceBar.beats.length, sourceBeat);
+      if (rest) {
+        sourceBeat.makeRest();
+      } else {
+        (sourceBeat.notes?.[0] as GuitarNote).setFret(3);
+      }
+      const clipboard = copyPassage(
+        new BaseTrackController(source.track, TEST_LAYOUT_DIMENSIONS),
+        sourceBeat
+      );
+
+      const destination = createScoreGraph();
+      const controller = new BaseTrackController(
+        destination.track,
+        TEST_LAYOUT_DIMENSIONS
+      );
+      controller.setSelectedNoteFret(5);
+      if (range) {
+        controller.selectBeat(getBeatElement(controller, 0, 0));
+      }
+      const before = serializeScore(destination.score);
+      const cursor = { ...controller.selectionCursor };
+      const selection = [...controller.selectionBeats];
+      expect(controller.paste(clipboard)).toBe(false);
+      expect(serializeScore(destination.score)).toEqual(before);
+      expect({ ...controller.selectionCursor }).toEqual(cursor);
+      expect(controller.selectionBeats).toEqual(selection);
+      controller.undo();
+      expect(destination.bar.getVoiceBar(1)?.beats[0].notes?.[0]).toMatchObject(
+        { fret: null }
+      );
+    }
+  );
+
+  test("six-string passage keeps frets and rhythm on nine retuned strings through undo and redo", () => {
+    const source = createScoreGraph();
+    const sourceController = realTransport(source.track).controller;
+    const sourceNote =
+      source.track.staves[0].bars[0].getVoiceBar(1)?.beats[0].notes?.[0];
+    if (!(sourceNote instanceof GuitarNote)) {
+      throw Error("Expected source note");
+    }
+    sourceNote.setFret(3);
+    const sourceNotes = required(sourceNote.beat.notes) as GuitarNote[];
+    sourceNotes[1].setFret(-1);
+    sourceNotes[5].setFret(7);
+    sourceNote.beat.baseDuration = NoteDuration.Eighth;
+    const sourceVoiceBar = required(
+      source.track.staves[0].bars[0].getVoiceBar(1)
+    );
+    const clipboard = copyPassage(sourceController, sourceVoiceBar.beats[0]);
+
+    const destination = createScoreGraph();
+    const destinationInstrument = new Guitar(
+      undefined,
+      undefined,
+      undefined,
+      9,
+      [
+        { noteValue: NoteValue.D, octave: 4 },
+        { noteValue: NoteValue.B, octave: 3 },
+        { noteValue: NoteValue.G, octave: 3 },
+        { noteValue: NoteValue.D, octave: 3 },
+        { noteValue: NoteValue.A, octave: 2 },
+        { noteValue: NoteValue.E, octave: 2 },
+        { noteValue: NoteValue.B, octave: 1 },
+        { noteValue: NoteValue.G, octave: 1 },
+        { noteValue: NoteValue.E, octave: 1 },
+      ]
+    );
+    destination.track.context.instrument = destinationInstrument;
+    const destinationVoiceBar = required(
+      destination.track.staves[0].bars[0].getVoiceBar(1)
+    );
+    destinationVoiceBar.beats.splice(
+      0,
+      destinationVoiceBar.beats.length,
+      createBeat(destinationVoiceBar, NoteDuration.Quarter)
+    );
+    const destinationController = new BaseTrackController(
+      destination.track,
+      TEST_LAYOUT_DIMENSIONS
+    );
+    destinationController.trackElement.update();
+    const destinationBeat = destinationVoiceBar.beats[0];
+    destinationController.selectBeat(
+      required(
+        destinationController.trackElement.getBeatElement(destinationBeat)
+      )
+    );
+    const before = serializeScore(destination.score);
+    expect(destinationController.paste(clipboard)).toBe(true);
+    const pastedFrets = () =>
+      destinationVoiceBar.beats[0].notes?.map((n) => (n as GuitarNote).fret);
+    expect(pastedFrets()).toEqual([
+      3,
+      -1,
+      null,
+      null,
+      null,
+      7,
+      null,
+      null,
+      null,
+    ]);
+    expect(destinationVoiceBar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+    destinationController.undo();
+    expect(serializeScore(destination.score)).toEqual(before);
+    destinationController.redo();
+    expect(pastedFrets()).toEqual([
+      3,
+      -1,
+      null,
+      null,
+      null,
+      7,
+      null,
+      null,
+      null,
+    ]);
+    expect(destinationVoiceBar.beats[0].baseDuration).toBe(NoteDuration.Eighth);
+  });
+
+  test.each(["same instrument", "different tuning"])(
+    "single-note paste keeps fret 3 from a low string on a high string through undo and redo: %s",
+    (target) => {
+      const source = createScoreGraph();
+      const sourceController = realTransport(source.track).controller;
+      const sourceVoiceBar = required(
+        source.track.staves[0].bars[0].getVoiceBar(1)
+      );
+      const sourceNote = sourceVoiceBar.beats[0].notes?.[5];
+      if (!(sourceNote instanceof GuitarNote)) {
+        throw Error("Expected source note");
+      }
+      sourceNote.setFret(3);
+      sourceController.trackElement.update();
+      sourceController.selectNoteElement(
+        required(
+          sourceController.trackElement.getBeatElement(sourceVoiceBar.beats[0])
+        ).noteElements[5]
+      );
+      const clipboard = required(sourceController.copy());
+
+      const destination =
+        target === "same instrument" ? source : createScoreGraph();
+      if (target === "different tuning") {
+        destination.track.context.instrument = new Guitar(
+          undefined,
+          undefined,
+          undefined,
+          6,
+          destination.track.context.instrument.tuning.map((n, i) =>
+            i === 0 ? { noteValue: NoteValue.D, octave: 4 } : { ...n }
+          )
+        );
+      }
+      const destinationController = realTransport(destination.track).controller;
+      destinationController.trackElement.update();
+      const destinationVoiceBar = required(
+        destination.track.staves[0].bars[0].getVoiceBar(1)
+      );
+      const destinationBeatElement = required(
+        destinationController.trackElement.getBeatElement(
+          destinationVoiceBar.beats[0]
+        )
+      );
+      destinationController.selectNoteElement(
+        destinationBeatElement.noteElements[0]
+      );
+      const before = serializeScore(destination.score);
+      expect(destinationController.paste(clipboard)).toBe(true);
+      expect(destinationVoiceBar.beats[0].notes?.[0]).toMatchObject({
+        fret: 3,
+      });
+      destinationController.undo();
+      expect(serializeScore(destination.score)).toEqual(before);
+      destinationController.redo();
+      expect(destinationVoiceBar.beats[0].notes?.[0]).toMatchObject({
+        fret: 3,
+      });
+    }
+  );
+
+  test.each([-2, 1001, 1.5, "3", {}, undefined])(
+    "rejects malformed single-note fret %p without a score or history change",
+    (fret) => {
+      const { score, track, bar } = createScoreGraph();
+      const controller = new BaseTrackController(track, TEST_LAYOUT_DIMENSIONS);
+      controller.setSelectedNoteFret(5);
+      const payload = JSON.parse(required(controller.copy()));
+      payload.fret = fret;
+      const before = serializeScore(score);
+      const cursor = { ...controller.selectionCursor };
+      expect(controller.paste(JSON.stringify(payload))).toBe(false);
+      expect(serializeScore(score)).toEqual(before);
+      expect(controller.selectionCursor).toEqual(cursor);
+      controller.undo();
+      expect(bar.getVoiceBar(1)?.beats[0].notes?.[0]).toMatchObject({
+        fret: null,
+      });
+    }
+  );
+
+  test.each([
+    { fret: null, expected: null },
+    { fret: -1, expected: -1 },
+    { fret: 0, expected: 0 },
+    { fret: 30, expected: 24 },
+  ])(
+    "single-note paste accepts fret $fret and keeps normal fretboard limits",
+    ({ fret, expected }) => {
+      const source = createScoreGraph();
+      source.track.context.instrument = new Guitar(
+        undefined,
+        undefined,
+        undefined,
+        6,
+        undefined,
+        36
+      );
+      const sourceNote = required(
+        source.bar.getVoiceBar(1)?.beats[0].notes?.[0]
+      ) as GuitarNote;
+      sourceNote.setFret(fret);
+      sourceNote.beat.baseDuration = NoteDuration.Eighth;
+      if (fret !== null) {
+        sourceNote.addTechnique(
+          new GuitarTechnique(sourceNote, GuitarTechniqueType.Vibrato)
+        );
+      }
+      const sourceController = new BaseTrackController(
+        source.track,
+        TEST_LAYOUT_DIMENSIONS
+      );
+      const clipboard = required(sourceController.copy());
+      expect(JSON.parse(clipboard)).toEqual({
+        format: "tabui-clipboard",
+        version: 1,
+        kind: "note",
+        fret,
+      });
+
+      const destination = createScoreGraph();
+      const controller = new BaseTrackController(
+        destination.track,
+        TEST_LAYOUT_DIMENSIONS
+      );
+      controller.setSelectedNoteFret(5);
+      expect(controller.paste(clipboard)).toBe(true);
+      const beat = required(destination.bar.getVoiceBar(1)?.beats[0]);
+      expect(beat.notes?.[0]).toMatchObject({ fret: expected });
+      expect(beat.notes?.[0].hasTechnique(GuitarTechniqueType.Vibrato)).toBe(
+        false
+      );
+      expect(beat.baseDuration).toBe(NoteDuration.Quarter);
+      controller.undo();
+      expect(beat.notes?.[0]).toMatchObject({ fret: 5 });
+      controller.redo();
+      expect(beat.notes?.[0]).toMatchObject({ fret: expected });
+    }
+  );
+
+  test("single-note paste works when the first beat is a rest", () => {
+    const source = createScoreGraph();
+    const sourceController = realTransport(source.track).controller;
+    const sourceVoiceBar = required(
+      source.track.staves[0].bars[0].getVoiceBar(1)
+    );
+    const sourceNote = sourceVoiceBar.beats[0].notes?.[0];
+    if (!(sourceNote instanceof GuitarNote)) {
+      throw Error("Expected source note");
+    }
+    sourceNote.setFret(4);
+    sourceController.trackElement.update();
+    sourceController.selectNoteElement(
+      required(
+        sourceController.trackElement.getBeatElement(sourceVoiceBar.beats[0])
+      ).noteElements[0]
+    );
+    const clipboard = required(sourceController.copy());
+
+    const destination = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Quarter },
+    ]);
+    destination.beats[0].makeRest();
+    const destinationController = realTransport(destination.track).controller;
+    destinationController.trackElement.update();
+    const laterElement = required(
+      destinationController.trackElement.getBeatElement(destination.beats[1])
+    );
+    destinationController.selectNoteElement(laterElement.noteElements[0]);
+    expect(destinationController.paste(clipboard)).toBe(true);
+    expect(destination.beats[1].notes?.[0]).toEqual(
+      expect.objectContaining({ fret: 4 })
+    );
   });
 
   test("moving right grows the score onto a new line and keeps its selected beat reachable", () => {
@@ -2404,7 +4406,9 @@ describe("TrackController", () => {
     const lastBar = staff.bars[staff.bars.length - 1];
     const navigationLimit = staff.bars.length * 16;
     for (let i = 0; i < navigationLimit; i++) {
-      if (controller.selectionCursor?.bar === lastBar) break;
+      if (controller.selectionCursor?.bar === lastBar) {
+        break;
+      }
       controller.moveSelectedNote(SelectedMoveDirection.Right);
     }
     expect(controller.selectionCursor?.bar).toBe(lastBar);
@@ -2413,7 +4417,9 @@ describe("TrackController", () => {
 
     for (let i = 0; i < 64; i++) {
       const lineCount = controller.trackElement.trackLineElements.length;
-      if (lineCount > initialLineCount) break;
+      if (lineCount > initialLineCount) {
+        break;
+      }
       controller.moveSelectedNote(SelectedMoveDirection.Right);
     }
 
@@ -2435,7 +4441,9 @@ describe("TrackController", () => {
     const currentLastBar = staff.bars[staff.bars.length - 1];
     expect(controller.selectionCursor?.bar).toBe(currentLastBar);
     const selectedBeat = controller.selectionCursor?.beat;
-    if (selectedBeat === undefined) throw Error("Expected selected beat");
+    if (selectedBeat === undefined) {
+      throw Error("Expected selected beat");
+    }
     expect(controller.trackElement.getBeatElement(selectedBeat)?.beat).toBe(
       selectedBeat
     );
@@ -2450,7 +4458,7 @@ describe("TrackController", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     for (let i = 0; i < 12; i++) {
       score.appendMasterBar({
         tempo: 120,
@@ -2475,17 +4483,59 @@ describe("TrackController", () => {
     ).toBeCloseTo(initialY + TEST_LAYOUT_DIMENSIONS.techLabelHeight);
 
     controller.undo();
-    expect(note.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(false);
+    expect(note.beat.notes?.[0].hasTechnique(GuitarTechniqueType.Vibrato)).toBe(
+      false
+    );
     expect(
       controller.trackElement.trackLineElements[1].boundingBox.y
     ).toBeCloseTo(initialY);
 
     controller.redo();
-    expect(note.hasTechnique(GuitarTechniqueType.Vibrato)).toBe(true);
+    expect(note.beat.notes?.[0].hasTechnique(GuitarTechniqueType.Vibrato)).toBe(
+      true
+    );
     expect(
       controller.trackElement.trackLineElements[1].boundingBox.y
     ).toBeCloseTo(initialY + TEST_LAYOUT_DIMENSIONS.techLabelHeight);
   });
+
+  test.each([
+    { setting: "tempo", meter: false },
+    { setting: "time-signature", meter: true },
+  ])(
+    "$setting range edits preserve outside bars and restore mixed values on undo/redo",
+    ({ meter }) => {
+      const { score, track } = createScoreGraph();
+      for (const settings of [
+        { tempo: 140, beatsCount: 3 },
+        { tempo: 150, beatsCount: 5 },
+      ]) {
+        score.appendMasterBar({ ...DEFAULT_MASTER_BAR, ...settings });
+      }
+      const original = serializeScore(score);
+      const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+      const values = () =>
+        score.masterBars.map((v) => (meter ? v.beatsCount : v.tempo));
+
+      // Select bars 1–2, leaving bar 3 unchanged.
+      // Bar 1 already matches; it must not cause the whole edit to be skipped.
+      controller.selectNoteElement(
+        getBeatElement(controller, 0, 0).noteElements[0]
+      );
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+      controller.extendSelectionByBeat(SelectedMoveDirection.Right);
+      if (meter) {
+        controller.setSelectedBarTimeSignature(4, NoteDuration.Quarter);
+      } else {
+        controller.setSelectedBarTempo(120);
+      }
+      expect(values()).toEqual(meter ? [4, 4, 5] : [120, 120, 150]);
+      controller.undo();
+      expect(serializeScore(score)).toEqual(original);
+      controller.redo();
+      expect(values()).toEqual(meter ? [4, 4, 5] : [120, 120, 150]);
+    }
+  );
 
   test("adding a tempo moves later lines and undo restores their positions", () => {
     const { score, track } = createScoreGraph();
@@ -2552,18 +4602,69 @@ describe("TrackController", () => {
       expect(bars[0].bar.masterBar).toBe(masterBar);
       return lineInfo.getBarTempoText(bars[0]);
     };
-    expect(tempoText()).toBe("=120");
+    expect(tempoText()).toBe("120");
     controller.setSelectedBarTempo(130);
     expect(masterBar.tempo).toBe(130);
-    expect(tempoText()).toBe("=130");
+    expect(tempoText()).toBe("130");
     controller.setSelectedBarTempo(160);
     expect(masterBar.tempo).toBe(160);
-    expect(tempoText()).toBe("=160");
+    expect(tempoText()).toBe("160");
     controller.undo();
     expect(masterBar.tempo).toBe(130);
-    expect(tempoText()).toBe("=130");
+    expect(tempoText()).toBe("130");
     controller.redo();
     expect(masterBar.tempo).toBe(160);
-    expect(tempoText()).toBe("=160");
+    expect(tempoText()).toBe("160");
+  });
+});
+
+describe("paste at an empty beat or rest", () => {
+  /** Frets on string 1; null leaves the beat empty, "rest" makes a rest. */
+  function setupBar(content: Array<number | null | "rest">) {
+    const { track, beats } = createBarWithBeats(
+      content.map(() => ({ baseDuration: NoteDuration.Eighth }))
+    );
+    for (const [i, value] of content.entries()) {
+      if (value === "rest") {
+        beats[i].makeRest();
+      } else if (value !== null) {
+        playAnchor(beats[i]);
+        (required(beats[i].notes)[0] as GuitarNote).setFret(value);
+      }
+    }
+    const controller = new TrackController(track, TEST_LAYOUT_DIMENSIONS);
+    const voiceBar = required(track.staves[0].bars[0].getVoiceBar(1));
+    const frets = () =>
+      voiceBar.beats.map((b) =>
+        b.notes === null ? "rest" : ((b.notes[0] as GuitarNote).fret ?? null)
+      );
+    return { controller, beats, frets };
+  }
+
+  test.each([null, "rest"] as const)(
+    "a %s beat after played beats is replaced, and undo brings it back",
+    (kind) => {
+      const { controller, beats, frets } = setupBar([3, 5, kind]);
+      const clipboard = copyPassage(controller, beats[0]);
+      pasteAfter(controller, beats[2], clipboard);
+      expect(frets()).toEqual([3, 5, 3]);
+
+      controller.undo();
+      expect(frets()).toEqual([3, 5, kind]);
+    }
+  );
+
+  test("several clipboard beats replace an empty beat in the middle", () => {
+    const { controller, beats, frets } = setupBar([3, null, 7]);
+    const clipboard = copyPassage(controller, beats[0], beats[2]);
+    pasteAfter(controller, beats[1], clipboard);
+    expect(frets()).toEqual([3, 3, null, 7, 7]);
+  });
+
+  test("a played beat keeps insert-after", () => {
+    const { controller, beats, frets } = setupBar([3, 5]);
+    const clipboard = copyPassage(controller, beats[0]);
+    pasteAfter(controller, beats[1], clipboard);
+    expect(frets()).toEqual([3, 5, 3]);
   });
 });

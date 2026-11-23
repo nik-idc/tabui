@@ -1,4 +1,4 @@
-import { Beat, Note, NoteValue } from "../../../model";
+import { Beat, BeatSnapshot, NoteValue, ScoreEditor } from "../../../model";
 import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 
 /** Set note value at a beat/string cursor position. */
@@ -7,9 +7,10 @@ export class SetNoteCommand implements Command {
   private _stringNumber: number;
   private _newValue: NoteValue;
   private _newOctave: number | null;
-  private _oldValue: NoteValue;
-  private _oldOctave: number | null;
-  private _oldWasRest: boolean;
+  /** Original beat content for undo. */
+  private _before: BeatSnapshot[] = [];
+  /** Completed beat content for redo. */
+  private _after: BeatSnapshot[] = [];
   private _executed: boolean = false;
 
   constructor(
@@ -22,24 +23,21 @@ export class SetNoteCommand implements Command {
     this._stringNumber = stringNumber;
     this._newValue = newValue;
     this._newOctave = newOctave;
-    this._oldWasRest = beat.isRest();
-    const note = this._oldWasRest ? null : this.getTargetNote();
-    this._oldValue = note?.noteValue ?? NoteValue.None;
-    this._oldOctave = note?.octave ?? null;
-  }
-
-  private getTargetNote(): Note {
-    const note = this._beat.notes?.[this._stringNumber - 1];
-    if (note === undefined) {
-      throw Error("Can't set a note outside the beat's note lanes");
-    }
-
-    return note;
   }
 
   execute(): void {
-    this._beat.makeBeatWithNotes();
-    this.applyNoteState(this._newValue, this._newOctave);
+    this._before = ScoreEditor.snapshotBeatNotes(
+      ScoreEditor.getNoteEditBeats([this._beat], this._stringNumber)
+    );
+    ScoreEditor.setNote(
+      this._beat,
+      this._stringNumber,
+      this._newValue,
+      this._newOctave
+    );
+    this._after = ScoreEditor.snapshotBeatNotes(
+      ScoreEditor.resolveBeatPositions(this._before)
+    );
     this._executed = true;
   }
 
@@ -48,10 +46,7 @@ export class SetNoteCommand implements Command {
       return;
     }
 
-    this.applyNoteState(this._oldValue, this._oldOctave);
-    if (this._oldWasRest) {
-      this._beat.makeRest();
-    }
+    ScoreEditor.restoreBeatSnapshots(this._before);
   }
 
   redo(): void {
@@ -59,22 +54,14 @@ export class SetNoteCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    this._beat.makeBeatWithNotes();
-    this.applyNoteState(this._newValue, this._newOctave);
-  }
-
-  private applyNoteState(value: NoteValue, octave: number | null): void {
-    const note = this.getTargetNote();
-    if (value === NoteValue.None || value === NoteValue.Dead) {
-      note.noteValue = value;
-      note.octave = octave;
-      return;
-    }
-
-    note.setNote(value, octave);
+    ScoreEditor.restoreBeatSnapshots(this._after);
   }
 
   public get affectedModels(): AffectedModel[] {
-    return getAffectedModelsFromBeats([this._beat]);
+    return getAffectedModelsFromBeats(
+      this._before.length > 0
+        ? ScoreEditor.resolveBeatPositions(this._before)
+        : [this._beat]
+    );
   }
 }

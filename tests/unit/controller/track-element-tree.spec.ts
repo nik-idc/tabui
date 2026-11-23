@@ -7,6 +7,7 @@ import {
   GuitarNote,
   GuitarTechnique,
   GuitarTechniqueType,
+  ScoreEditor,
   NoteDuration,
   Track,
   VoiceNumber,
@@ -14,7 +15,7 @@ import {
 import { createBeat, createScoreGraph } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "./helpers";
 import { SetTechniqueCommand } from "../../../src/notation/controller/editor/command";
-import { createMultiVoiceTwoStaffScoreFixture } from "../../../demo/data/multi-voice-score";
+import { createMultiVoiceTwoStaffScoreFixture } from "../multi-voice-score";
 import { TabUILayoutMode } from "../../../src/config/tabui-config";
 import { BeamSegmentElement } from "../../../src/notation/controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "../../../src/notation/controller/element/bar/bar-tuplet-group-element";
@@ -247,9 +248,9 @@ describe("TrackElement tree", () => {
     expect(beatElement.noteElements.map((v) => v.stringNumber)).toEqual([
       1, 2, 3, 4, 5, 6,
     ]);
-    beatElement.noteElements.forEach((v, i) => {
+    for (const [i, v] of beatElement.noteElements.entries()) {
       expect(v.note).toBe(beatElement.beat.notes?.[i]);
-    });
+    }
   });
 
   test("line-local geometry excludes the preceding line height for immediate children", () => {
@@ -267,34 +268,36 @@ describe("TrackElement tree", () => {
     const trackLineInfo = trackLine.trackLineInfoElement;
     const staffLine = trackLine.staffLineContainers[0];
 
-    // Six 24px string slots, a 60px rhythm row, and 30px tempo space = 234px.
-    expect(trackLine.globalCoords).toEqual({ x: 0, y: 234 });
+    // Six 24px string slots, 60px rhythm, 30px tempo and 18px numbers = 252px.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 252 });
     expect(trackLine.lineLocalCoords).toEqual({ x: 0, y: 0 });
     expect(trackLine.lineLocalBoundingBox).toEqual({
       x: 0,
       y: 0,
       width: 1200,
-      height: 234,
+      height: 252,
     });
 
-    if (trackLineInfo === null) throw Error("Expected tempo information");
+    if (trackLineInfo === null) {
+      throw Error("Expected tempo information");
+    }
     expect(trackLineInfo.lineLocalCoords).toEqual({ x: 0, y: 0 });
     expect(trackLineInfo.lineLocalBoundingBox).toEqual({
       x: 0,
       y: 0,
       width: 1200,
-      height: 30,
+      height: 48,
     });
-    expect(trackLineInfo.globalCoords).toEqual({ x: 0, y: 234 });
+    expect(trackLineInfo.globalCoords).toEqual({ x: 0, y: 252 });
 
-    expect(staffLine.lineLocalCoords).toEqual({ x: 0, y: 30 });
+    expect(staffLine.lineLocalCoords).toEqual({ x: 0, y: 48 });
     expect(staffLine.lineLocalBoundingBox).toEqual({
       x: 0,
-      y: 30,
+      y: 48,
       width: 1200,
       height: 204,
     });
-    expect(staffLine.globalCoords).toEqual({ x: 0, y: 264 });
+    expect(staffLine.globalCoords).toEqual({ x: 0, y: 300 });
   });
 
   test("line-local geometry composes through bar beat note and label descendants", () => {
@@ -307,7 +310,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -322,17 +325,19 @@ describe("TrackElement tree", () => {
     const gapLine = styleLine.techGapContainer.techGapLinesAsArray.find(
       (line) => line.labelElements.length > 0
     );
-    if (gapLine === undefined) throw Error("Expected technique gap line");
+    if (gapLine === undefined) {
+      throw Error("Expected technique gap line");
+    }
     const labelElement = gapLine.labelElements[0];
 
-    // The 30px tempo row precedes a 24px palm-mute label row.
-    expect(styleLine.lineLocalCoords).toEqual({ x: 0, y: 30 });
-    expect(barElement.lineLocalCoords).toEqual({ x: 0, y: 54 });
+    // The 48px tempo/number header precedes a 24px palm-mute label row.
+    expect(styleLine.lineLocalCoords).toEqual({ x: 0, y: 48 });
+    expect(barElement.lineLocalCoords).toEqual({ x: 18, y: 72 });
 
-    // The first attack is 12px beyond the 85.5px signature/repeat reserve.
+    // The first beat box is 3px beyond the 85.5px signature/repeat reserve.
     expect(beatElement.voiceBarContainer.boundingBox.x).toBeCloseTo(85.5);
-    expect(beatElement.lineLocalCoords).toEqual({ x: 97.5, y: 54 });
-    expect(beatElement.globalCoords).toEqual({ x: 97.5, y: 54 });
+    expect(beatElement.lineLocalCoords).toEqual({ x: 106.5, y: 72 });
+    expect(beatElement.globalCoords).toEqual({ x: 106.5, y: 72 });
     expect(beatElement.lineLocalCoords.x).toBeCloseTo(
       barElement.lineLocalCoords.x + beatElement.barLocalCoords.x
     );
@@ -346,8 +351,9 @@ describe("TrackElement tree", () => {
       barElement.globalCoords.y + beatElement.barLocalCoords.y
     );
 
-    expect(noteElement.lineLocalCoords).toEqual({ x: 97.5, y: 54 });
-    expect(labelElement.lineLocalCoords).toEqual({ x: 97.5, y: 30 });
+    expect(noteElement.lineLocalCoords).toEqual({ x: 106.5, y: 72 });
+    // Labels start at the attack: 16.2px after the beat box start.
+    expect(labelElement.lineLocalCoords).toEqual({ x: 122.7, y: 48 });
   });
 
   test("tempo and technique origins include the preceding line height only in global space", () => {
@@ -366,7 +372,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.PalmMute));
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -397,10 +403,20 @@ describe("TrackElement tree", () => {
     if (tempoRectGlobal === undefined || tempoRectLineLocal === undefined) {
       throw Error("Expected tempo rectangles");
     }
-    // The first line is 234px tall; the new tempo occupies the next 30px.
-    expect(trackLine.globalCoords).toEqual({ x: 0, y: 234 });
-    expect(tempoRectLineLocal).toEqual({ x: 0, y: 0, width: 30, height: 30 });
-    expect(tempoRectGlobal).toEqual({ x: 0, y: 234, width: 30, height: 30 });
+    // The first line is 252px tall; the new tempo occupies the next 30px.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 252 });
+    expect(tempoRectLineLocal).toEqual({
+      x: 62.7,
+      y: 0,
+      width: 30,
+      height: 30,
+    });
+    expect(tempoRectGlobal).toEqual({
+      x: 62.7,
+      y: 252,
+      width: 30,
+      height: 30,
+    });
 
     const tempoTextGlobal =
       trackLineInfo.getBarTempoTextCoordsGlobal(barElement);
@@ -409,14 +425,15 @@ describe("TrackElement tree", () => {
     if (tempoTextGlobal === undefined || tempoTextLineLocal === undefined) {
       throw Error("Expected tempo text coordinates");
     }
-    expect(tempoTextLineLocal).toEqual({ x: 30, y: 24 });
-    expect(tempoTextGlobal).toEqual({ x: 30, y: 258 });
+    expect(tempoTextLineLocal).toEqual({ x: 92.7, y: 24 });
+    expect(tempoTextGlobal).toEqual({ x: 92.7, y: 276 });
 
-    // This line has no time signature: 49.5px repeat reserve + 12px attack padding.
-    expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 61.5, y: 54 });
-    expect(techniqueElement.pathOrigin).toEqual({ x: 61.5, y: 288 });
-    expect(labelElement.descriptorOriginLineLocal).toEqual({ x: 61.5, y: 30 });
-    expect(labelElement.descriptorOrigin).toEqual({ x: 61.5, y: 264 });
+    // This line has no time signature: 49.5px repeat reserve + 3px attack
+    // padding. Labels start 16.2px later, at the attack.
+    expect(techniqueElement.pathOriginLineLocal).toEqual({ x: 52.5, y: 72 });
+    expect(techniqueElement.pathOrigin).toEqual({ x: 52.5, y: 324 });
+    expect(labelElement.descriptorOriginLineLocal).toEqual({ x: 68.7, y: 48 });
+    expect(labelElement.descriptorOrigin).toEqual({ x: 68.7, y: 300 });
   });
 
   test("staff outlines borders and note text use the owning line coordinate space", () => {
@@ -436,7 +453,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    note.fret = 7;
+    note.setFret(7);
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
     trackElement.update();
@@ -460,50 +477,50 @@ describe("TrackElement tree", () => {
       throw Error("Expected a two-staff outline");
     }
 
-    // Two 204px staves and 30px tempo space precede this line (438px).
-    // Its first string is 12px below its own 30px tempo row.
-    expect(trackLine.globalCoords).toEqual({ x: 0, y: 438 });
-    expect(outlineLineLocal.left).toEqual({ x: 0, y1: 42, y2: 366 });
-    expect(outlineGlobal.left).toEqual({ x: 0, y1: 480, y2: 804 });
-    expect(outlineLineLocal.right.y2).toBe(366);
-    expect(outlineGlobal.right.y2).toBe(804);
+    // Two 204px staves and a 48px tempo/number header precede this line.
+    // Its first string is 12px below its own 48px header.
+    expect(trackLine.globalCoords).toEqual({ x: 0, y: 456 });
+    expect(outlineLineLocal.left).toEqual({ x: 0, y1: 60, y2: 384 });
+    expect(outlineGlobal.left).toEqual({ x: 0, y1: 516, y2: 840 });
+    expect(outlineLineLocal.right.y2).toBe(384);
+    expect(outlineGlobal.right.y2).toBe(840);
 
     expect(barElement.barLeftBorderLineLineLocal).toEqual({
       x: 0,
-      y1: 42,
-      y2: 162,
+      y1: 60,
+      y2: 180,
     });
     expect(barElement.barLeftBorderLineGlobal).toEqual({
       x: 0,
-      y1: 480,
-      y2: 600,
+      y1: 516,
+      y2: 636,
     });
-    expect(barElement.barRightBorderLineLineLocal.y1).toBe(42);
-    expect(barElement.barRightBorderLineGlobal.y1).toBe(480);
+    expect(barElement.barRightBorderLineLineLocal.y1).toBe(60);
+    expect(barElement.barRightBorderLineGlobal.y1).toBe(516);
     expect(barElement.staffLinesLineLocal.map((v) => v.y)).toEqual([
-      42, 66, 90, 114, 138, 162,
+      60, 84, 108, 132, 156, 180,
     ]);
     expect(barElement.staffLinesGlobal.map((v) => v.y)).toEqual([
-      480, 504, 528, 552, 576, 600,
+      516, 540, 564, 588, 612, 636,
     ]);
     expect(barElement.staffLinesLineLocal[0].x1).toBe(0);
     expect(barElement.staffLinesGlobal[0].x1).toBe(0);
 
-    // A 12px fret glyph is centered on the 61.5px attack and first string.
+    // A 12px fret glyph is centered on the 68.7px attack and first string.
     expect(noteElement.textRectLineLocal).toEqual({
-      x: 55.5,
-      y: 36,
+      x: 62.7,
+      y: 54,
       width: 12,
       height: 12,
     });
     expect(noteElement.textRectGlobal).toEqual({
-      x: 55.5,
-      y: 474,
+      x: 62.7,
+      y: 510,
       width: 12,
       height: 12,
     });
-    expect(noteElement.textCoordsLineLocal).toEqual({ x: 61.5, y: 42 });
-    expect(noteElement.textCoordsGlobal).toEqual({ x: 61.5, y: 480 });
+    expect(noteElement.textCoordsLineLocal).toEqual({ x: 68.7, y: 60 });
+    expect(noteElement.textCoordsGlobal).toEqual({ x: 68.7, y: 516 });
   });
 
   test("registry lookup returns the beat element by model beat", () => {
@@ -579,7 +596,9 @@ describe("TrackElement tree", () => {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
     }
     const finalVoiceBar = track.staves[0].bars[12].getVoiceBar(1);
-    if (finalVoiceBar === null) throw Error("Expected final voice bar");
+    if (finalVoiceBar === null) {
+      throw Error("Expected final voice bar");
+    }
     for (let i = 0; i < 3; i++) {
       finalVoiceBar.appendBeats();
     }
@@ -675,7 +694,9 @@ describe("TrackElement tree", () => {
       track.staves[0].bars.map((bar) => {
         const barElement = findBarElement(trackElement, bar.uuid);
         expect(barElement).toBeDefined();
-        if (barElement === undefined) throw Error("Expected bar element");
+        if (barElement === undefined) {
+          throw Error("Expected bar element");
+        }
         return [
           bar.uuid,
           {
@@ -710,7 +731,9 @@ describe("TrackElement tree", () => {
     updateMasterBars(trackElement, [affectedMasterBarIndex]);
 
     expect(
-      trackElement.trackLineElements.map((line) => line.getStableIdentity())
+      trackElement.trackLineElements
+        .slice(0, lineIdentities.length)
+        .map((line) => line.getStableIdentity())
     ).toEqual(lineIdentities);
 
     const movedBarUUID = track.staves[0].bars.find((bar) => {
@@ -725,10 +748,14 @@ describe("TrackElement tree", () => {
       );
     })?.uuid;
     expect(movedBarUUID).toBeDefined();
-    if (movedBarUUID === undefined) throw Error("Expected moved bar UUID");
+    if (movedBarUUID === undefined) {
+      throw Error("Expected moved bar UUID");
+    }
 
     const before = beforeByBarUUID.get(movedBarUUID);
-    if (before === undefined) throw Error("Expected original bar element");
+    if (before === undefined) {
+      throw Error("Expected original bar element");
+    }
     const after = findBarElement(trackElement, movedBarUUID);
     expect(after?.getStableIdentity()).toBe(before.stableIdentity);
     expect(after?.beatElements[0].getStableIdentity()).toBe(
@@ -821,9 +848,9 @@ describe("TrackElement tree", () => {
     if (!(affectedNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    affectedNote.fret = 5;
+    affectedNote.setFret(5);
     const setTechCommand = new SetTechniqueCommand(
-      [affectedNote],
+      ScoreEditor.getTechniqueTargetsForNotes([affectedNote]),
       GuitarTechniqueType.PalmMute
     );
     setTechCommand.execute();
@@ -876,7 +903,9 @@ describe("TrackElement tree", () => {
     for (const line of lines) {
       const styleLine = line.staffLineContainers[0].styleLinesAsArray[0];
       expect(styleLine.barElements).toHaveLength(line.trackLineBars.length);
-      expect(styleLine.barElements[0].boundingBox.x).toBeCloseTo(0);
+      expect(styleLine.barElements[0].boundingBox.x).toBeCloseTo(
+        line.trackLineBars[0].masterBarIndex === 0 ? 18 : 0
+      );
 
       for (let i = 0; i < line.trackLineBars.length; i++) {
         const masterBarIndex = line.trackLineBars[i].masterBarIndex;
@@ -917,27 +946,32 @@ describe("TrackElement tree", () => {
 
     expect(firstLineBeatElement).toBeDefined();
     expect(secondLineBeatElement).toBeDefined();
-    if (firstLineBeatElement === undefined)
+    if (firstLineBeatElement === undefined) {
       throw Error("Expected first line beat element");
-    if (secondLineBeatElement === undefined)
+    }
+    if (secondLineBeatElement === undefined) {
       throw Error("Expected second line beat element");
+    }
     expect(selectionRects).toHaveLength(2);
     expect(selectionRects[0].width).toBeGreaterThan(0);
     expect(selectionRects[1].width).toBeGreaterThan(0);
     expect(selectionRects[1].y).toBeGreaterThan(selectionRects[0].y);
-    expect(selectionRects[0].x).toBeLessThan(
+    // Selections include the beat technique slot at the box start. Rest
+    // glyphs can reach further left.
+    expect(selectionRects[0].x).toBeLessThanOrEqual(
       firstLineBeatElement.barElement.globalCoords.x +
         firstLineBeatElement.barLocalBoundingBox.x
     );
-    expect(selectionRects[1].x).toBeLessThan(
+    expect(selectionRects[1].x).toBeLessThanOrEqual(
       secondLineBeatElement.barElement.globalCoords.x +
         secondLineBeatElement.barLocalBoundingBox.x
     );
     const selectedElements = [firstLineBeatElement, secondLineBeatElement];
     for (const [i, beatElement] of selectedElements.entries()) {
       const noteElement = beatElement.noteElements[0];
-      if (!(noteElement instanceof TabNoteSlotElement))
+      if (!(noteElement instanceof TabNoteSlotElement)) {
         throw Error("Expected tab note slot");
+      }
       const noteBounds = noteElement.textRectGlobal;
       expect(selectionRects[i].x).toBeLessThanOrEqual(noteBounds.x);
       expect(selectionRects[i].right).toBeGreaterThanOrEqual(noteBounds.right);
@@ -1134,7 +1168,7 @@ describe("TrackElement tree", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected target guitar note");
     }
-    note.fret = 5;
+    note.setFret(5);
     note.addTechnique(new GuitarTechnique(note, GuitarTechniqueType.Vibrato));
     const trackElement = new TrackElement(
       track,
@@ -1227,7 +1261,7 @@ describe("TrackElement tree", () => {
     if (!(firstLineNote instanceof GuitarNote)) {
       throw Error("Expected guitar note in test beat");
     }
-    firstLineNote.fret = 5;
+    firstLineNote.setFret(5);
     firstLineNote.addTechnique(
       new GuitarTechnique(firstLineNote, GuitarTechniqueType.Vibrato)
     );

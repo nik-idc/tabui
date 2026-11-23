@@ -10,6 +10,7 @@ import { YesNoComponent } from "../../shared/yes-no";
 
 export class ScoreControlsComponent {
   readonly parentDiv: HTMLDivElement;
+  readonly overlayParent: HTMLDivElement;
   readonly notationComponent: NotationComponent;
   readonly score: Score;
 
@@ -26,17 +27,21 @@ export class ScoreControlsComponent {
 
   constructor(
     parentDiv: HTMLDivElement,
+    overlayParent: HTMLDivElement,
     dialogEnforcer: DialogEnforcer,
     notationComponent: NotationComponent,
-    announce: (text: string) => void
+    /** Speaks a message to screen readers. */
+    readonly announce: (text: string) => void
   ) {
     this.parentDiv = parentDiv;
+    this.overlayParent = overlayParent;
     this.notationComponent = notationComponent;
     this.score = this.notationComponent.score;
 
     this.template = new ScoreControlsTemplate();
     this.templateRenderer = new ScoreControlsTemplateRenderer(
       this.parentDiv,
+      this.overlayParent,
       this.notationComponent,
       this.template
     );
@@ -74,8 +79,7 @@ export class ScoreControlsComponent {
     this.trackSettingsComponent.render();
     this.trackRemoveComponent.render();
     const controller = this.notationComponent.trackController;
-    const editingDisabled =
-      !controller.editingEnabled || controller.isPlaybackActive;
+    const editingDisabled = !controller.canEdit;
     const editingDialogs = [
       this.newTrackComponent.template.dialogContainer,
       this.trackSettingsComponent.template.dialogContainer,
@@ -92,7 +96,7 @@ export class ScoreControlsComponent {
 
   private reconcileTrackComponents(): void {
     if (!this._tracksAreDisplayed) {
-      this.template.tracksContainer.replaceChildren();
+      this.template.trackList.replaceChildren();
       this._trackComponents = [];
       return;
     }
@@ -106,7 +110,7 @@ export class ScoreControlsComponent {
       const trackComponent =
         remainingTrackComponents.get(track) ??
         new TrackControlsComponent(
-          this.template.tracksContainer,
+          this.template.trackList,
           this.notationComponent,
           track
         );
@@ -116,9 +120,9 @@ export class ScoreControlsComponent {
       const container = trackComponent.template.container;
       const nextContainerIndex = nextTrackComponents.length;
       const currentContainer =
-        this.template.tracksContainer.children[nextContainerIndex];
+        this.template.trackList.children[nextContainerIndex];
       if (currentContainer !== container) {
-        this.template.tracksContainer.insertBefore(
+        this.template.trackList.insertBefore(
           container,
           currentContainer ?? null
         );
@@ -137,7 +141,7 @@ export class ScoreControlsComponent {
 
   public showNewTrackDialog(): void {
     const controller = this.notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       return;
     }
     this.newTrackComponent.dialog.showModal();
@@ -145,7 +149,7 @@ export class ScoreControlsComponent {
 
   public showTrackSettingsDialog(track: Track): void {
     const controller = this.notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       return;
     }
     this.trackSettingsComponent.setTrack(track);
@@ -155,7 +159,7 @@ export class ScoreControlsComponent {
 
   public showTrackRemoveDialog(track: Track): void {
     const controller = this.notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       return;
     }
     this._trackToRemove = track;
@@ -167,8 +171,10 @@ export class ScoreControlsComponent {
 
   public removeSelectedTrack(): void {
     if (
-      this.notationComponent.trackController.isPlaybackActive ||
-      this._trackToRemove === null
+      this._trackToRemove === null ||
+      !this.notationComponent.trackController.canRemoveTrack(
+        this.notationComponent.score
+      )
     ) {
       return;
     }

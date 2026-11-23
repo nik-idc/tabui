@@ -1,6 +1,6 @@
 import { Track } from "../../../model";
 import { Point, Rect, randomInt } from "../../../../shared";
-import { TrackElement } from "../track-element";
+import type { TrackElement } from "../track-element";
 import { StaffLineContainer } from "../staff/staff-line-container";
 import { TrackLineInfoElement } from "./track-line-info-element";
 import { VertLine } from "../../../../shared/rendering/geometry/line";
@@ -62,7 +62,7 @@ export class TrackLineElement implements NotationElement {
 
   /** Staff line element on this track line */
   private _staffLineContainers: StaffLineContainer[];
-  /** Track line info (tempo) */
+  /** Track line info (tuning and tempo) */
   private _trackLineInfoElement: TrackLineInfoElement | null;
   /** Notation nodes owned by this track line in traversal order. */
   private _ownedNotationNodes: NotationNode[];
@@ -216,11 +216,11 @@ export class TrackLineElement implements NotationElement {
     const y = prevTrackLine?._boundingBox.bottom ?? 0;
     this._boundingBox.setCoords(0, y);
 
-    this._trackLineInfoElement.layout();
-
     for (const staffLine of this._staffLineContainers) {
       staffLine.layout();
     }
+
+    this._trackLineInfoElement.layout();
 
     if (this._outlineLines === undefined) {
       return;
@@ -339,7 +339,7 @@ export class TrackLineElement implements NotationElement {
     }
   }
 
-  /** Track line info (tempo) */
+  /** Track line info (tuning and tempo) */
   public get trackLineInfoElement(): TrackLineInfoElement | null {
     return this._trackLineInfoElement;
   }

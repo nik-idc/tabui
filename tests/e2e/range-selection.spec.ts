@@ -1,4 +1,13 @@
-import { expect, test } from "@playwright/test";
+import { expect, Locator, test } from "@playwright/test";
+
+/** Measures the full selected width, including ranges that wrap across lines. */
+async function getSelectionWidth(rectangles: Locator): Promise<number> {
+  return rectangles.evaluateAll((r) =>
+    r.reduce((sum, rectangle) => {
+      return sum + Number(rectangle.getAttribute("width"));
+    }, 0)
+  );
+}
 
 test("announces a mouse range once on release, not during held drag frames", async ({
   page,
@@ -12,15 +21,18 @@ test("announces a mouse range once on release, not during held drag frames", asy
   await expect(announcement).toHaveAttribute("aria-live", "polite");
   await expect(announcement).toHaveAttribute("aria-atomic", "true");
   const initialText = await announcement.textContent();
-  if (initialText === null)
+  if (initialText === null) {
     throw Error("Expected initial selection announcement");
+  }
   const points = await notes.evaluateAll((elements) => {
     const first = elements[0].getBoundingClientRect();
     const seen = new Set<number>();
     return elements
       .flatMap((element) => {
         const rect = element.getBoundingClientRect();
-        if (rect.y !== first.y || seen.has(rect.x)) return [];
+        if (rect.y !== first.y || seen.has(rect.x)) {
+          return [];
+        }
         seen.add(rect.x);
         return [{ x: rect.x + rect.width / 2, y: rect.y + rect.height / 2 }];
       })
@@ -33,7 +45,9 @@ test("announces a mouse range once on release, not during held drag frames", asy
       changes.mutations += records.length;
       for (const record of records) {
         for (const node of record.addedNodes) {
-          if (node.textContent) changes.insertions.push(node.textContent);
+          if (node.textContent) {
+            changes.insertions.push(node.textContent);
+          }
         }
       }
     });
@@ -68,11 +82,12 @@ test("announces a mouse range once on release, not during held drag frames", asy
       ).toBe(0);
     }
 
-    await page.mouse.move(1, 1);
+    // Leave the editor without changing the horizontal selection endpoint.
+    await page.mouse.move(points[2].x, 1);
     await page.mouse.up();
     const finalText =
-      "Track Rhythm track, Staff 1, voice 1, 3 beats selected, " +
-      "bar 1 beat 1 to bar 2 beat 2, anchor bar 1 beat 1, active end bar 2 beat 2.";
+      "3 beats selected, " +
+      "bar 1 beat 1 to bar 1 beat 3, anchor bar 1 beat 1, active end bar 1 beat 3.";
     await expect(announcement).toHaveText(finalText);
     await page.evaluate(
       () =>
@@ -97,35 +112,35 @@ test("anchors, extends, and clears a range through shared transport controls", a
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
   const announcement = editor.locator(".tu-announcement-host");
-  const rangeButton = editor.getByRole("button", { name: "Set anchor" });
+  const rangeButton = editor.getByRole("button", {
+    name: "Set selection anchor",
+  });
   await expect(rangeButton).toBeVisible();
 
   // Set a one-beat anchor from the editor's current note cursor.
   await rangeButton.click();
   const clearRangeButton = editor.getByRole("button", {
-    name: "Clear range",
+    name: "Clear selection range",
   });
   await expect(clearRangeButton).toBeVisible();
   const selectionRect = editor.locator('[id^="selection-rect-"]');
   await expect(selectionRect).toHaveCount(1);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 1 beat selected, " +
+    "1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
-  const selectionWidthBefore = Number(
-    await selectionRect.getAttribute("width")
-  );
+  const selectionWidthBefore = await getSelectionWidth(selectionRect);
   expect(selectionWidthBefore).toBeGreaterThan(0);
 
   // Bar wrappers contain sibling bar, beat, and note renderer groups.
-  // The first staff starts with one whole beat, then two half beats.
+  // Each bar of the first track has five beats.
   const bars = editor.locator('.tu-root-svg g[id^="bar-"]');
   const firstBar = bars.nth(0).locator("xpath=../..");
   const secondBar = bars.nth(1).locator("xpath=../..");
   const beatGroups = 'g[id^="beat-"]:not([id^="beat-rhythm-"])';
-  await expect(firstBar.locator(beatGroups)).toHaveCount(1);
+  await expect(firstBar.locator(beatGroups)).toHaveCount(5);
   const secondBarBeats = secondBar.locator(beatGroups);
-  await expect(secondBarBeats).toHaveCount(2);
+  await expect(secondBarBeats).toHaveCount(5);
   const firstBeatId = await secondBarBeats.first().getAttribute("id");
   if (firstBeatId === null) {
     throw Error("Expected the second bar's first beat ID");
@@ -136,12 +151,10 @@ test("anchors, extends, and clears a range through shared transport controls", a
   );
   await expect(nextBeatNote).toHaveCount(1);
   await nextBeatNote.click();
-  const selectionWidthAfterBeat = Number(
-    await selectionRect.getAttribute("width")
-  );
+  const selectionWidthAfterBeat = await getSelectionWidth(selectionRect);
   expect(selectionWidthAfterBeat).toBeGreaterThan(selectionWidthBefore);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 2 beats selected, " +
+    "6 beats selected, " +
       "bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1."
   );
 
@@ -149,11 +162,11 @@ test("anchors, extends, and clears a range through shared transport controls", a
   const nextBarButton = editor.getByRole("button", { name: "Next bar" });
   await nextBarButton.click();
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 4 beats selected, " +
+    "11 beats selected, " +
       "bar 1 beat 1 to bar 3 beat 1, anchor bar 1 beat 1, active end bar 3 beat 1."
   );
   await expect
-    .poll(async () => Number(await selectionRect.getAttribute("width")))
+    .poll(() => getSelectionWidth(selectionRect))
     .toBeGreaterThan(selectionWidthAfterBeat);
 
   // Clear restores the cursor state and makes a new anchor available.
@@ -161,8 +174,8 @@ test("anchors, extends, and clears a range through shared transport controls", a
   await expect(rangeButton).toBeVisible();
   await expect(editor.locator('[id^="selection-rect-"]')).toHaveCount(0);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
-      "Beat 1, whole, String 1, empty."
+    "Track Clean rhythm, Bar 1, 4/4, 90 BPM, " +
+      "Beat 1, quarter, String 1, empty."
   );
 });
 
@@ -176,28 +189,43 @@ test("announces keyboard ranges across bars and full context after Escape", asyn
   await page.keyboard.press("Enter");
   await page.keyboard.press("Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 2 beats selected, " +
-      "bar 1 beat 1 to bar 2 beat 1, anchor bar 1 beat 1, active end bar 2 beat 1."
+    "1 beat selected, " +
+      "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
+  );
+  await page.keyboard.press("Shift+ArrowRight");
+  await expect(announcement).toHaveText(
+    "2 beats selected, " +
+      "bar 1 beat 1 to bar 1 beat 2, anchor bar 1 beat 1, active end bar 1 beat 2."
   );
   await page.keyboard.press("Control+Shift+ArrowRight");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 3 beats selected, " +
-      "bar 1 beat 1 to bar 2 beat 2, anchor bar 1 beat 1, active end bar 2 beat 2."
+    "5 beats selected, " +
+      "bar 1 beat 1 to bar 1 beat 5, anchor bar 1 beat 1, active end bar 1 beat 5."
+  );
+  await page.keyboard.press("Control+Shift+ArrowRight");
+  await expect(announcement).toHaveText(
+    "10 beats selected, " +
+      "bar 1 beat 1 to bar 2 beat 5, anchor bar 1 beat 1, active end bar 2 beat 5."
   );
   await expect(editor.locator('[id^="selection-rect-"]').first()).toBeVisible();
   await page.keyboard.press("Control+Shift+ArrowLeft");
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, 1 beat selected, " +
+    "5 beats selected, " +
+      "bar 1 beat 1 to bar 1 beat 5, anchor bar 1 beat 1, active end bar 1 beat 5."
+  );
+  await page.keyboard.press("Control+Shift+ArrowLeft");
+  await expect(announcement).toHaveText(
+    "1 beat selected, " +
       "bar 1 beat 1 to bar 1 beat 1, anchor bar 1 beat 1, active end bar 1 beat 1."
   );
   await page.keyboard.press("Escape");
   await expect(editor.locator('[id^="selection-rect-"]')).toHaveCount(0);
   await expect(announcement).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
-      "Beat 1, whole, String 1, empty."
+    "Track Clean rhythm, Bar 1, 4/4, 90 BPM, " +
+      "Beat 1, quarter, String 1, empty."
   );
   await page.keyboard.press("ArrowRight");
   await expect(announcement).toHaveText(
-    "Bar 2, 4/4, 120 BPM, Voice 1, Beat 1, half, String 1, empty."
+    "Beat 2, eighth, 1 dot, String 1, empty."
   );
 });

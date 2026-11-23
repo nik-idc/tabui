@@ -7,14 +7,29 @@ import { Staff } from "./staff";
 import { Track } from "./track";
 import { Beat } from "./beat";
 import { VoiceBar, VoiceNumber } from "./voice-bar";
+import { NoteDuration } from "./note-duration";
 
+/** Complete meter value to apply to one shared master bar. */
+export type TimeSignatureChange = {
+  /** Shared bar whose matching voices need rebuilding. */
+  masterBar: MasterBar;
+  /** Meter numerator. */
+  beatsCount: number;
+  /** Written denominator duration. */
+  duration: NoteDuration;
+};
+
+/** Track-array edit metadata with live model references. */
 export type TrackArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
 > = {
+  /** Zero-based starting position in the score's track array. */
   index: number;
+  /** Tracks inserted or removed by the operation. */
   tracks: Track<I>[];
 };
 
+/** Live model references along the ownership path to a note. */
 export type NoteLocation = {
   track: Track;
   staff: Staff;
@@ -24,12 +39,18 @@ export type NoteLocation = {
   note: Note;
 };
 
+/** Live ownership path to a beat, including its voice. */
 export type BeatLocation = Omit<NoteLocation, "note">;
+/** Live ownership path to a voice bar within a staff bar. */
 export type BarLocation = Omit<BeatLocation, "beat">;
 
+/** Score-wide insertion/removal metadata for a shared master bar. */
 export type MasterBarArrayOperationOutput = {
+  /** Zero-based master-bar position at the time of the operation. */
   index: number;
+  /** Live inserted or removed master bar. */
   masterBar: MasterBar;
+  /** Associated live staff bars keyed by staff UUID. */
   bars: Map<number, Bar>;
 };
 
@@ -37,9 +58,9 @@ export type MasterBarArrayOperationOutput = {
  * Class representing a full score
  */
 export class Score {
-  /** Score-wide output volume applied after all track buses. */
+  /** Master gain after track mixing, normally 0–MAX_VOLUME (+10 dB); assignments are not validated. */
   public masterVolume: number;
-  /** Score-wide output pan applied after all track buses. */
+  /** Master stereo pan after track mixing, normally -1 (left) to 1 (right); assignments are not validated. */
   public masterPan: number;
 
   /** Score's tracks */
@@ -48,30 +69,30 @@ export class Score {
   private _name: string;
   /** Score's song artist */
   private _artist: string;
-  /** Score's song name */
-  private _song: string;
+  /** Album name, or null when unknown */
+  private _album: string | null = null;
+  /** Release date as an ISO partial date ("2024", "2024-05" or "2024-05-17"), or null when unknown */
+  private _releaseDate: string | null = null;
   /** Master bars */
   private _masterBars: MasterBar[];
 
   /**
-   * Class representing a full score
-   * @param tracks Score's tracks
+   * Creates one default master bar and, for an empty track array, one guitar track.
+   * @param tracks Retained live array; supplied tracks keep their parent references. Missing staves/bars are filled, without rebinding existing bars.
    * @param name Score's name
    * @param artist Score's song artist
-   * @param song Score's song name
+   * @throws If filling missing staff/bar content or rebuilding its timing fails.
    */
   constructor(
     tracks: Track<MusicInstrument>[] = [],
     name: string = "Unknown",
-    artist: string = "Unknown artist",
-    song: string = "Unknown song"
+    artist: string = "Unknown artist"
   ) {
     this._tracks = tracks;
 
     this._name = name;
     this._artist = artist;
-    this._song = song;
-    this.masterVolume = 1;
+    this.masterVolume = 0.5;
     this.masterPan = 0;
     this._masterBars = [new MasterBar(DEFAULT_MASTER_BAR)];
 
@@ -93,6 +114,10 @@ export class Score {
     }
   }
 
+  /**
+   * Tests repeat pairing without nested repeats; unmarked bars always pass.
+   * @throws If a repeat-marked master bar does not belong to this score.
+   */
   public isMasterBarRepeatStatusValid(masterBar: MasterBar): boolean {
     if (!masterBar.isRepeatStart && !masterBar.isRepeatEnd) {
       return true;
@@ -148,11 +173,38 @@ export class Score {
     return true;
   }
 
+  /** Applies meters and rebuilds matching voices across all tracks, without trimming or filling note content. Failures may leave partial changes. */
+  public setTimeSignatures(changes: TimeSignatureChange[]): void {
+    const masterBars = new Set(changes.map((v) => v.masterBar));
+    for (const change of changes) {
+      change.masterBar.beatsCount = change.beatsCount;
+      change.masterBar.duration = change.duration;
+    }
+
+    const voices = new Set<VoiceBar>();
+    for (const track of this._tracks) {
+      for (const staff of track.staves) {
+        for (const bar of staff.bars) {
+          if (!masterBars.has(bar.masterBar)) {
+            continue;
+          }
+          for (const voice of bar.voiceBarsAsArray) {
+            voices.add(voice);
+          }
+        }
+      }
+    }
+    for (const voice of voices) {
+      voice.rebuildTiming();
+    }
+  }
+
   /**
-   * Inserts an existing master bar & associated bars into the score
-   * @param index Index
-   * @param masterBar Master bar
-   * @param bars Bars map (staff UUID -> bar)
+   * Inserts an existing master bar and associated staff bars without copying or rebinding them.
+   * @param index Zero-based insertion position, using array-splice semantics.
+   * @param masterBar Shared master bar for this score position.
+   * @param bars Live bars keyed by staff UUID, already owned by the destination staff and master bar; missing entries create defaults.
+   * @throws If default voice timing or staff bookkeeping fails.
    */
   public insertReadyMasterBar(
     index: number,
@@ -174,15 +226,29 @@ export class Score {
   }
 
   /**
-   * Inserts a new master bar & inserts a bar to every staff of every track
-   * @param index Index after which to insert the bar
+   * Inserts a master bar and corresponding bars on every staff.
+   * @param index Integer insertion position from zero through the master-bar count.
+   * @param masterBarData Explicit settings; omitted inherits the previous bar's tempo and meter, or the first bar's at index zero, without repeats.
+   * @param voiceNumber Voice to seed with a quarter rest, alongside the staff's existing non-empty voices.
+   * @returns Live master bar and staff bars keyed by staff UUID, with the supplied index.
+   * @throws If settings, timing, or staff bookkeeping are invalid.
    */
   public insertMasterBar(
     index: number,
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
-    const newMasterBar = new MasterBar(masterBarData);
+    const invalidIndex =
+      !Number.isInteger(index) || index < 0 || index > this._masterBars.length;
+    if (invalidIndex) {
+      throw Error(`${index} is invalid bar index`);
+    }
+    if (index === this._masterBars.length) {
+      return this.appendMasterBar(masterBarData, voiceNumber);
+    }
+    const newMasterBar = new MasterBar(
+      masterBarData ?? this.getNewBarData(index)
+    );
     this._masterBars.splice(index, 0, newMasterBar);
 
     const staffBars: Map<number, Bar> = new Map();
@@ -199,14 +265,19 @@ export class Score {
   }
 
   /**
-   * Appends a new master bar & appends a bar to every staff of every track
-   * @param masterBarData Master bar data
+   * Appends a master bar and corresponding bars on every staff.
+   * @param masterBarData Explicit settings; omitted inherits the last bar's tempo and meter without repeats, or uses defaults for an empty score.
+   * @param voiceNumber Voice to seed with a quarter rest, alongside existing non-empty voices.
+   * @returns Live bars keyed by staff UUID and their zero-based position.
+   * @throws If settings, timing, or staff bookkeeping are invalid.
    */
   public appendMasterBar(
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
-    const newMasterBar = new MasterBar(masterBarData);
+    const newMasterBar = new MasterBar(
+      masterBarData ?? this.getNewBarData(this._masterBars.length)
+    );
     this._masterBars.push(newMasterBar);
 
     const staffBars: Map<number, Bar> = new Map();
@@ -227,14 +298,17 @@ export class Score {
   }
 
   /**
-   * Prepends a new master bar & prepends a bar to every staff of every track
-   * @param masterBarData Master bar data
+   * Prepends a master bar and corresponding bars on every staff.
+   * @param masterBarData Explicit settings; omitted inherits the first bar's tempo and meter without repeats.
+   * @param voiceNumber Voice to seed with a quarter rest, alongside existing non-empty voices.
+   * @returns Live bars keyed by staff UUID, at index zero.
+   * @throws If settings, timing, or staff bookkeeping are invalid.
    */
   public prependMasterBar(
-    masterBarData: MasterBarData = DEFAULT_MASTER_BAR,
+    masterBarData?: MasterBarData,
     voiceNumber: VoiceNumber = 1
   ): MasterBarArrayOperationOutput {
-    const newMasterBar = new MasterBar(masterBarData);
+    const newMasterBar = new MasterBar(masterBarData ?? this.getNewBarData(0));
     this._masterBars.unshift(newMasterBar);
 
     const staffBars: Map<number, Bar> = new Map();
@@ -254,9 +328,22 @@ export class Score {
     };
   }
 
+  /** Gets musical context for a new bar, using defaults only when the score is empty. */
+  private getNewBarData(index: number): MasterBarData {
+    const context = this._masterBars[index - 1] ?? this._masterBars[0];
+    return {
+      ...DEFAULT_MASTER_BAR,
+      tempo: context?.tempo ?? DEFAULT_MASTER_BAR.tempo,
+      beatsCount: context?.beatsCount ?? DEFAULT_MASTER_BAR.beatsCount,
+      duration: context?.duration ?? DEFAULT_MASTER_BAR.duration,
+    };
+  }
+
   /**
-   * Removes a master and all the track's bars at the specified index
-   * @param index Index of the bar to remove
+   * Removes a master bar and the corresponding bar on every staff.
+   * @param index Zero-based score position.
+   * @returns Removed live master/staff bars and their original index.
+   * @throws If the index is outside the score, removal would empty the score/staff, or staff bookkeeping fails.
    */
   public removeMasterBar(index: number): MasterBarArrayOperationOutput {
     if (index < 0 || index >= this._masterBars.length) {
@@ -280,9 +367,11 @@ export class Score {
   }
 
   /**
-   * Add new empty track to the score
+   * Appends a track with one staff and default-rest bars aligned to all master bars.
    * @param instrument Track's instrument
    * @param name Track name
+   * @returns Live new track and its zero-based insertion position.
+   * @throws If default note construction or voice timing fails.
    */
   public addTrack(
     instrument: MusicInstrument,
@@ -300,10 +389,11 @@ export class Score {
   }
 
   /**
-   * Remove track from the score
-   * @param index Index of the score to remove
+   * Removes a track, keeping at least one track in the score.
+   * @param index Zero-based track position to remove.
    * @returns Track before the deleted track or
    * track after, depending on the index
+   * @throws If the index is outside the score or this is the last track.
    */
   public removeTrack(index: number): Track {
     if (index < 0 || index >= this._tracks.length) {
@@ -322,6 +412,10 @@ export class Score {
     return newTrack;
   }
 
+  /**
+   * Moves an existing track to its final zero-based position in this score.
+   * @throws If the track is absent or the target is outside the track array.
+   */
   public moveTrack(track: Track, targetIndex: number): void {
     const currentIndex = this._tracks.indexOf(track);
     if (currentIndex === -1) {
@@ -356,22 +450,71 @@ export class Score {
     return this._artist;
   }
 
-  /** Song setter */
-  public set song(newSong: string) {
-    this._song = newSong;
+  /** Album name, or null when unknown */
+  public set album(newAlbum: string | null) {
+    this._album = newAlbum;
   }
-  /** Song getter */
-  public get song(): string {
-    return this._song;
+  public get album(): string | null {
+    return this._album;
   }
 
-  /** Master bars getter */
+  /**
+   * Release date, or null when unknown. Use an ISO partial date: "2024",
+   * "2024-05" or "2024-05-17". Assignments are not validated; see
+   * {@link isReleaseDate}.
+   */
+  public set releaseDate(newReleaseDate: string | null) {
+    this._releaseDate = newReleaseDate;
+  }
+  public get releaseDate(): string | null {
+    return this._releaseDate;
+  }
+
+  /** Live master-bar array; use score methods to keep staff bars aligned. */
   public get masterBars(): MasterBar[] {
     return this._masterBars;
   }
 
-  /** Tracks getter */
+  /** Live track array; inserted tracks must already belong to this score. */
   public get tracks(): Track[] {
     return this._tracks;
   }
+}
+
+/** Digit counts of the year, month and day parts of a release date. */
+const RELEASE_DATE_PART_LENGTHS = [4, 2, 2];
+
+/**
+ * Checks that a release date is an ISO partial date with a real month and
+ * day, for example "2024", "2024-05" or "2024-02-29".
+ * @param value Release date to check
+ * @returns True when the date is valid
+ */
+export function isReleaseDate(value: string): boolean {
+  const parts = value.split("-");
+  if (parts.length > RELEASE_DATE_PART_LENGTHS.length) {
+    return false;
+  }
+  const hasExpectedDigits = parts.every(
+    (part, i) =>
+      part.length === RELEASE_DATE_PART_LENGTHS[i] &&
+      [...part].every((char) => "0123456789".includes(char))
+  );
+  if (!hasExpectedDigits) {
+    return false;
+  }
+
+  const [year, month, day] = parts.map(Number);
+  if (month === undefined) {
+    return true;
+  }
+  if (month < 1 || month > 12) {
+    return false;
+  }
+  if (day === undefined) {
+    return true;
+  }
+  // Day 0 of the next month is the last day of this month.
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day >= 1 && day <= daysInMonth;
 }

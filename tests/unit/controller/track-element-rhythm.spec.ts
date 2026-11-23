@@ -77,8 +77,8 @@ describe("TrackElement rhythm", () => {
     const beatElements = barElement.beatElements;
     expect(beatElements).toHaveLength(3);
 
-    // The configured 12px attack padding separates notes from the start gap.
-    let expectedX = 12;
+    // The configured 3px attack padding separates beats from the start gap.
+    let expectedX = 3;
     for (let i = 0; i < beatElements.length; i++) {
       expect(beatElements[i].boundingBox.x).toBeCloseTo(expectedX);
       expect(beatElements[i].barLocalBoundingBox.x).toBeCloseTo(
@@ -115,10 +115,10 @@ describe("TrackElement rhythm", () => {
     ) {
       throw Error("Expected tab beat element");
     }
-    // A 12px note label extends 6px left of its attack column.
-    expect(rects[0].x).toBeCloseTo(firstSelected.attackXGlobal - 6);
-    expect(rects[0].width).toBeCloseTo(
-      firstSelected.boundingBox.width + lastSelected.boundingBox.width
+    // The selection starts at the box, so it covers the beat technique slot.
+    expect(rects[0].x).toBeCloseTo(firstSelected.globalBoundingBox.x);
+    expect(rects[0].right).toBeCloseTo(
+      lastSelected.getGlobalVisualBounds().right
     );
     expect(rects[0].right).toBeGreaterThan(lastSelected.attackXGlobal);
     expect(rects[0].right).toBeLessThan(unselected.attackXGlobal);
@@ -129,7 +129,7 @@ describe("TrackElement rhythm", () => {
     );
   });
 
-  test("selection rect covers left-extending tab note text", () => {
+  test("selection rect includes the note preview padding", () => {
     const { track, beats } = createBarWithBeats([
       { baseDuration: NoteDuration.Quarter },
       { baseDuration: NoteDuration.Quarter },
@@ -139,7 +139,7 @@ describe("TrackElement rhythm", () => {
     if (!(note instanceof GuitarNote)) {
       throw Error("Expected guitar note");
     }
-    note.fret = 3;
+    note.setFret(12);
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
 
     trackElement.update();
@@ -158,12 +158,16 @@ describe("TrackElement rhythm", () => {
     const rects = trackElement.getSelectionRects([beats[0]]);
 
     expect(rects).toHaveLength(1);
-    expect(noteElement.textRectGlobal.x).toBeLessThan(
-      beatElement.attackXGlobal
+    const preview = noteElement.selectionRect;
+    // The selection starts at the box, so it covers the beat technique slot
+    // and the note preview padding.
+    expect(rects[0].x).toBeCloseTo(beatElement.globalBoundingBox.x);
+    expect(rects[0].x).toBeLessThanOrEqual(preview.x);
+    expect(rects[0].x).toBeLessThan(noteElement.textRectGlobal.x);
+    expect(rects[0].right).toBeGreaterThanOrEqual(preview.right);
+    expect(rects[0].right).toBeCloseTo(
+      beatElement.getGlobalVisualBounds().right
     );
-    expect(rects[0].x).toBeCloseTo(noteElement.textRectGlobal.x);
-    expect(rects[0].width).toBeCloseTo(beatElement.boundingBox.width);
-    expect(rects[0].right).toBeGreaterThan(noteElement.textRectGlobal.right);
   });
 
   test("keeps dotted and tuplet beat widths positive", () => {
@@ -190,9 +194,23 @@ describe("TrackElement rhythm", () => {
   });
 
   test("justifies wrapped non-final lines to full width while keeping beats contiguous", () => {
-    const { score, track } = createScoreGraph();
-    for (let i = 0; i < 12; i++) {
+    const { score, track, staff } = createBarWithBeats([
+      { baseDuration: NoteDuration.Quarter },
+      { baseDuration: NoteDuration.Eighth },
+      { baseDuration: NoteDuration.Sixteenth },
+    ]);
+    for (let i = 1; i < 12; i++) {
       score.appendMasterBar(DEFAULT_MASTER_BAR);
+      const bar = staff.bars[i];
+      const voiceBar = bar.getVoiceBar(1);
+      if (voiceBar === null) {
+        throw Error("Expected test voice bar");
+      }
+      voiceBar.replaceBeats([
+        createBeat(voiceBar, NoteDuration.Quarter),
+        createBeat(voiceBar, NoteDuration.Eighth),
+        createBeat(voiceBar, NoteDuration.Sixteenth),
+      ]);
     }
 
     const trackElement = new TrackElement(track, TEST_LAYOUT_DIMENSIONS);
@@ -208,6 +226,11 @@ describe("TrackElement rhythm", () => {
       TEST_LAYOUT_DIMENSIONS.width
     );
 
+    expect(
+      firstLineStyle.barElements.every(
+        (barElement) => barElement.beatElements.length > 1
+      )
+    ).toBe(true);
     for (const barElement of firstLineStyle.barElements) {
       for (let i = 1; i < barElement.beatElements.length; i++) {
         expect(barElement.beatElements[i].boundingBox.x).toBeCloseTo(
@@ -501,7 +524,9 @@ describe("TrackElement rhythm", () => {
 
     expect(beatElement.durationFlagLines).toHaveLength(3);
     const flagLines = beatElement.durationFlagLines;
-    if (flagLines === undefined) throw Error("Expected duration flag lines");
+    if (flagLines === undefined) {
+      throw Error("Expected duration flag lines");
+    }
     expect(flagLines[0].y - flagLines[1].y).toBeCloseTo(
       TEST_LAYOUT_DIMENSIONS.durationFlagHeight * 2
     );
@@ -524,13 +549,17 @@ describe("TrackElement rhythm", () => {
     const beam = beatElement.owningBarElement
       .refreshOwnedNotationNodes()
       .find((e): e is BeamSegmentElement => e instanceof BeamSegmentElement);
-    if (beam === undefined) throw Error("Expected beam segment");
+    if (beam === undefined) {
+      throw Error("Expected beam segment");
+    }
     expect(beam.longRectsBarLocal).toHaveLength(3);
     const topBeamY = Math.min(...beam.longRectsBarLocal.map((r) => r.y));
 
     expect(beatElement.durationFlagLines).toBeUndefined();
     expect(dot).toBeDefined();
-    if (dot === undefined) throw Error("Expected duration dot");
+    if (dot === undefined) {
+      throw Error("Expected duration dot");
+    }
     // Dot and beam are both bar-local, including the same rhythm row origin.
     expect(dot.centerY + dot.diameter / 2).toBeLessThan(topBeamY);
   });
@@ -545,13 +574,16 @@ describe("TrackElement rhythm", () => {
 
     const beatElement = getRhythmElements(trackElement)[0];
     const flagLines = beatElement.durationFlagLinesBarLocal;
-    if (flagLines === undefined)
+    if (flagLines === undefined) {
       throw Error("Expected bar-local duration flag lines");
+    }
     const topFlagY = flagLines[2].y;
 
     expect(beatElement.dot1CircleBarLocal).toBeDefined();
     const dot = beatElement.dot1CircleBarLocal;
-    if (dot === undefined) throw Error("Expected duration dot");
+    if (dot === undefined) {
+      throw Error("Expected duration dot");
+    }
     expect(dot.centerY).toBeCloseTo(
       topFlagY - TEST_LAYOUT_DIMENSIONS.dotDiameter
     );

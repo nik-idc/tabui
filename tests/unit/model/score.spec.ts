@@ -3,9 +3,122 @@ import {
   Guitar,
   Score,
   Track,
+  NoteDuration,
 } from "../../../src/notation/model";
 
 describe("Score model", () => {
+  test.each(["insert", "prepend"])(
+    "%s preserves explicit tempo, meter and repeats",
+    (operation) => {
+      const score = new Score();
+      score.masterBars[0].tempo = 180;
+      const data = {
+        ...DEFAULT_MASTER_BAR,
+        tempo: 90,
+        beatsCount: 3,
+        duration: NoteDuration.Eighth,
+        isRepeatStart: true,
+      };
+      const result =
+        operation === "insert"
+          ? score.insertMasterBar(0, data)
+          : score.prependMasterBar(data);
+      expect(result.masterBar.barData).toEqual(data);
+    }
+  );
+  test("prepended bars inherit the first bar without copying repeat markers", () => {
+    const score = new Score();
+    score.masterBars[0].tempo = 90;
+    score.masterBars[0].beatsCount = 3;
+    score.masterBars[0].isRepeatStart = true;
+    expect(score.prependMasterBar().masterBar.barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 90,
+      beatsCount: 3,
+    });
+  });
+  test.each([0, 1])(
+    "inserted bar at %s inherits nearby musical context without repeats",
+    (index) => {
+      const score = new Score();
+      Object.assign(score.masterBars[0], {
+        tempo: 150,
+        beatsCount: 6,
+        duration: NoteDuration.Eighth,
+        isRepeatStart: true,
+      });
+      score.appendMasterBar(DEFAULT_MASTER_BAR);
+
+      const result = score.insertMasterBar(index);
+
+      expect(result.masterBar.barData).toEqual({
+        ...DEFAULT_MASTER_BAR,
+        tempo: 150,
+        beatsCount: 6,
+        duration: NoteDuration.Eighth,
+      });
+    }
+  );
+
+  test.each([-1, 0.5, 2])(
+    "insertMasterBar rejects invalid index %s before changing staff content",
+    (index) => {
+      const score = new Score();
+      score.addTrack(new Guitar(), "Second");
+      const masterBars = [...score.masterBars];
+      const staves = score.tracks.flatMap((t) => t.staves);
+      const bars = staves.map((s) => [...s.bars]);
+      const voices = staves.map((s) => s.nonEmptyVoiceNumbers);
+
+      expect(() => score.insertMasterBar(index)).toThrow("invalid bar index");
+
+      expect(score.masterBars).toEqual(masterBars);
+      for (const [i, staff] of staves.entries()) {
+        expect(staff.bars).toEqual(bars[i]);
+        expect(staff.nonEmptyVoiceNumbers).toEqual(voices[i]);
+      }
+    }
+  );
+
+  test("meter batches rebuild every matching track and staff without reshaping notes", () => {
+    const score = new Score();
+    score.appendMasterBar();
+    score.addTrack(new Guitar(), "Second");
+    score.tracks[0].insertStaff(1);
+    const voices = score.tracks.flatMap((t) =>
+      t.staves.flatMap((s) =>
+        s.bars.flatMap((b) => [b.ensureVoiceBar(1), b.ensureVoiceBar(2)])
+      )
+    );
+    const beats = voices.map((v) => [...v.beats]);
+
+    score.setTimeSignatures([
+      {
+        masterBar: score.masterBars[0],
+        beatsCount: 3,
+        duration: NoteDuration.Eighth,
+      },
+      {
+        masterBar: score.masterBars[1],
+        beatsCount: 1,
+        duration: NoteDuration.Eighth,
+      },
+    ]);
+
+    for (const [i, voice] of voices.entries()) {
+      expect(voice.beats).toEqual(beats[i]);
+      expect(voice.beats[0].baseDuration).toBe(NoteDuration.Quarter);
+      expect(voice.getActualBarDuration()).toBe(0.25);
+      expect(voice.barTicks).toBe(
+        voice.bar.masterBar === score.masterBars[0] ? 3 : 1
+      );
+      expect(voice.tickResolution).toBe(8);
+      expect(voice.beatPlayable(voice.beats[0])).toBe(
+        voice.bar.masterBar === score.masterBars[0]
+      );
+    }
+  });
+
   test("new Score creates one master bar, track, staff and bar", () => {
     const score = new Score();
 
@@ -13,7 +126,7 @@ describe("Score model", () => {
     expect(score.tracks).toHaveLength(1);
     expect(score.tracks[0].staves).toHaveLength(1);
     expect(score.tracks[0].staves[0].bars).toHaveLength(1);
-    expect(score.masterVolume).toBe(1);
+    expect(score.masterVolume).toBe(0.5);
     expect(score.masterPan).toBe(0);
   });
 
@@ -109,11 +222,25 @@ describe("Score model", () => {
     const staves = [...firstTrack.staves, ...secondTrack.staves];
     const firstBars = staves.map((s) => s.bars[0]);
     const firstMasterBar = score.masterBars[0];
+    firstMasterBar.tempo = 150;
+    firstMasterBar.beatsCount = 6;
+    firstMasterBar.duration = NoteDuration.Eighth;
+    firstMasterBar.isRepeatStart = true;
+    firstMasterBar.isRepeatEnd = true;
+    firstMasterBar.repeatCount = 3;
 
-    const output = score.appendMasterBar(DEFAULT_MASTER_BAR);
+    const output = score.appendMasterBar();
 
     expect(output.index).toBe(1);
     expect(output.bars.size).toBe(3);
+    expect(output.masterBar).not.toBe(firstMasterBar);
+    expect(output.masterBar.uuid).not.toBe(firstMasterBar.uuid);
+    expect(output.masterBar.barData).toEqual({
+      ...DEFAULT_MASTER_BAR,
+      tempo: 150,
+      beatsCount: 6,
+      duration: NoteDuration.Eighth,
+    });
     expect(score.masterBars).toEqual([firstMasterBar, output.masterBar]);
     for (const [i, staff] of staves.entries()) {
       expect(staff.bars).toHaveLength(2);

@@ -3,8 +3,11 @@
 import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import {
+  DEFAULT_OTHER_STRING,
   ElectricGuitarTone,
+  Guitar,
   GuitarNote,
+  OtherStringTone,
   StringInstrumentType,
   TrackInstrumentChangeMode,
 } from "../../../src/notation/model";
@@ -20,7 +23,7 @@ function createControls() {
   const beat = required(bar.getVoiceBar(1)).beats[0];
   beat.makeBeatWithNotes();
   const note = required(beat.notes)[5] as GuitarNote;
-  note.fret = 3;
+  note.setFret(3);
   const root = document.createElement("div");
   const controlsHost = document.createElement("div");
   const notationHost = document.createElement("div");
@@ -41,17 +44,11 @@ function createControls() {
     track,
     () => {}
   );
-  const keyboard = { released: false };
   const callbacks = new TrackSettingsControlsDefaultCallbacks(
     controls,
     notation,
     () => {
       controls.render();
-      callbacks.bind();
-    },
-    () => {},
-    () => {
-      keyboard.released = true;
     }
   );
   controls.render();
@@ -64,7 +61,6 @@ function createControls() {
     controls,
     callbacks,
     enforcer,
-    keyboard,
     dispose() {
       controls.dialog.close();
       callbacks.unbind();
@@ -95,7 +91,7 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
       callbacks.bind();
       controls.template.tuningDownButtons[0].click();
       controls.template.tuningDownButtons[0].click();
-      expect(controls.tuning).toBe("D A D G B E");
+      expect(controls.tuning).toBe("D2 A2 D3 G3 B3 E4");
       controls.template.transposeButton.click();
       if (mode === TrackInstrumentChangeMode.KeepFrets) {
         controls.template.keepFretsButton.click();
@@ -111,7 +107,6 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
       expect(notation.trackController.track).toBe(track);
       expect(controls.dialog.open).toBe(false);
       expect(enforcer.activeDialog).toBeUndefined();
-      expect(fixture.keyboard.released).toBe(true);
     }
   );
 
@@ -119,8 +114,6 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     const { callbacks, controls, track } = fixture;
     callbacks.bind();
     callbacks.bind();
-    controls.template.instrFamiliesButtons[0].click();
-    expect(controls.instrumentType).toBe(StringInstrumentType.AcousticGuitar);
     controls.template.instrTypesButtons[1].click();
     controls.template.instrTonesButtons[1].click();
     expect(controls.makeInstrument().type).toBe(
@@ -128,21 +121,58 @@ describe("TrackSettingsControlsDefaultCallbacks", () => {
     );
     expect(controls.makeInstrument().tone).toBe(ElectricGuitarTone.Overdrive);
     controls.template.tuningUpButtons[0].click();
-    expect(controls.tuning).toBe("F A D G B E");
+    expect(controls.tuning).toBe("F2 A2 D3 G3 B3 E4");
     controls.template.tuningDownButtons[1].click();
-    expect(controls.tuning).toBe("F G# D G B E");
+    expect(controls.tuning).toBe("F2 G#2 D3 G3 B3 E4");
     controls.template.wholeTuningUpButton.click();
-    expect(controls.tuning).toBe("F# A D# G# C F");
+    expect(controls.tuning).toBe("F#2 A2 D#3 G#3 C4 F4");
     controls.template.wholeTuningDownButton.click();
-    expect(controls.tuning).toBe("F G# D G B E");
+    expect(controls.tuning).toBe("F2 G#2 D3 G3 B3 E4");
 
     callbacks.unbind();
     controls.template.tuningUpButtons[0].click();
     controls.template.dialogContent.dispatchEvent(
       new Event("submit", { cancelable: true })
     );
-    expect(controls.tuning).toBe("F G# D G B E");
+    expect(controls.tuning).toBe("F2 G#2 D3 G3 B3 E4");
     expect(track.context.instrument.getTuningStrSimple()).toBe("E A D G B E");
     expect(controls.dialog.open).toBe(true);
+  });
+
+  test("a tuning edit keeps each string's octave", () => {
+    const { controls } = fixture;
+    const { track } = createScoreGraph();
+    track.setInstrument(
+      DEFAULT_OTHER_STRING[OtherStringTone.Ukulele] as Guitar,
+      TrackInstrumentChangeMode.KeepFrets
+    );
+    controls.setTrack(track);
+    controls.shiftTuningString(0, 2);
+    expect(controls.tuning).toBe("A4 C4 E4 A4");
+
+    const instrument = controls.makeInstrument();
+    // First string first; only the G4 string moved, to A4.
+    expect(instrument.tuning.map((n) => `${n.noteValue}${n.octave}`)).toEqual([
+      "A4",
+      "E4",
+      "C4",
+      "A4",
+    ]);
+  });
+
+  test("tuning mode buttons stay visible and enable only for changed tuning", () => {
+    const { callbacks, controls } = fixture;
+    callbacks.bind();
+
+    expect(controls.template.keepFretsButton.disabled).toBe(true);
+    expect(controls.template.transposeButton.disabled).toBe(true);
+
+    controls.template.tuningDownButtons[0].click();
+    expect(controls.template.keepFretsButton.disabled).toBe(false);
+    expect(controls.template.transposeButton.disabled).toBe(false);
+
+    controls.template.tuningUpButtons[0].click();
+    expect(controls.template.keepFretsButton.disabled).toBe(true);
+    expect(controls.template.transposeButton.disabled).toBe(true);
   });
 });

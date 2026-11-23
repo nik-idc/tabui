@@ -3,22 +3,28 @@ import { DialogEnforcer } from "../../../../shared/hmtl/dialog-enforcer";
 import { NotationComponent } from "../../../../notation/notation-component";
 import { NewTrackControlsTemplate } from "./new-track-controls-template";
 import { NewTrackControlsTemplateRenderer } from "./new-track-controls-template-renderer";
-import { getTuningValueText } from "../../../shared";
+import { getTuningText, getTuningValueText } from "../../../shared";
 import {
+  copyTuning,
+  getDefaultStringInstrument,
   Guitar,
   InstrumentFamily,
   InstrumentType,
-  INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
   isStringInstrumentType,
-  parseTuningStrSimple,
-  shiftTuningString,
-  shiftTuningWhole,
+  NoteType,
+  shiftPitch,
   StringInstrumentTone,
   StringInstrumentType,
   ElectricGuitarTone,
-  getDefaultTuningStrSimple,
+  MAX_TRACK_STAVES,
+  tuningsEqual,
 } from "../../../../notation/model";
+
+/** A preset's tuning in dialog order: lowest string first, as shown. */
+function presetTuning(tone: StringInstrumentTone): NoteType[] {
+  return copyTuning(getDefaultStringInstrument(tone).tuning).reverse();
+}
 
 export class NewTrackControlsComponent {
   readonly dialog: ContainedDialog;
@@ -33,7 +39,9 @@ export class NewTrackControlsComponent {
   private _instrumentTone: StringInstrumentTone = ElectricGuitarTone.Clean;
   private _trackName: string = "New track";
   private _stringCount: number = 6;
-  private _tuning: string = "E A D G B E";
+  /** Tuning with octaves, lowest string first, as the dialog shows it. */
+  private _tuning: NoteType[] = presetTuning(ElectricGuitarTone.Clean);
+  private _staffCount: number = 1;
 
   constructor(
     parentDiv: HTMLDivElement,
@@ -57,15 +65,18 @@ export class NewTrackControlsComponent {
     this.template.stringCountContainer.addEventListener("focusin", () =>
       this._announce(`String count ${this._stringCount}`)
     );
+    this.template.staffCountContainer.addEventListener("focusin", () =>
+      this._announce(`Staff count ${this._staffCount}`)
+    );
     this.template.wholeTuningContainer.addEventListener("focusin", () =>
-      this._announce(getTuningValueText(this._tuning))
+      this._announce(getTuningValueText(this.tuning))
     );
     this.template.tuningContainer.addEventListener("focusin", (event) => {
       const index = this.template.tuningStringContainers.findIndex((element) =>
         element.contains(event.target as Node)
       );
       if (index >= 0) {
-        this._announce(getTuningValueText(this._tuning, index));
+        this._announce(getTuningValueText(this.tuning, index));
       }
     });
   }
@@ -77,24 +88,9 @@ export class NewTrackControlsComponent {
       this._instrumentTone,
       this._trackName,
       this._stringCount,
-      this._tuning
+      this.tuning,
+      this._staffCount
     );
-  }
-
-  public setFamily(newFamily: InstrumentFamily): void {
-    const types = INSTRUMENT_TYPES[newFamily];
-    if (types.length === 0) {
-      return;
-    }
-
-    this._instrumentFamily = newFamily;
-    this._instrumentType = types[0];
-    const tones = INSTRUMENT_TONES[this._instrumentType];
-    if (tones === undefined || tones.length === 0) {
-      return;
-    }
-    this._instrumentTone = tones[0];
-    this.render();
   }
 
   public setType(newType: InstrumentType): void {
@@ -104,12 +100,22 @@ export class NewTrackControlsComponent {
     }
 
     this._instrumentType = newType;
-    this._instrumentTone = tones[0];
-    this.render();
+    this.setTone(tones[0]);
   }
 
+  /**
+   * Selects a tone. When its preset tuning differs from the current tone's,
+   * the dialog takes the new preset's string count and tuning. Otherwise it
+   * keeps the user's tuning, for example from steel to nylon.
+   */
   public setTone(newTone: StringInstrumentTone): void {
+    const oldPreset = getDefaultStringInstrument(this._instrumentTone);
+    const newPreset = getDefaultStringInstrument(newTone);
     this._instrumentTone = newTone;
+    if (!tuningsEqual(oldPreset.tuning, newPreset.tuning)) {
+      this._stringCount = newPreset.stringsCount;
+      this._tuning = presetTuning(newTone);
+    }
     this.render();
   }
 
@@ -117,13 +123,25 @@ export class NewTrackControlsComponent {
     this._trackName = trackName;
   }
 
+  /**
+   * Changes the string count. The tone's preset count restores the preset
+   * tuning. Other counts add strings a fourth below the lowest string, as on
+   * 7- and 8-string guitars, or remove the highest strings.
+   */
   public setStringCount(stringCount: number): void {
-    this._stringCount = stringCount;
-    const defaultTuning = getDefaultTuningStrSimple(stringCount);
-    if (defaultTuning !== null) {
-      this._tuning = defaultTuning;
-      this.render();
+    if (
+      stringCount ===
+      getDefaultStringInstrument(this._instrumentTone).stringsCount
+    ) {
+      this._tuning = presetTuning(this._instrumentTone);
+    } else {
+      while (this._tuning.length < stringCount) {
+        this._tuning.unshift(shiftPitch(this._tuning[0], -5));
+      }
+      this._tuning = this._tuning.slice(0, stringCount);
     }
+    this._stringCount = stringCount;
+    this.render();
   }
 
   public shiftStringCount(delta: number): void {
@@ -137,30 +155,45 @@ export class NewTrackControlsComponent {
 
     this.setStringCount(nextStringCount);
     this._announce(
-      `String count ${this._stringCount}. ${getTuningValueText(this._tuning)}`
+      `String count ${this._stringCount}. ${getTuningValueText(this.tuning)}`
     );
   }
 
-  public setTuning(tuning: string): void {
-    this._tuning = tuning;
+  /** Changes the staff count by delta, within 1 through MAX_TRACK_STAVES. */
+  public shiftStaffCount(delta: number): void {
+    const next = Math.min(
+      MAX_TRACK_STAVES,
+      Math.max(1, this._staffCount + delta)
+    );
+    if (next === this._staffCount) {
+      return;
+    }
+
+    this._staffCount = next;
+    this.render();
+    this._announce(`Staff count ${this._staffCount}`);
   }
 
+  /** Shifts one string, by its position in the dialog, lowest string first. */
   public shiftTuningString(stringIndex: number, semitones: number): void {
-    const previous = this._tuning;
-    this._tuning = shiftTuningString(this._tuning, stringIndex, semitones);
+    const previous = this._tuning[stringIndex];
+    const next = shiftPitch(previous, semitones);
+    this._tuning[stringIndex] = next;
     this.render();
-    if (this._tuning !== previous) {
-      this._announce(getTuningValueText(this._tuning, stringIndex));
+    if (next !== previous) {
+      this._announce(getTuningValueText(this.tuning, stringIndex));
     }
   }
 
+  /** Shifts every string; does nothing if any string would leave the octave range. */
   public shiftWholeTuning(semitones: number): void {
-    const previous = this._tuning;
-    this._tuning = shiftTuningWhole(this._tuning, semitones);
-    this.render();
-    if (this._tuning !== previous) {
-      this._announce(getTuningValueText(this._tuning));
+    const next = this._tuning.map((note) => shiftPitch(note, semitones));
+    if (next.some((note, i) => note === this._tuning[i])) {
+      return;
     }
+    this._tuning = next;
+    this.render();
+    this._announce(getTuningValueText(this.tuning));
   }
 
   public makeInstrument(): Guitar {
@@ -173,7 +206,8 @@ export class NewTrackControlsComponent {
       this._instrumentTone,
       this._trackName,
       this._stringCount,
-      parseTuningStrSimple(this._tuning)
+      copyTuning(this._tuning).reverse(),
+      getDefaultStringInstrument(this._instrumentTone).fretsCount
     );
   }
 
@@ -197,7 +231,12 @@ export class NewTrackControlsComponent {
     return this._stringCount;
   }
 
+  public get staffCount(): number {
+    return this._staffCount;
+  }
+
+  /** Tuning as note names, lowest string first, without octaves. */
   public get tuning(): string {
-    return this._tuning;
+    return getTuningText(this._tuning);
   }
 }

@@ -6,6 +6,7 @@ import { BarRepeatStatus, NoteDuration } from "../../../src/notation/model";
 import { createBarWithBeats } from "../model/helpers";
 import { TEST_LAYOUT_DIMENSIONS } from "../controller/helpers";
 import { required } from "../required";
+import { EditorLayoutDimensions } from "../../../src/notation/controller/editor-layout-dimensions";
 
 test("bar callbacks route rendered targets using the current element and detach on reuse", () => {
   const { track, beats } = createBarWithBeats([
@@ -54,6 +55,7 @@ test("bar callbacks route rendered targets using the current element and detach 
     ['[id^="bar-rep-end-"]', "repeatEnd"],
     ['[id^="bar-rep-count-"]', "repeatEnd"],
     ['[id^="bar-sig-"]', "timeSignature"],
+    ["rect.tu-append-bar", "appendBar"],
   ];
   const click = (selector: string) => {
     const event = new MouseEvent("click", { bubbles: true });
@@ -67,20 +69,54 @@ test("bar callbacks route rendered targets using the current element and detach 
     expect(received.element).toBe(current);
     expect(received.kind).toBe(kind);
   }
-  expect(events).toHaveLength(4);
+  expect(events).toHaveLength(5);
   expect(oldEvents).toEqual([]);
   click('[id^="bar-border-"]');
-  expect(events).toHaveLength(4);
+  expect(events).toHaveLength(5);
   renderer.detachContainerGroup();
   expect(group.isConnected).toBe(false);
   click(".tu-repeat-start");
-  expect(events).toHaveLength(4);
+  expect(events).toHaveLength(5);
   renderer.attachMouseEvent("click", (event, element, kind) =>
     events.push({ event, element, kind })
   );
   click(".tu-repeat-start");
-  expect(events).toHaveLength(5);
+  expect(events).toHaveLength(6);
   renderer.detachMouseEvent("click");
   click(".tu-repeat-start");
-  expect(events).toHaveLength(5);
+  expect(events).toHaveLength(6);
+});
+
+test("renders the append affordance only for the final bar", () => {
+  const { track, beats } = createBarWithBeats([
+    { baseDuration: NoteDuration.Quarter },
+  ]);
+  const dimensions = new EditorLayoutDimensions({
+    width: 1200,
+    noteTextSize: 18,
+    timeSigTextSize: 48,
+    tempoTextSize: 24,
+    durationsHeight: 30,
+    horizontalPadding: 12,
+  });
+  const controller = new TrackController(track, dimensions);
+  controller.appendBar();
+  controller.trackElement.update();
+
+  const first = required(controller.trackElement.getBeatElement(beats[0]));
+  const lastBar = track.staves[0].bars[1];
+  const lastBeat = required(lastBar.voiceBars[1]?.beats[0]);
+  const last = required(controller.trackElement.getBeatElement(lastBeat));
+  expect(first.barElement.appendBarRect).toBeUndefined();
+  expect(last.barElement.appendBarRect).toBeDefined();
+  const renderer = new SVGBarRenderer(controller, last.barElement, {
+    baseUrl: "/assets",
+    variant: "light",
+  });
+  renderer.render();
+  expect(
+    required(
+      renderer.ensureContainerGroup().querySelector("text.tu-append-bar")
+    ).getAttribute("font-size")
+  ).toBe("30");
 });

@@ -43,8 +43,6 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   private _tupletComponent: TupletControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
 
@@ -54,15 +52,11 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
   constructor(
     tupletComponent: TupletControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._tupletComponent = tupletComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   private normalCountValid(normalCountValue: string): boolean {
@@ -183,11 +177,6 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
         handler: (event: MouseEvent) => this.onDialogClicked(event),
       },
       {
-        element: this._tupletComponent.template.dialogContainer,
-        event: "close",
-        handler: () => this._freeKeyboard(),
-      },
-      {
         element: this._tupletComponent.template.normalDownButton,
         event: "click",
         handler: () => this.onNormalCountStep(-1),
@@ -223,7 +212,9 @@ export class TupletControlsDefaultCallbacks implements TupletControlsCallbacks {
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._tupletComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

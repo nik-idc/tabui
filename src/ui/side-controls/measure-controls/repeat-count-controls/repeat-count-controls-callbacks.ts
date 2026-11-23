@@ -13,8 +13,7 @@ export class RepeatCountControlsDefaultCallbacks {
   constructor(
     private readonly _component: RepeatCountControlsComponent,
     private readonly _notationComponent: NotationComponent,
-    private readonly _renderFunc: () => void,
-    private readonly _freeKeyboard: () => void
+    private readonly _renderFunc: () => void
   ) {}
 
   private step(delta: number): void {
@@ -97,11 +96,6 @@ export class RepeatCountControlsDefaultCallbacks {
         handler: (e: MouseEvent) => this.onDialogClicked(e),
       },
       {
-        element: template.dialogContainer,
-        event: "close",
-        handler: () => this._freeKeyboard(),
-      },
-      {
         element: template.decreaseButton,
         event: "click",
         handler: () => this.step(-1),
@@ -127,7 +121,9 @@ export class RepeatCountControlsDefaultCallbacks {
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog } = this._component;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

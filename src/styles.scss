@@ -10,31 +10,90 @@
   --tu-hover-color: #d1d1d1;
   --tu-border-radius: 8px;
   --tu-font-body: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --tu-font-body-size: 1rem;
   --tu-font-notation: "Roboto", sans-serif;
+  --tu-score-name-font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   --tu-bend-grid: #cccccc;
   --tu-bend-curve: #000000;
   --tu-bend-handle: #000000;
   --tu-bend-label: #333333;
   --tu-transition-speed: 0.3s;
+  --tu-root-grid-gap: 0.5rem;
+  --tu-track-columns: var(--tu-track-reorder-width) var(--tu-track-name-width)
+    var(--tu-track-mix-width) var(--tu-track-mix-width)
+    repeat(4, var(--tu-track-reorder-width));
+  --tu-track-reorder-width: 2.4rem;
+  // Name and mix columns shrink toward their minimum when space is short.
+  --tu-track-name-width: minmax(6rem, 16rem);
+  --tu-track-mix-width: minmax(5rem, 10rem);
+  --tu-top-button-size: 2.5rem;
+  --tu-top-button-gap: 0.5rem;
+  // Both ends of the score row get the width of the larger button group
+  // (four buttons), so the middle stays centered.
+  --tu-top-side-width: calc(
+    4 * var(--tu-top-button-size) + 3 * var(--tu-top-button-gap)
+  );
+  --tu-track-row-height: calc(2 * 1.6rem);
 }
 
 .tu-editor {
   display: grid;
   position: relative;
+  box-sizing: border-box;
   isolation: isolate;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 0.5rem;
+  gap: var(--tu-root-grid-gap);
   padding: 1rem;
-  height: 100vh;
+  height: 100%;
   background-color: var(--tu-background-color);
   color: var(--tu-font-color);
+  scrollbar-color: color-mix(
+      in srgb,
+      var(--tu-font-color) 50%,
+      var(--tu-primary-color)
+    )
+    transparent;
   border-radius: var(--tu-border-radius);
   font-family: var(--tu-font-body);
+  font-size: var(--tu-font-body-size);
 
   .tu-top-controls-host {
     grid-area: 1 / 1 / 2 / 3;
     min-width: 0;
+    min-height: 0;
+    container: tu-top-bar / inline-size;
+  }
+
+  // Below this width, the score row can't fit both button groups beside the
+  // master controls, so the master controls get their own line. The width is
+  // the minimum of --tu-track-columns (30.45rem), plus two
+  // --tu-top-side-width (20rem + 3rem), the two column gaps (0.7rem), and the
+  // top bar padding (2rem). Container queries can't read custom properties,
+  // so keep this value in sync with them. The track list uses the same value.
+  @container tu-top-bar (width < 56.15rem) {
+    &:not(.tu-view-only, .tu-responsive-view-only) .tu-top-controls {
+      grid-template-columns: 1fr 1fr;
+
+      .tu-score-controls .tu-edit-controls {
+        grid-column: 2;
+      }
+
+      .tu-score-controls .tu-master-controls .tu-settings {
+        grid-column: 1 / -1;
+        grid-row: 3;
+      }
+    }
+  }
+
+  @container tu-track-overlay (width < 56.15rem) {
+    &:not(.tu-view-only, .tu-responsive-view-only)
+      > .tu-tracks
+      .tu-track-controls {
+      // As wide as the master controls, so the columns line up with them.
+      width: max-content;
+      max-width: calc(100cqi - 2rem);
+    }
   }
 
   .tu-dialog-host {
@@ -51,18 +110,26 @@
   .tu-side-controls-host {
     grid-area: 2 / 1 / 3 / 2;
     min-width: 0;
+    min-height: 0;
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    height: fit-content;
+    overflow-x: hidden;
+    overflow-y: auto;
     border-radius: var(--tu-border-radius);
     background: var(--tu-primary-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 
+  .tu-side-controls-host,
+  .tu-notation-viewport,
+  .tu-track-list {
+    scrollbar-width: thin;
+  }
+
   &.tu-score-panel-bottom {
-    grid-template-rows: 1fr auto;
+    grid-template-rows: minmax(0, 1fr) auto;
 
     .tu-top-controls-host {
       grid-area: 2 / 1 / 3 / 3;
@@ -137,7 +204,7 @@
   }
 
   .tu-side-controls-toggle {
-    position: static;
+    position: relative;
     z-index: 11;
     width: 2.4rem;
     height: 2.4rem;
@@ -182,87 +249,188 @@
     fill: var(--tu-notation-text);
   }
 
+  .tu-root-svg text.tu-bar-number {
+    fill: var(--tu-notation-bar-number);
+  }
+
   .tu-top-controls {
+    position: sticky;
+    top: 1rem;
+    z-index: 20;
+    display: grid;
+    grid-template-columns:
+      minmax(var(--tu-top-side-width), 1fr) minmax(0, max-content)
+      minmax(var(--tu-top-side-width), 1fr);
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 0.35rem;
     padding: 0.5rem 1rem;
     border-radius: var(--tu-border-radius);
     background: var(--tu-primary-color);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    display: flex;
-    justify-content: space-around;
-    align-items: flex-start;
-    position: sticky;
-    top: 1rem;
-    z-index: 10;
 
     .tu-show-tracks-button {
       @extend %tu-button-style;
+
+      background: transparent;
+      border-color: transparent;
+      box-shadow: inset 0 0 0 1px
+        color-mix(in srgb, var(--tu-border-color) 70%, transparent);
+      font: inherit;
+
+      &[aria-expanded="true"],
+      &[aria-expanded="true"]:hover {
+        background-color: var(--tu-applied-color);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, var(--tu-border-color) 70%, transparent);
+      }
+
+      &:hover:not(:disabled) {
+        background: var(--tu-hover-color);
+      }
+
+      &:disabled:hover {
+        background: transparent;
+      }
     }
 
     .tu-score-controls {
-      width: 40vw;
-      display: flex;
-      flex-direction: column;
+      display: contents;
+
+      // Row 2 ends: selection on the left, editing on the right.
+      .tu-selection-controls,
+      .tu-edit-controls {
+        grid-row: 2;
+        display: flex;
+        align-items: center;
+        gap: var(--tu-top-button-gap);
+      }
+
+      .tu-selection-controls {
+        grid-column: 1;
+        justify-self: start;
+      }
+
+      .tu-edit-controls {
+        grid-column: 3;
+        justify-self: end;
+      }
 
       .tu-master-controls {
-        display: flex;
-        justify-content: space-around;
-        gap: 10px;
+        display: contents;
 
         .tu-settings {
-          display: flex;
-          gap: 10px;
+          display: grid;
+          grid-column: 2;
+          grid-row: 2;
+          grid-template-columns: var(--tu-track-columns);
+          justify-content: center;
+          gap: 0.35rem;
+          min-width: 0;
+          box-sizing: border-box;
         }
 
-        .tu-score-name-input {
-          border: none;
-          outline: none;
-          background: transparent;
-          color: var(--tu-font-color);
-          caret-color: var(--tu-font-color);
-          border-radius: 4px;
-          font: inherit;
-          transition:
-            background-color 0.15s ease,
-            box-shadow 0.15s ease;
+        .tu-new-track-button {
+          grid-column: 1;
+          grid-row: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+          width: 2.4rem;
+          height: 2.4rem;
+          min-width: 0;
+          min-height: 0;
+          padding: 0.2rem;
 
-          &:focus {
-            background-color: var(--tu-applied-color);
-            cursor: text;
+          > img {
+            display: block;
+            min-width: 0;
+            min-height: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
           }
-
-          &:hover {
-            background-color: var(--tu-primary-color);
-            box-shadow: 0 0 0 2px var(--tu-secondary-color);
-          }
+        }
+        .tu-show-tracks-button {
+          grid-column: 2;
+          grid-row: 1;
+          justify-self: stretch;
+          width: 100%;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        .tu-master-volume-controls {
+          grid-column: 3;
+          grid-row: 1;
+        }
+        .tu-master-panning-controls {
+          grid-column: 4;
+          grid-row: 1;
         }
       }
 
-      .tu-tracks {
+      @at-root .tu-editor > .tu-tracks > .tu-track-list {
         display: flex;
         flex-direction: column;
         gap: 0.35rem;
-        margin-top: 0.35rem;
-        width: max-content;
+        min-height: 0;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 0.5rem 1rem;
+        scrollbar-gutter: stable both-edges;
+      }
+
+      @at-root .tu-editor > .tu-tracks {
+        position: absolute;
+        grid-area: 2 / 1 / 3 / -1;
+        top: 0;
+        left: 0;
+        z-index: 20;
+        display: flex;
+        flex-direction: column;
+        right: 0;
+        width: auto;
+        max-width: none;
+        box-sizing: border-box;
+        // The rows measure this box, not the scrolling list inside it. Its
+        // width matches the top bar, and it has no scrollbar gutter.
+        container: tu-track-overlay / inline-size;
+        border-radius: var(--tu-border-radius);
+        background: var(--tu-primary-color);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+        max-block-size: min(
+          calc(5 * var(--tu-track-row-height) + 4 * 0.35rem + 1rem),
+          calc(100% + var(--tu-root-grid-gap))
+        );
+        align-self: start;
+        margin-top: calc(-1 * var(--tu-root-grid-gap));
 
         .tu-track-controls {
           display: grid;
-          grid-template-columns: 3rem 2.4rem 16rem 12rem 12rem 2.4rem 2.4rem 2.4rem 2.4rem;
+          cursor: pointer;
+          grid-template-columns: var(--tu-track-columns);
           grid-template-rows: repeat(2, 1.6rem);
           align-items: center;
-          gap: 0.35rem;
-          width: max-content;
-          padding: 0.3rem;
-          border: 1px solid
+          column-gap: 0.35rem;
+          width: fit-content;
+          // The score row's middle width, so the columns line up with it.
+          max-width: calc(
+            100cqi - 2 * (1rem + var(--tu-top-side-width) + 0.35rem)
+          );
+          align-self: center;
+          box-sizing: border-box;
+          padding: 0;
+          flex-shrink: 0;
+          outline: 1px solid
             color-mix(in srgb, var(--tu-border-color) 70%, transparent);
           border-radius: calc(var(--tu-border-radius) + 2px);
-          background: color-mix(
-            in srgb,
-            var(--tu-secondary-color) 35%,
-            transparent
-          );
+          background: transparent;
 
-          &:has(.tu-track-select-button.tu-track-control-active) {
-            border-color: color-mix(
+          &.tu-track-control-active {
+            outline-color: color-mix(
               in srgb,
               var(--tu-font-color) 50%,
               var(--tu-border-color)
@@ -274,9 +442,7 @@
             );
           }
 
-          button {
-            @extend %tu-button-style;
-
+          .tu-track-move-button {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -284,142 +450,218 @@
             min-width: 0;
             height: 100%;
             padding: 0;
-          }
-
-          .tu-track-select-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            justify-self: center;
-            grid-row: 1 / 3;
-            width: 2.6rem;
-            height: 2.6rem;
-            border-radius: 50%;
+            border: 0;
+            color: inherit;
             background: transparent;
-            font-size: 1.1rem;
-            line-height: 1;
-            text-overflow: clip;
+            box-shadow: none;
+            cursor: pointer;
+            font: inherit;
+            transition:
+              background-color var(--tu-transition-speed),
+              transform var(--tu-transition-speed);
 
-            &.tu-track-control-active {
-              background: var(--tu-applied-color);
-              box-shadow:
-                inset 0 0 0 1px var(--tu-font-color),
-                0 0 0 2px var(--tu-applied-color);
+            &:hover:not(:disabled) {
+              background: var(--tu-hover-color);
+              transform: none;
             }
-          }
 
-          .tu-track-move-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            height: 1.6rem;
+            &:disabled:hover {
+              background: transparent;
+              transform: none;
+            }
+
+            width: 100%;
+            height: 100%;
+            justify-self: stretch;
+            align-self: stretch;
             font-size: 0.9rem;
             font-weight: 700;
             line-height: 1;
             text-overflow: clip;
             opacity: 0.85;
 
+            &:focus-visible {
+              outline: 2px solid var(--tu-font-color);
+              outline-offset: -2px;
+            }
+
+            &:active:not(:disabled) {
+              background: var(--tu-applied-color);
+              transform: none;
+            }
+
             &:disabled {
               cursor: default;
               opacity: 0.28;
             }
+
+            &.tu-track-control-active,
+            &.tu-track-control-active:hover:not(:disabled),
+            &.tu-track-control-active:focus-visible {
+              background: var(--tu-applied-color);
+              box-shadow: inset 0 0 0 1px
+                color-mix(in srgb, var(--tu-border-color) 70%, transparent);
+            }
+          }
+
+          button.tu-disabled-img {
+            pointer-events: auto;
           }
 
           .tu-track-move-up-button {
             grid-row: 1;
+            border-radius: calc(var(--tu-border-radius) + 2px) 0 0 0;
           }
 
           .tu-track-move-down-button {
             grid-row: 2;
+            border-radius: 0 0 0 calc(var(--tu-border-radius) + 2px);
           }
 
           .tu-track-name-input {
-            @extend %tu-input-number-style;
             grid-row: 1 / 3;
             width: 100%;
             min-width: 0;
             height: 2.4rem;
             box-sizing: border-box;
+            padding: 0.1em 0.4rem;
+            border: none;
+            border-radius: 4px;
+            background: transparent;
+            color: var(--tu-font-color);
+            caret-color: var(--tu-font-color);
+            font: inherit;
+            line-height: 1.2;
+            transition:
+              background-color 0.15s ease,
+              box-shadow 0.15s ease;
+
+            &:hover {
+              background-color: transparent;
+              box-shadow: 0 0 0 2px var(--tu-secondary-color);
+            }
+
+            &:focus {
+              outline: none;
+              background-color: transparent;
+              box-shadow: 0 0 0 2px var(--tu-font-color);
+              cursor: text;
+            }
+          }
+
+          .tu-track-name-label {
+            grid-row: 1 / 3;
+            width: 100%;
+            min-width: 0;
+            height: 2.4rem;
+            box-sizing: border-box;
+            padding: 0 0.4rem;
+            border: none;
+            border-radius: 4px;
+            color: var(--tu-font-color);
+            overflow: hidden;
+            background: transparent;
+            font: inherit;
+            line-height: 2.4rem;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+          }
+
+          &:focus-visible {
+            outline: 2px solid var(--tu-font-color);
+            outline-offset: 2px;
+          }
+
+          .tu-track-volume-controls,
+          .tu-track-panning-controls {
+            grid-row: 1 / 3;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            width: 100%;
+            min-width: 0;
           }
 
           .tu-track-volume-input,
           .tu-track-panning-input {
-            grid-row: 1 / 3;
-            width: 100%;
+            flex: 1 1 auto;
+            width: auto;
             min-width: 0;
           }
 
           .tu-track-mute-button,
           .tu-track-solo-button,
-          .tu-track-settings-button {
+          .tu-track-settings-button,
+          .tu-track-remove-button {
             grid-row: 1 / 3;
-            width: 2.4rem;
-            height: 2.4rem;
-            padding: 0.25rem;
-            border-radius: var(--tu-border-radius);
-            box-sizing: border-box;
           }
 
           .tu-track-remove-button {
-            grid-row: 1 / 3;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 2.4rem;
-            height: 2.4rem;
             position: relative;
             overflow: visible;
-            padding: 0.25rem;
-            border: none;
-            border-radius: var(--tu-border-radius);
-            background: transparent;
-            box-sizing: border-box;
-
-            > img {
-              filter: brightness(0) saturate(100%) invert(40%) sepia(70%)
-                saturate(900%) hue-rotate(315deg) brightness(90%);
-            }
-
-            &:hover {
-              background: transparent !important;
-            }
-
-            &.tu-disabled-img {
-              cursor: not-allowed;
-              opacity: 1;
-
-              > img {
-                opacity: 0.35;
-                filter: grayscale(1);
-              }
-            }
           }
         }
       }
     }
 
-    .tu-score-controls,
     .tu-play-controls {
-      // width: 40vw;
+      grid-column: 1 / -1;
+      grid-row: 1;
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 0.5rem;
     }
 
-    .tu-track-controls,
-    .tu-play-controls {
+    .tu-play-controls-left,
+    .tu-play-controls-right {
       display: flex;
+      align-items: center;
       gap: 0.5rem;
+      width: max-content;
+    }
+
+    .tu-play-controls-left {
+      justify-self: end;
+    }
+
+    .tu-play-controls-right {
+      justify-self: start;
+    }
+
+    .tu-play-controls-right {
+      justify-content: center;
+    }
+
+    .tu-play-controls-center {
+      display: flex;
+      justify-content: center;
+    }
+
+    .tu-master-volume-controls,
+    .tu-master-panning-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      min-width: 0;
+    }
+
+    .tu-master-controls .tu-icon-button {
+      width: 1.8rem;
+      height: 1.8rem;
+      padding: 0.2rem;
+    }
+
+    .tu-master-controls input[type="range"] {
+      min-width: 0;
+      flex: 1 1 auto;
+      width: auto;
     }
 
     .tu-play-controls img,
     .tu-new-track-button {
       border-radius: var(--tu-border-radius);
-    }
-
-    .tu-range-selection-button {
-      width: 2.5rem;
-      height: 2.5rem;
-      padding: 0.25rem;
-      box-sizing: border-box;
     }
 
     .tu-track-selector {
@@ -436,14 +678,15 @@
     }
 
     img {
-      width: 40px;
-      height: 40px;
+      width: var(--tu-top-button-size);
+      height: var(--tu-top-button-size);
       transition: all var(--tu-transition-speed) ease;
       border-radius: 50%;
 
       &.tu-track-control-active {
         background: var(--tu-applied-color);
-        box-shadow: 0 0 0 2px var(--tu-font-color);
+        box-shadow: inset 0 0 0 1px
+          color-mix(in srgb, var(--tu-border-color) 70%, transparent);
       }
 
       &:hover {
@@ -452,6 +695,55 @@
         transform: scale(1.1);
       }
     }
+  }
+
+  > .tu-tracks {
+    pointer-events: auto;
+  }
+
+  > .tu-top-controls-host:has(.tu-show-tracks-button[aria-expanded="true"]) {
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  > .tu-top-controls-host:has(.tu-show-tracks-button[aria-expanded="true"])
+    > .tu-top-controls {
+    border-radius: var(--tu-border-radius) var(--tu-border-radius) 0 0;
+  }
+
+  > .tu-top-controls-host:has(.tu-show-tracks-button[aria-expanded="true"])
+    ~ .tu-track-controls-overlay {
+    border-radius: 0 0 var(--tu-border-radius) var(--tu-border-radius);
+    clip-path: inset(0 -1rem -1rem);
+  }
+
+  &.tu-score-panel-bottom > .tu-track-controls-overlay {
+    grid-area: 1 / 1 / 2 / -1;
+    top: auto;
+    bottom: 0;
+    align-self: end;
+    margin-top: 0;
+    margin-bottom: calc(-1 * var(--tu-root-grid-gap));
+    border-radius: var(--tu-border-radius) var(--tu-border-radius) 0 0;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
+    clip-path: inset(-1rem -1rem 0);
+  }
+
+  &.tu-score-panel-bottom
+    > .tu-top-controls-host:has(.tu-show-tracks-button[aria-expanded="true"]) {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &.tu-score-panel-bottom
+    > .tu-top-controls-host:has(.tu-show-tracks-button[aria-expanded="true"])
+    > .tu-top-controls {
+    border-radius: 0 0 var(--tu-border-radius) var(--tu-border-radius);
+  }
+
+  &.tu-score-panel-bottom
+    > .tu-top-controls-host:has(.tu-show-tracks-button[aria-expanded="true"])
+    ~ .tu-track-controls-overlay {
+    border-radius: var(--tu-border-radius) var(--tu-border-radius) 0 0;
+    clip-path: inset(-1rem -1rem 0);
   }
 
   .tu-side-controls {
@@ -470,21 +762,40 @@
       flex-direction: column;
     }
 
-    .tu-technique-controls,
-    .tu-measure-controls {
+    .tu-technique-group,
+    .tu-measure-controls,
+    .tu-staff-controls {
       display: grid;
       grid-template-columns: repeat(4, 2.4rem);
       gap: 0.35rem;
     }
 
+    .tu-technique-controls {
+      display: flex;
+      flex-direction: column;
+      // Larger than the button gap, so the groups read as separate.
+      gap: 0.75rem;
+    }
+
     .tu-technique-controls::before {
       content: "Techniques:";
-      grid-column: 1 / -1;
+      // Keep the heading as close to the first group as the button gap.
+      margin-bottom: calc(0.35rem - 0.75rem);
       font-weight: 700;
     }
 
     .tu-measure-controls::before {
       content: "Measure:";
+      grid-column: 1 / -1;
+      font-weight: 700;
+    }
+
+    .tu-staff-controls {
+      margin-top: 1rem;
+    }
+
+    .tu-staff-controls::before {
+      content: "Staff:";
       grid-column: 1 / -1;
       font-weight: 700;
     }
@@ -522,6 +833,12 @@
       grid-template-columns: repeat(4, 2.4rem);
     }
 
+    .tu-dynamic-grid {
+      grid-template-columns: repeat(4, 2.4rem);
+      // With the section gap, this matches the button gap above.
+      margin-top: 0.1rem;
+    }
+
     img {
       width: 2.4rem;
       height: 2.4rem;
@@ -544,6 +861,87 @@
     }
   }
 
+  .tu-score-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 1rem 1rem 0.5rem;
+    font-family: var(--tu-score-name-font-family);
+
+    // Text areas wrap long text and grow to fit it. Where CSS can't size
+    // them to their content, the renderer sets their height.
+    textarea,
+    input {
+      field-sizing: content;
+      min-width: 1ch;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+      border: none;
+      outline: none;
+      background: transparent;
+      color: var(--tu-font-color);
+      caret-color: var(--tu-font-color);
+      border-radius: 0.25rem;
+      font: inherit;
+      line-height: 1.2;
+      text-align: center;
+      padding: 0.1em 0.2em;
+      resize: none;
+      overflow: hidden;
+      overflow-wrap: anywhere;
+      transition:
+        background-color 0.15s ease,
+        box-shadow 0.15s ease;
+
+      @supports not (field-sizing: content) {
+        width: 100%;
+      }
+
+      &::placeholder {
+        color: var(--tu-font-color);
+        opacity: 0.5;
+      }
+
+      &:hover {
+        box-shadow: 0 0 0 2px var(--tu-secondary-color);
+      }
+
+      &:focus {
+        box-shadow: 0 0 0 2px var(--tu-font-color);
+        cursor: text;
+      }
+
+      &[aria-invalid="true"] {
+        box-shadow: 0 0 0 2px var(--tu-notation-danger);
+      }
+    }
+
+    .tu-score-name-input {
+      font-size: var(--tu-score-name-font-size);
+    }
+
+    .tu-score-artist-input {
+      font-size: calc(var(--tu-score-name-font-size) * 0.5);
+    }
+
+    .tu-score-details {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: baseline;
+      gap: 0.25rem 0.5rem;
+      max-width: 100%;
+      font-size: calc(var(--tu-score-name-font-size) * 0.4);
+    }
+
+    .tu-score-release-date-input {
+      // "YYYY-MM-DD" and the padding.
+      max-width: calc(10ch + 0.4em);
+    }
+  }
+
   .tu-notation-viewport {
     grid-area: 2 / 2 / 3 / 3;
     min-width: 0;
@@ -557,8 +955,8 @@
     min-height: 0;
 
     &:focus-visible {
-      outline: 3px solid var(--tu-notation-selection-stroke);
-      outline-offset: 2px;
+      outline: 2px solid var(--tu-font-color);
+      outline-offset: -2px;
     }
 
     &.tu-single-line-notation {
@@ -593,9 +991,15 @@
 
   &.tu-view-only,
   &.tu-responsive-view-only {
+    --tu-track-row-height: 2.6rem;
     grid-template-columns: 1fr;
 
-    .tu-side-controls-host {
+    .tu-top-controls {
+      grid-template-columns: max-content minmax(0, 1fr);
+    }
+
+    .tu-side-controls-host,
+    .tu-top-controls .tu-score-controls .tu-edit-controls {
       display: none;
     }
 
@@ -611,26 +1015,39 @@
       display: none;
     }
 
-    .tu-score-controls .tu-tracks .tu-track-controls {
-      grid-template-columns: 2.6rem minmax(0, 1fr);
+    .tu-score-controls .tu-master-controls .tu-settings {
+      grid-template-columns: minmax(0, 1fr);
+      padding-right: 0;
+    }
+
+    .tu-score-controls .tu-master-controls .tu-show-tracks-button {
+      grid-column: 1;
+      justify-self: stretch;
+      width: 100%;
+    }
+
+    .tu-tracks .tu-track-controls {
+      grid-template-columns: minmax(0, 1fr);
       grid-template-rows: 2.6rem;
       width: 100%;
+      max-width: none;
 
-      > :not(.tu-track-select-button):not(.tu-track-name-input) {
+      > :not(.tu-track-name-input):not(.tu-track-name-label) {
         display: none;
       }
 
-      .tu-track-select-button,
+      .tu-track-name-label,
       .tu-track-name-input {
         grid-row: 1;
       }
 
+      .tu-track-name-label,
       .tu-track-name-input {
-        grid-column: 2;
+        grid-column: 1;
       }
     }
 
-    .tu-score-name-input:disabled {
+    .tu-score-header :disabled {
       cursor: default;
       pointer-events: none;
     }
@@ -638,7 +1055,7 @@
 
   &.tu-responsive-blocked {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(min-content, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
 
     .tu-top-controls-host,
     .tu-notation-viewport {
@@ -647,6 +1064,11 @@
     }
 
     .tu-side-controls-host {
+      display: none;
+    }
+
+    > .tu-top-controls-host,
+    > .tu-track-controls-overlay {
       display: none;
     }
   }
@@ -659,16 +1081,51 @@
     -ms-user-select: none;
     display: block;
 
-    .tu-end-gap-hint {
+    .tu-end-gap-hint,
+    text.tu-append-bar {
       visibility: hidden;
     }
 
-    [data-bar-end-gap-uuid]:hover + .tu-end-gap-hint {
+    [data-bar-end-gap-uuid]:hover + .tu-end-gap-hint,
+    rect.tu-append-bar:hover + text.tu-append-bar {
       visibility: visible;
     }
 
     #tu-interaction[data-playback-active="true"] .tu-end-gap-hint {
       visibility: hidden;
+    }
+
+    &[data-playback-active="true"] {
+      .tu-end-gap-hint,
+      text.tu-append-bar {
+        visibility: hidden;
+      }
+
+      rect.tu-append-bar,
+      .tu-time-signature,
+      .tu-tempo,
+      .tu-tuning,
+      .tu-tuplet,
+      .tu-repeat-start,
+      .tu-repeat-end,
+      .tu-beat-duration,
+      .tu-beat-dots,
+      .tu-beam {
+        cursor: default;
+        pointer-events: none !important;
+      }
+
+      .tu-time-signature *,
+      .tu-tempo *,
+      .tu-tuning *,
+      .tu-tuplet *,
+      .tu-repeat-start *,
+      .tu-repeat-end *,
+      .tu-beat-duration *,
+      .tu-beat-dots *,
+      .tu-beam * {
+        pointer-events: none !important;
+      }
     }
   }
 
@@ -686,9 +1143,9 @@
         flex-direction: column;
 
         .tu-tuplet-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-tuplet-input {
@@ -703,7 +1160,8 @@
       .tu-tuplet-actions {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        gap: 0.5rem;
+        margin-top: 0.625rem;
 
         .tu-tuplet-confirm-button {
         }
@@ -732,9 +1190,9 @@
         flex-direction: column;
 
         .tu-fret-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-fret-value-control {
@@ -761,7 +1219,7 @@
         display: flex;
         justify-content: space-between;
         gap: 0.5rem;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         button {
           @extend %tu-button-style;
@@ -804,7 +1262,135 @@
   }
 
   .tu-bend-controls-svg {
+    flex: 0 1 auto;
+    width: 26.25rem;
+    max-width: 100%;
+    min-width: 0;
+    height: auto;
     touch-action: none;
+  }
+
+  .tu-stroke-dialog {
+    @extend %tu-modal-dialog;
+
+    .tu-stroke-dialog-content {
+      @extend %tu-modal-dialog-content;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      min-width: min(22rem, 100%);
+
+      .tu-stroke-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .tu-stroke-direction {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin: 0;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--tu-border-color);
+        border-radius: var(--tu-border-radius);
+
+        label {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          cursor: pointer;
+        }
+
+        // Themed radio: a ring with a filled dot, matching the range thumb.
+        // The dot is the background seen through an inset shadow, not a child
+        // element, so pixel rounding cannot move it off center.
+        input[type="radio"] {
+          --tu-radio-gap: 0.4375rem;
+          --tu-radio-halo: 0 0 0 transparent;
+          appearance: none;
+          box-sizing: border-box;
+          width: 1.125rem;
+          height: 1.125rem;
+          margin: 0;
+          border: 2px solid var(--tu-font-color);
+          border-radius: 50%;
+          background: var(--tu-font-color);
+          box-shadow:
+            inset 0 0 0 var(--tu-radio-gap) var(--tu-primary-color),
+            var(--tu-radio-halo);
+          cursor: pointer;
+          transition: box-shadow 120ms ease;
+
+          &:checked {
+            --tu-radio-gap: 0.1875rem;
+          }
+
+          &:hover:not(:disabled) {
+            --tu-radio-halo: 0 0 0 4px var(--tu-applied-color);
+          }
+
+          &:focus-visible {
+            outline: 2px solid var(--tu-font-color);
+            outline-offset: 2px;
+          }
+        }
+      }
+
+      .tu-stroke-duration,
+      .tu-stroke-alignment {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        align-items: center;
+        gap: 0.25rem 0.75rem;
+
+        label {
+          font-weight: 600;
+        }
+
+        .tu-stroke-value {
+          justify-self: end;
+        }
+
+        input[type="range"] {
+          grid-column: 1 / -1;
+          width: 100%;
+        }
+      }
+
+      .tu-stroke-duration-marks {
+        position: relative;
+        grid-column: 1 / -1;
+        height: 1.75rem;
+        // Inset by half a thumb, so marks line up with thumb centers.
+        margin-inline: 0.5rem;
+
+        .tu-stroke-duration-mark {
+          position: absolute;
+          top: 0;
+          width: 1.5rem;
+          height: 1.5rem;
+          transform: translateX(-50%);
+        }
+      }
+
+      .tu-stroke-alignment-ends {
+        display: flex;
+        grid-column: 1 / -1;
+        justify-content: space-between;
+        font-size: 0.875em;
+      }
+
+      .tu-stroke-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.5rem;
+
+        button {
+          @extend %tu-button-style;
+        }
+      }
+    }
   }
 
   .tu-number-stepper {
@@ -838,6 +1424,36 @@
     grid-template-columns: auto minmax(4rem, 1fr) auto;
   }
 
+  .tu-time-sig-dialog .tu-number-stepper-value {
+    width: min(12.5rem, 100%);
+    box-sizing: border-box;
+    justify-self: center;
+  }
+
+  .tu-time-sig-dialog {
+    .tu-time-sig-dialog-content {
+      width: max-content;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .tu-number-stepper {
+      grid-template-columns: auto minmax(0, 12.5rem) auto;
+      justify-content: center;
+    }
+
+    .tu-time-sig-text {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .tu-time-sig-dialog .tu-time-sig-duration-input {
+    width: min(12.5rem, 100%);
+    align-self: center;
+    box-sizing: border-box;
+  }
+
   .tu-repeat-count-dialog {
     @extend %tu-modal-dialog;
 
@@ -852,9 +1468,9 @@
         flex-direction: column;
 
         .tu-repeat-count-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-repeat-count-value-control {
@@ -885,7 +1501,7 @@
         display: flex;
         justify-content: space-between;
         gap: 0.5rem;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         button {
           @extend %tu-button-style;
@@ -908,9 +1524,17 @@
         flex-direction: column;
 
         .tu-time-sig-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
+
+          .tu-time-sig-scope {
+            white-space: nowrap;
+          }
+        }
+
+        .tu-time-sig-label {
+          text-align: center;
         }
 
         .tu-time-sig-beats-input {
@@ -933,7 +1557,7 @@
       .tu-time-sig-actions {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-time-sig-confirm-button {
         }
@@ -961,24 +1585,37 @@
         flex-direction: column;
 
         .tu-tempo-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
 
         .tu-tempo-input {
           @extend %tu-input-number-style;
+
+          &::-webkit-inner-spin-button,
+          &::-webkit-outer-spin-button {
+            appearance: none;
+            margin: 0;
+          }
         }
 
         .tu-tempo-error {
           @extend %tu-input-error-text;
+        }
+
+        .tu-tempo-value {
+          width: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          text-align: center;
         }
       }
 
       .tu-tempo-actions {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-tempo-confirm-button {
         }
@@ -998,7 +1635,8 @@
 
     .tu-nt-content {
       @extend %tu-modal-dialog-content;
-      width: 600px;
+      width: max-content;
+      min-width: min(25rem, 100%);
       max-width: 100%;
       box-sizing: border-box;
 
@@ -1009,11 +1647,11 @@
         .tu-nt-kinds-container {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 10px;
+          margin-bottom: 0.625rem;
 
           img {
-            width: 75px;
-            height: 75px;
+            width: 4.6875rem;
+            height: 4.6875rem;
             border-radius: 20px;
           }
         }
@@ -1026,19 +1664,19 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-right: 3px;
+            gap: 0.3125rem;
+            margin-right: 0.1875rem;
           }
 
           .tu-nt-tones-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-left: 3px;
+            gap: 0.3125rem;
+            margin-left: 0.1875rem;
           }
 
-          margin-bottom: 5px;
+          margin-bottom: 1rem;
         }
 
         .tu-nt-track-info-container {
@@ -1053,23 +1691,40 @@
             @extend %tu-input-error-text;
           }
 
-          .tu-nt-string-count-container {
+          .tu-nt-string-count-container,
+          .tu-nt-staff-count-container {
             display: flex;
             align-items: center;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            justify-content: center;
+            margin-top: 0.375rem;
+
+            button {
+              width: auto;
+              min-width: 2rem;
+              padding: 0.25rem 0.5rem;
+            }
           }
 
-          .tu-nt-string-count-value {
-            min-width: 40px;
+          // The track name error line sits above the staff stepper. This
+          // margin gives the stepper the same gap below it.
+          .tu-nt-staff-count-container {
+            margin-bottom: 1em;
+          }
+
+          // One fixed width for both values keeps the two steppers' buttons
+          // in line. It fits "Strings: 12".
+          .tu-nt-string-count-value,
+          .tu-nt-staff-count-value {
+            width: 6.5em;
             text-align: center;
             font-weight: 700;
           }
 
           .tu-nt-tuning-container {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            margin-top: 0.375rem;
           }
 
           .tu-nt-tuning-string {
@@ -1077,30 +1732,34 @@
             flex: 1;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 0.125rem;
           }
 
           .tu-nt-tuning-string-label {
-            font-size: 11px;
+            font-size: 0.6875rem;
             opacity: 0.75;
           }
 
           .tu-nt-tuning-note {
-            min-width: 34px;
-            padding: 4px 0;
+            min-width: 2.125rem;
+            padding: 0.25rem 0;
             text-align: center;
             font-weight: 700;
           }
 
           .tu-nt-tuning-step {
-            padding: 2px 0;
+            width: 2rem;
+            max-width: 100%;
+            padding: 0.125rem 0;
             line-height: 1;
           }
 
+          // Matches the gap between the string count and the tuning
+          // controls: an error line plus 6px.
           .tu-nt-whole-tuning-container {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            margin-top: calc(1em + 0.375rem);
           }
         }
       }
@@ -1111,11 +1770,11 @@
         justify-content: space-between;
 
         .tu-nt-confirm-button {
-          margin-right: 3px;
+          margin-right: 0.1875rem;
         }
 
         .tu-nt-cancel-button {
-          margin-left: 3px;
+          margin-left: 0.1875rem;
         }
       }
 
@@ -1141,16 +1800,16 @@
         flex-direction: column;
 
         .tu-yes-no-text {
-          padding: 3px;
+          padding: 0.1875rem;
           text-align: center;
-          font-size: 20px;
+          font-size: 1.25rem;
         }
       }
 
       .tu-yes-no-actions-container {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        margin-top: 0.625rem;
 
         .tu-yes-no-confirm-button {
         }
@@ -1170,8 +1829,7 @@
 
     .tu-ts-content {
       @extend %tu-modal-dialog-content;
-      width: 400px;
-      max-width: 100%;
+      width: min(25rem, 100%);
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
@@ -1183,11 +1841,11 @@
         .tu-ts-kinds-container {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 10px;
+          margin-bottom: 0.625rem;
 
           img {
-            width: 75px;
-            height: 75px;
+            width: 4.6875rem;
+            height: 4.6875rem;
             border-radius: 20px;
           }
         }
@@ -1195,22 +1853,22 @@
         .tu-ts-instr-settings-container {
           display: flex;
           justify-content: space-between;
-          margin-bottom: 5px;
+          margin-bottom: 0.3125rem;
 
           .tu-ts-types-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-right: 3px;
+            gap: 0.3125rem;
+            margin-right: 0.1875rem;
           }
 
           .tu-ts-tones-container {
             flex: 1;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            margin-left: 3px;
+            gap: 0.3125rem;
+            margin-left: 0.1875rem;
           }
         }
 
@@ -1228,8 +1886,8 @@
 
           .tu-ts-tuning-container {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            margin-top: 0.375rem;
           }
 
           .tu-ts-tuning-string {
@@ -1237,31 +1895,33 @@
             flex: 1;
             flex-direction: column;
             align-items: center;
-            gap: 2px;
+            gap: 0.125rem;
           }
 
           .tu-ts-tuning-string-label {
-            font-size: 11px;
+            font-size: 0.6875rem;
             opacity: 0.75;
           }
 
           .tu-ts-tuning-note {
-            min-width: 34px;
-            padding: 4px 0;
+            min-width: 2.125rem;
+            padding: 0.25rem 0;
             text-align: center;
             font-weight: 700;
           }
 
           .tu-ts-tuning-step {
-            padding: 2px 0;
+            width: 2rem;
+            max-width: 100%;
+            padding: 0.125rem 0;
             line-height: 1;
           }
 
           .tu-ts-whole-tuning-container,
           .tu-ts-tuning-mode-container {
             display: flex;
-            gap: 6px;
-            margin-top: 6px;
+            gap: 0.375rem;
+            margin-top: 0.375rem;
           }
         }
       }
@@ -1269,7 +1929,8 @@
       .tu-ts-actions-container {
         display: flex;
         justify-content: space-between;
-        margin-top: 10px;
+        gap: 0.5rem;
+        margin-top: 0.625rem;
 
         .tu-ts-confirm-button {
         }
@@ -1334,6 +1995,57 @@
   color: inherit;
 }
 
+.tu-playback-pitch-shift {
+  display: inline-flex;
+  align-items: center;
+  height: 1.875rem;
+  overflow: visible;
+  border: 1px solid var(--tu-border-color);
+  border-radius: 0.35rem;
+  background: var(--tu-primary-color);
+  font-family: var(--tu-font-body);
+
+  .tu-playback-pitch-shift-value {
+    min-width: 2.2rem;
+    padding: 0 0.2rem;
+    color: var(--tu-font-color);
+    font-family: var(--tu-font-body);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .tu-playback-pitch-shift-buttons {
+    display: inline-flex;
+    flex-direction: column;
+    height: 100%;
+    margin-left: 0.25rem;
+    border-left: 1px solid var(--tu-border-color);
+  }
+
+  .tu-playback-pitch-shift-buttons button {
+    width: 1.375rem;
+    flex: 1;
+    padding: 0;
+    border: 0;
+    color: var(--tu-font-color);
+    background: transparent;
+    font-size: 0.75rem;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover:not(:disabled),
+    &:focus-visible {
+      background: var(--tu-hover-color);
+    }
+
+    &:disabled {
+      color: var(--tu-secondary-color);
+      cursor: default;
+    }
+  }
+}
+
 %tu-button-style {
   padding: 0.5rem 1rem;
   border: 1px solid var(--tu-border-color);
@@ -1357,8 +2069,17 @@
   }
 }
 
+// Keep controls that reuse the shared button behavior transparent when idle.
+.tu-editor {
+  .tu-top-controls .tu-show-tracks-button,
+  .tu-tracks .tu-track-controls button {
+    border: 0;
+    background-color: transparent;
+  }
+}
+
 %tu-input-number-style {
-  padding: 5px;
+  padding: 0.3125rem;
   border: 2px solid var(--tu-border-color);
   border-radius: 5px;
   background-color: var(--tu-primary-color);
@@ -1382,11 +2103,15 @@
 .tu-applied-img {
   background-color: var(--tu-applied-color);
   border-radius: var(--tu-border-radius);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--tu-border-color) 70%, transparent);
 }
 
-.tu-applied-button {
+.tu-editor .tu-applied-button {
   background-color: var(--tu-applied-color);
-  box-shadow: 0 0 0 2px var(--tu-applied-color);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--tu-border-color) 70%, transparent);
 }
 
 .tu-voice-button {
@@ -1410,7 +2135,8 @@
 
 .tu-voice-button.tu-applied-img {
   background: var(--tu-applied-color);
-  box-shadow: 0 0 0 2px var(--tu-font-color);
+  box-shadow: inset 0 0 0 1px
+    color-mix(in srgb, var(--tu-border-color) 70%, transparent);
 }
 
 .tu-disabled-img {
@@ -1424,18 +2150,117 @@
   pointer-events: none;
 }
 
+.tu-editor input[type="range"] {
+  --tu-range-fill: var(--tu-font-color);
+  --tu-range-rail: color-mix(
+    in srgb,
+    var(--tu-font-color) 18%,
+    var(--tu-primary-color)
+  );
+  appearance: none;
+  height: 2rem;
+  margin-block: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(var(--tu-range-rail), var(--tu-range-rail))
+    center / 100% 0.375rem no-repeat;
+  cursor: pointer;
+
+  &::-webkit-slider-runnable-track {
+    height: 0.375rem;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  &::-moz-range-track {
+    height: 0.375rem;
+    border-radius: 999px;
+    background: transparent;
+  }
+
+  &::-moz-range-progress {
+    background: transparent;
+  }
+
+  // Keep engine-specific selectors separate; unsupported selectors invalidate a group.
+  &::-webkit-slider-thumb {
+    appearance: none;
+    box-sizing: border-box;
+    width: 1rem;
+    height: 1rem;
+    margin-top: -0.3125rem;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tu-range-fill);
+    box-shadow: 0 1px 4px #00000030;
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  &::-moz-range-thumb {
+    box-sizing: border-box;
+    width: 1rem;
+    height: 1rem;
+    border: 0;
+    border-radius: 50%;
+    background: var(--tu-range-fill);
+    box-shadow: 0 1px 4px #00000030;
+    transition:
+      transform 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  &:hover:not(:disabled)::-webkit-slider-thumb {
+    transform: scale(1.15);
+  }
+
+  &:hover:not(:disabled)::-moz-range-thumb {
+    transform: scale(1.15);
+  }
+
+  &:active:not(:disabled)::-webkit-slider-thumb {
+    box-shadow: 0 0 0 4px var(--tu-applied-color);
+  }
+
+  &:active:not(:disabled)::-moz-range-thumb {
+    box-shadow: 0 0 0 4px var(--tu-applied-color);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--tu-font-color);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.tu-editor input:is(.tu-track-panning-input, .tu-master-panning-input) {
+  // A center detent distinguishes balance from the volume control at a glance.
+  background-image:
+    linear-gradient(var(--tu-range-rail), var(--tu-range-rail)),
+    linear-gradient(var(--tu-range-rail), var(--tu-range-rail));
+  background-size:
+    0.125rem 0.75rem,
+    100% 0.375rem;
+}
+
 .tu-editor .tu-icon-button {
   appearance: none;
   display: grid;
   place-items: center;
-  flex: 0 0 40px;
-  width: 32px;
-  height: 32px;
+  flex: 0 0 2.5rem;
+  width: 2rem;
+  height: 2rem;
   // min-width: 40px;
   // min-height: 40px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--tu-border-radius);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -1443,7 +2268,7 @@
     background-color var(--tu-transition-speed),
     transform var(--tu-transition-speed);
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: var(--tu-hover-color);
     transform: scale(1.1);
   }
@@ -1453,8 +2278,9 @@
   }
 
   > img {
-    width: 32px;
-    height: 32px;
+    width: 2rem;
+    height: 2rem;
+    border-radius: inherit;
     pointer-events: none;
     transform: none;
 
@@ -1468,18 +2294,40 @@
   &.tu-applied-img,
   &.tu-track-control-active {
     background: var(--tu-applied-color);
-    box-shadow: inset 0 0 0 2px var(--tu-font-color);
+    box-shadow: inset 0 0 0 1px
+      color-mix(in srgb, var(--tu-border-color) 70%, transparent);
   }
 }
 
-.tu-editor .tu-side-controls .tu-icon-button {
+.tu-editor .tu-playback-pitch-shift .tu-icon-button {
+  pointer-events: none;
+  cursor: default;
+
+  &:hover {
+    background: transparent;
+    transform: none;
+  }
+}
+
+.tu-editor
+  button:is(
+    [aria-pressed="true"],
+    [aria-expanded="true"],
+    .tu-applied-button,
+    .tu-track-control-active
+  ):focus-visible {
+  outline: 2px solid var(--tu-font-color);
+  outline-offset: 2px;
+}
+
+.tu-editor .tu-side-controls .tu-icon-button,
+.tu-editor .tu-track-controls .tu-icon-button {
   flex-basis: 2.4rem;
   width: 2.4rem;
   height: 2.4rem;
   min-width: 2.4rem;
   min-height: 2.4rem;
   padding: 0.25rem;
-  border-radius: var(--tu-border-radius);
 
   > img {
     width: 100%;
@@ -1518,6 +2366,15 @@
   display: block;
 }
 
+/* The scrolling track list keeps native titles and labels without clipped popups. */
+.tu-editor .tu-track-controls-overlay [data-tooltip]::after {
+  display: none;
+}
+
+.tu-editor > .tu-track-controls-overlay:not(:has(.tu-track-controls)) {
+  display: none;
+}
+
 /** Hides assistive text while keeping it available to keyboard users. */
 .tu-visually-hidden {
   position: absolute;
@@ -1545,42 +2402,16 @@
   background: var(--tu-primary-color);
   color: var(--tu-font-color);
 }
-.tu-editor .tu-inline-technique {
-  cursor: pointer;
-
-  &:hover .tu-technique-visible-path[stroke]:not([stroke="none"]) {
-    stroke: var(--tu-notation-selection-stroke);
-  }
-
-  &:hover
-    .tu-technique-visible-path[fill]:not([fill="none"]):not(
-      [fill="var(--tu-notation-note-background)"]
-    ) {
-    fill: var(--tu-notation-selection-stroke);
-  }
-}
-
-.tu-editor .tu-technique-label-interactive {
-  cursor: pointer;
-
-  &:hover .tu-technique-label-visible-path[stroke]:not([stroke="none"]) {
-    stroke: var(--tu-notation-selection-stroke);
-  }
-
-  &:hover .tu-technique-label-visible-text {
-    fill: var(--tu-notation-selection-stroke);
-  }
-}
-
 .tu-editor .tu-time-signature,
 .tu-editor .tu-tempo,
+.tu-editor .tu-tuning,
 .tu-editor .tu-tuplet,
 .tu-editor .tu-repeat-start,
 .tu-editor .tu-repeat-end {
   cursor: pointer;
 }
 
-.tu-editor .tu-repeat-start:hover {
+.tu-editor .tu-repeat-start:hover path {
   fill: var(--tu-notation-selection-stroke);
 }
 
@@ -1599,7 +2430,16 @@
   stroke: var(--tu-notation-selection-stroke);
 }
 
+.tu-tempo-symbol {
+  fill: var(--tu-notation-text);
+}
+
+.tu-editor .tu-tempo:hover .tu-tempo-symbol,
 .tu-editor .tu-tempo:hover text {
+  fill: var(--tu-notation-selection-stroke);
+}
+
+.tu-editor .tu-tuning:hover text {
   fill: var(--tu-notation-selection-stroke);
 }
 
@@ -1614,6 +2454,9 @@
 }
 
 .tu-editor .tu-beat-dots:hover circle,
-.tu-editor .tu-beam-hover .tu-beam-visible {
+.tu-editor
+  .tu-root-svg:not([data-playback-active="true"])
+  .tu-beam-hover
+  .tu-beam-visible {
   fill: var(--tu-notation-selection-stroke);
 }

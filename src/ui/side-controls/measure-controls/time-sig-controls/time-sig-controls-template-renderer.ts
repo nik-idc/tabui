@@ -7,6 +7,7 @@ import {
   assembleDialog,
   renderOnce,
   setupDialogActionButtons,
+  getBarEditScopeText,
 } from "../../../shared";
 import { TimeSigControlsTemplate } from "./time-sig-controls-template";
 import { AVAILABLE_TIME_SIG_DURATIONS } from "./time-sig-controls-callbacks";
@@ -68,23 +69,36 @@ export class TimeSigControlsTemplateRenderer {
   private renderTextContainer(): void {
     const cssClass = "tu-time-sig-text";
     this.template.textContainer.classList.add(cssClass);
-    this.template.textContainer.textContent = "Edit time signature:";
+    const controller = this.notationComponent.trackController;
+    const bars = controller.getTimeSignatureEditBars();
+    const scope = getBarEditScopeText(controller.track.score, bars);
+    const isMixed = bars.some((v) => !v.isEqualTimeSig(bars[0]));
+    this.template.textContainer.replaceChildren("Edit time signature.");
+    if (scope !== "") {
+      this.template.textContainer.append(document.createElement("br"));
+      const scopeText = document.createElement("span");
+      scopeText.classList.add("tu-time-sig-scope");
+      scopeText.textContent = scope;
+      this.template.textContainer.append(scopeText);
+    }
+    if (isMixed) {
+      this.template.textContainer.append(
+        " Mixed time signatures; confirm to apply the displayed value to all selected bars."
+      );
+    }
   }
 
   private renderInputs(): void {
-    const selectionCursor =
-      this.notationComponent.trackController.selectionCursor;
+    const first =
+      this.notationComponent.trackController.selectionAsBeats[0]?.voiceBar.bar
+        .masterBar;
 
-    const beatsInitValue =
-      selectionCursor !== undefined
-        ? `${selectionCursor.bar.masterBar.beatsCount}`
-        : "4";
+    const beatsInitValue = first !== undefined ? `${first.beatsCount}` : "4";
     const durationInitValue =
-      selectionCursor !== undefined
-        ? `${1 / selectionCursor.bar.masterBar.duration}`
-        : "4";
+      first !== undefined ? `${1 / first.duration}` : "4";
 
     this.template.beatsLabel.textContent = "Beats per measure";
+    this.template.beatsLabel.classList.add("tu-time-sig-label");
     this.template.beatsControl.classList.add("tu-number-stepper");
     this.template.beatsDownButton.textContent = "-";
     this.template.beatsDownButton.ariaLabel = "Decrease beats per measure by 1";
@@ -101,6 +115,7 @@ export class TimeSigControlsTemplateRenderer {
 
     const durationCSSClass = "tu-time-sig-duration-input";
     this.template.durationLabel.textContent = "Beat unit";
+    this.template.durationLabel.classList.add("tu-time-sig-label");
     this.template.durationSelect.classList.add(durationCSSClass);
     if (this.template.durationSelect.options.length === 0) {
       for (const duration of AVAILABLE_TIME_SIG_DURATIONS) {

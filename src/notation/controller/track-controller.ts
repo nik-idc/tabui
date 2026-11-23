@@ -1,10 +1,22 @@
 import { PlaybackState, ScorePlayer } from "../../player";
+import {
+  MAX_PITCH_SHIFT_SEMITONES,
+  MIN_PITCH_SHIFT_SEMITONES,
+} from "../../player/playback-constants";
 import type { PlaybackOptions } from "../../player";
 import {
   Track,
+  MasterBar,
   Bar,
   Beat,
+  BeatGuitarTechnique,
+  BeatGuitarTechniqueType,
+  type SetBeatTechniqueOptions,
+  StrokeDirection,
+  AccentType,
   NoteDuration,
+  Dynamic,
+  DynamicDirection,
   BarRepeatStatusChange,
   TechniqueType,
   VoiceNumber,
@@ -19,11 +31,10 @@ import {
   SelectionCursor,
   SelectedMoveDirection,
 } from "./selection/selection-cursor";
-import { BendTechniqueOptions } from "../model/bend-options";
+import type { SetTechniqueOptions } from "../model/editor/set-technique-options";
 import { EditorLayoutDimensions } from "./editor-layout-dimensions";
 import { ScoreLayoutPlanner } from "./layout/score-layout-plan";
 import { TabUILayoutMode } from "../../config/tabui-config";
-import type { Note } from "../model";
 
 /**
  * Class that handles editing, playing & calculating geometry of a track
@@ -71,6 +82,11 @@ export class TrackController {
     this._trackControllerEditor.selectFirstNote();
   }
 
+  /** Called after every change to the saved score, including undo and redo. */
+  public set onScoreEdited(listener: () => void) {
+    this._trackControllerEditor.onScoreEdited = listener;
+  }
+
   /**
    * Starts player
    */
@@ -92,6 +108,9 @@ export class TrackController {
       this._scorePlayer.clearSelectionLoopSection();
     }
 
+    if (selection[0] !== undefined) {
+      this._trackControllerEditor.selectFirstNote(selection[0]);
+    }
     void this._scorePlayer.start(playbackOptions);
   }
 
@@ -102,7 +121,37 @@ export class TrackController {
     this._scorePlayer?.stop();
   }
 
-  /** Clears edit selection and seeks active playback to the provided beat. */
+  /** Returns the score-wide metronome state, if playback is configured. */
+  public get metronomeEnabled(): boolean {
+    return this._scorePlayer?.metronomeEnabled ?? false;
+  }
+
+  public setMetronomeEnabled(enabled: boolean): void {
+    this._scorePlayer?.setMetronomeEnabled(enabled);
+  }
+
+  public get pitchShiftSemitones(): number {
+    return this._scorePlayer?.pitchShiftSemitones ?? 0;
+  }
+
+  public setPitchShiftSemitones(semitones: number): void {
+    this._scorePlayer?.setPitchShiftSemitones(semitones);
+  }
+
+  /** Moves the playback pitch by `delta` semitones; false when it would leave the allowed range. */
+  public shiftPlaybackPitch(delta: number): boolean {
+    const value = this.pitchShiftSemitones + delta;
+    if (
+      value < MIN_PITCH_SHIFT_SEMITONES ||
+      value > MAX_PITCH_SHIFT_SEMITONES
+    ) {
+      return false;
+    }
+    this.setPitchShiftSemitones(value);
+    return true;
+  }
+
+  /** Seeks active playback and moves the edit cursor to the provided beat. */
   public restartPlayerFromBeat(beat: Beat): void {
     const scorePlayer = this._scorePlayer;
     if (
@@ -112,8 +161,7 @@ export class TrackController {
       return;
     }
 
-    this._trackControllerEditor.clearSelection();
-    this._trackControllerEditor.clearSelectedNote();
+    this._trackControllerEditor.selectFirstNote(beat);
     scorePlayer.clearSelectionLoopSection();
     void scorePlayer.start({ startBeat: beat });
   }
@@ -347,8 +395,19 @@ export class TrackController {
     this._scorePlayer?.syncMasterPlaybackState();
   }
 
+  /** True when the track can move to the target index now. */
+  public canMoveTrack(track: Track, targetIndex: number): boolean {
+    const tracks = track.score.tracks;
+    return (
+      this.canEdit &&
+      tracks.includes(track) &&
+      targetIndex >= 0 &&
+      targetIndex < tracks.length
+    );
+  }
+
   public moveTrack(track: Track, targetIndex: number): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canMoveTrack(track, targetIndex)) {
       return false;
     }
     return this._trackControllerEditor.moveTrack(track, targetIndex);
@@ -359,6 +418,32 @@ export class TrackController {
       return false;
     }
     return this._trackControllerEditor.setScoreName(score, name);
+  }
+
+  public setScoreArtist(score: Score, artist: string): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setScoreArtist(score, artist);
+  }
+
+  /** Sets the album; an empty name clears it. */
+  public setScoreAlbum(score: Score, album: string): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setScoreAlbum(score, album);
+  }
+
+  /**
+   * Sets the release date; an empty string clears it.
+   * @returns False during playback, in view-only mode, or for an invalid date
+   */
+  public setScoreReleaseDate(score: Score, releaseDate: string): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setScoreReleaseDate(score, releaseDate);
   }
 
   public setMasterVolume(score: Score, volume: number): boolean {
@@ -377,19 +462,34 @@ export class TrackController {
     return changed;
   }
 
+  /**
+   * Adds a track at the end of the score.
+   * @param staffCount Number of staves, from 1 through MAX_TRACK_STAVES.
+   */
   public addTrack(
     score: Score,
     instrument: MusicInstrument,
-    name: string
+    name: string,
+    staffCount: number = 1
   ): Track | undefined {
     if (this.playbackState !== PlaybackState.Idle) {
       return undefined;
     }
-    return this._trackControllerEditor.addTrack(score, instrument, name);
+    return this._trackControllerEditor.addTrack(
+      score,
+      instrument,
+      name,
+      staffCount
+    );
+  }
+
+  /** True when a track can be removed now; a score keeps at least one track. */
+  public canRemoveTrack(score: Score): boolean {
+    return this.canEdit && score.tracks.length > 1;
   }
 
   public removeTrack(score: Score, track: Track): Track | undefined {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canRemoveTrack(score) || !score.tracks.includes(track)) {
       return undefined;
     }
     return this._trackControllerEditor.removeTrack(score, track);
@@ -449,13 +549,28 @@ export class TrackController {
     );
   }
 
+  /** True when undo would change the score now. */
+  public get canUndo(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canUndo
+    );
+  }
+
+  /** True when redo would change the score now. */
+  public get canRedo(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canRedo
+    );
+  }
+
   /** Undo previous action */
   public undo(): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
     this._trackControllerEditor.undoCommand();
-    this._trackControllerEditor.syncSelection();
   }
 
   /** Redo previous action */
@@ -464,7 +579,6 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.redoCommand();
-    this._trackControllerEditor.syncSelection();
   }
 
   /** Current score transport state. */
@@ -484,6 +598,27 @@ export class TrackController {
 
   public get editingEnabled(): boolean {
     return this._trackControllerEditor.editingEnabled;
+  }
+
+  /** True when score edits are allowed now: editing is on and playback is idle. */
+  public get canEdit(): boolean {
+    return this.editingEnabled && this.playbackState === PlaybackState.Idle;
+  }
+
+  /**
+   * True when volume, pan, mute, and solo can change now. Unlike other edits,
+   * they also work during playback.
+   */
+  public get canChangeMix(): boolean {
+    return this.editingEnabled;
+  }
+
+  /**
+   * True when selection actions (select all, ranges, copy) work now. They
+   * also work in view-only mode.
+   */
+  public get canSelect(): boolean {
+    return this.playbackState === PlaybackState.Idle;
   }
 
   /** Enables or disables all score mutations for this active track. */
@@ -535,6 +670,22 @@ export class TrackController {
     this._trackControllerEditor.setSelectedNoteFret(newFret);
   }
 
+  /** Reports whether the selected playable notes can move by this many semitones. */
+  public canShiftSelectedPitch(semitones: number): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canShiftSelectedPitch(semitones)
+    );
+  }
+
+  /** Shifts selected playable notes by a signed number of semitones. */
+  public shiftSelectedPitch(semitones: number): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.shiftSelectedPitch(semitones);
+  }
+
   /**
    * Set duration for selected beats
    * @param newDuration New duration
@@ -544,6 +695,28 @@ export class TrackController {
       return;
     }
     this._trackControllerEditor.setDuration(newDuration);
+  }
+
+  /**
+   * Sets one dynamic on the selected beats, rests included.
+   * @returns True if any beat changed.
+   */
+  public setDynamic(dynamic: Dynamic): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.setSelectedDynamic(dynamic);
+  }
+
+  /**
+   * Moves each selected beat's own dynamic one level, staying at ppp and fff.
+   * @returns True if any beat changed.
+   */
+  public shiftSelectedDynamics(direction: DynamicDirection): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.shiftSelectedDynamics(direction);
   }
 
   public setSelectedBeatRest(): void {
@@ -590,10 +763,17 @@ export class TrackController {
     );
   }
 
-  /**
-   * Set tempo of the bar containing the selected note
-   * @param newTempo New tempo value
-   */
+  /** Resolves the bars that the current tempo edit will affect. */
+  public getTempoEditBars(): MasterBar[] {
+    return this._trackControllerEditor.getTempoEditBars();
+  }
+
+  /** Resolves the bars that the current time-signature edit will affect. */
+  public getTimeSignatureEditBars(): MasterBar[] {
+    return this._trackControllerEditor.getTimeSignatureEditBars();
+  }
+
+  /** Sets tempo for the selected bars or the cursor's remaining tempo section. */
   public setSelectedBarTempo(newTempo: number): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
@@ -602,7 +782,7 @@ export class TrackController {
   }
 
   /**
-   * Set time signature of the bar containing the selected note
+   * Sets meter for the selected bars or the cursor's remaining meter section.
    * @param beatsCount Beats count
    * @param duration Duration
    */
@@ -638,28 +818,107 @@ export class TrackController {
     return this._trackControllerEditor.setRepeatStatus(bar, change);
   }
 
+  /** Checks technique eligibility while editing is allowed, using the requested Tie search mode. */
+  public canSetTechnique(
+    type: TechniqueType,
+    options: SetTechniqueOptions = {}
+  ): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canSetTechnique(type, options)
+    );
+  }
+
+  /** Reports applied technique state for the current cursor or beat selection. */
+  public hasSelectedTechnique(type: TechniqueType): boolean {
+    return this._trackControllerEditor.hasSelectedTechnique(type);
+  }
+
   /**
    * Set technique on the selected note/beats
    * @param type Technique type
-   * @param bendOptions Optional bend options
+   * @param options Optional Bend settings or Tie source-search mode.
    */
   public setTechnique(
     type: TechniqueType,
-    bendOptions?: BendTechniqueOptions
+    options: SetTechniqueOptions = {}
   ): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
     }
-    this._trackControllerEditor.setTechnique(type, bendOptions);
+    this._trackControllerEditor.setTechnique(type, options);
   }
 
-  /** Removes matching techniques from notes in one guarded, undoable edit. */
-  public removeTechniques(notes: Note[], type: TechniqueType): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
-      return false;
-    }
+  /** Checks beat technique eligibility for the cursor beat or selected beats while editing is allowed. */
+  public canSetBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canSetBeatTechnique(type)
+    );
+  }
 
-    return this._trackControllerEditor.removeTechniques(notes, type);
+  /** Reports whether the cursor beat or any selected beat has the beat technique. */
+  public hasSelectedBeatTechnique(type: BeatGuitarTechniqueType): boolean {
+    return this._trackControllerEditor.hasSelectedBeatTechnique(type);
+  }
+
+  /** Returns the technique of the cursor beat, or of the first selected beat that has it. */
+  public getSelectedBeatTechnique<T extends BeatGuitarTechniqueType>(
+    type: T
+  ): BeatGuitarTechnique<T> | undefined {
+    return this._trackControllerEditor.getSelectedBeatTechnique(type);
+  }
+
+  /** Removes the beat technique from the cursor beat or from every selected beat that has it. */
+  public removeBeatTechnique(type: BeatGuitarTechniqueType): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.removeBeatTechnique(type);
+  }
+
+  /** Reports whether every cursor or selected note that can have an accent has one of the kind. */
+  public isSelectedAccentOfKind(kind: AccentType): boolean {
+    return this._trackControllerEditor.isSelectedAccentOfKind(kind);
+  }
+
+  /**
+   * Toggles an accent of one kind on the cursor note or selected notes.
+   * Removes the accents when all of them already have this kind; otherwise
+   * sets this kind, switching the other kind directly.
+   */
+  public toggleAccent(kind: AccentType): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.toggleAccent(kind);
+  }
+
+  /**
+   * Toggles a stroke in one direction on the cursor beat or selected beats.
+   * Removes the strokes when all of them already go in this direction;
+   * otherwise sets this direction and keeps the first stroke's duration and alignment.
+   */
+  public toggleStroke(direction: StrokeDirection): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.toggleStroke(direction);
+  }
+
+  /**
+   * Adds, replaces, or removes a beat technique on the cursor beat or selected beats.
+   * @param type Beat technique type.
+   * @param options Technique settings; omit them to remove the technique when every target beat has it.
+   */
+  public setBeatTechnique(
+    type: BeatGuitarTechniqueType,
+    options: SetBeatTechniqueOptions = {}
+  ): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.setBeatTechnique(type, options);
   }
 
   /**
@@ -674,9 +933,17 @@ export class TrackController {
   }
 
   /** Moves the current cursor or range endpoint by one bar boundary. */
+  /** Moves the cursor by one bar; during playback, seeks like the Prev/Next bar buttons. */
   public moveSelectionByBar(direction: SelectedMoveDirection): boolean {
     if (this.playbackState !== PlaybackState.Idle) {
-      return false;
+      if (direction === SelectedMoveDirection.Left) {
+        this.selectPreviousBar();
+      } else if (direction === SelectedMoveDirection.Right) {
+        this.selectNextBar();
+      } else {
+        return false;
+      }
+      return true;
     }
 
     return this._trackControllerEditor.selectionManager.moveSelectionByBar(
@@ -684,9 +951,18 @@ export class TrackController {
     );
   }
 
+  /** Selects all beats in the current staff's active voice while playback is idle. */
+  public selectAllBeats(): boolean {
+    if (!this.canSelect) {
+      return false;
+    }
+
+    return this._trackControllerEditor.selectionManager.selectAllBeats();
+  }
+
   /** Extends the current selection by one beat in either direction. */
   public extendSelectionByBeat(direction: SelectedMoveDirection): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 
@@ -697,7 +973,7 @@ export class TrackController {
 
   /** Extends the current selection by one bar in either direction. */
   public extendSelectionByBar(direction: SelectedMoveDirection): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 
@@ -706,21 +982,22 @@ export class TrackController {
     );
   }
 
-  /**
-   * Copy the current selection to clipboard
-   */
-  public copy(): void {
-    this._trackControllerEditor.copy();
+  /** Returns clipboard text for the current selection, or undefined during playback; browser events write it to the system clipboard. */
+  public copy(): string | undefined {
+    if (!this.canSelect) {
+      return undefined;
+    }
+
+    return this._trackControllerEditor.copy();
   }
 
-  /**
-   * Paste from clipboard at the current selection
-   */
-  public paste(): void {
+  /** Pastes supported clipboard text at the current selection; returns false when rejected. */
+  public paste(text: string): boolean {
     if (this.playbackState !== PlaybackState.Idle) {
-      return;
+      return false;
     }
-    this._trackControllerEditor.paste();
+
+    return this._trackControllerEditor.paste(text);
   }
 
   /**
@@ -776,6 +1053,57 @@ export class TrackController {
     this._trackControllerEditor.insertBarAfterSelected();
   }
 
+  /** Appends a bar to every score track and selects its first beat. */
+  public appendBar(): void {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return;
+    }
+    this._trackControllerEditor.appendBar();
+  }
+
+  /** True when a staff can be added below the selected one. */
+  public get canAddStaff(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canAddStaff
+    );
+  }
+
+  /** True when the selected staff can be removed. */
+  public get canRemoveStaff(): boolean {
+    return (
+      this.playbackState === PlaybackState.Idle &&
+      this._trackControllerEditor.canRemoveStaff
+    );
+  }
+
+  /** Adds an empty staff below the selected one; false when nothing changed. */
+  public addStaffBelowSelected(): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.addStaffBelowSelected();
+  }
+
+  /** Removes the selected staff; false when nothing changed. */
+  public removeSelectedStaff(): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.removeSelectedStaff();
+  }
+
+  /**
+   * Moves the cursor to the same moment in the staff above or below.
+   * @param offset -1 for the staff above, 1 for the staff below.
+   */
+  public moveSelectionToStaff(offset: -1 | 1): boolean {
+    if (this.playbackState !== PlaybackState.Idle) {
+      return false;
+    }
+    return this._trackControllerEditor.selectionManager.moveToStaff(offset);
+  }
+
   public removeSelectedBar(): void {
     if (this.playbackState !== PlaybackState.Idle) {
       return;
@@ -817,7 +1145,7 @@ export class TrackController {
 
   /** Anchors a beat range at the current cursor. */
   public setSelectionAnchor(): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 
@@ -826,7 +1154,7 @@ export class TrackController {
 
   /** Clears the beat range and restores its anchor as the current cursor. */
   public clearSelectionRange(): boolean {
-    if (this.playbackState !== PlaybackState.Idle) {
+    if (!this.canSelect) {
       return false;
     }
 

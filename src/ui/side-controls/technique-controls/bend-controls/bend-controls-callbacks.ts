@@ -22,24 +22,17 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
   private _bendComponent: BendControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
-  private _keyboardCaptured = false;
 
   constructor(
     bendComponent: BendControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._bendComponent = bendComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   onDialogClicked(event: MouseEvent): void {
@@ -72,7 +65,7 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     }
     this._notationComponent.trackController.setTechnique(
       GuitarTechniqueType.Bend,
-      validatedOptions
+      { bendOptions: validatedOptions }
     );
     this._renderFunc();
 
@@ -94,20 +87,8 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
     this._bendComponent.dialog.close();
   }
 
-  private onDialogFocus(): void {
-    if (this._keyboardCaptured) {
-      return;
-    }
-    this._captureKeyboard();
-    this._keyboardCaptured = true;
-  }
-
   private onDialogClosed(): void {
     this._bendComponent.bendSelectorManager.dispose();
-    if (this._keyboardCaptured) {
-      this._freeKeyboard();
-      this._keyboardCaptured = false;
-    }
   }
 
   public bind(): void {
@@ -126,11 +107,6 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
       },
       {
         element: this._bendComponent.template.dialogContainer,
-        event: "focusin",
-        handler: () => this.onDialogFocus(),
-      },
-      {
-        element: this._bendComponent.template.dialogContainer,
         event: "close",
         handler: () => this.onDialogClosed(),
       },
@@ -140,7 +116,9 @@ export class BendControlsDefaultCallbacks implements BendControlsCallbacks {
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._bendComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

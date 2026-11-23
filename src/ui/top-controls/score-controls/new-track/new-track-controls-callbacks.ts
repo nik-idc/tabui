@@ -1,5 +1,4 @@
 import {
-  InstrumentFamily,
   InstrumentType,
   INSTRUMENT_TYPES,
   INSTRUMENT_TONES,
@@ -13,7 +12,6 @@ export interface NewTrackControlsCallbacks {
   readonly tuningErrorText: string;
 
   onDialogClicked(event: MouseEvent): void;
-  onFamilyClicked(family: InstrumentFamily): void;
   onTypeClicked(type: InstrumentType): void;
   onToneClicked(tone: StringInstrumentTone): void;
   onTrackNameChanged(): void;
@@ -30,8 +28,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   private _newTrackComponent: NewTrackControlsComponent;
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
   private _listeners = new ListenerManager();
 
   readonly trackNameErrorText: string = "Invalid track name";
@@ -43,15 +39,11 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
   constructor(
     newTrackComponent: NewTrackControlsComponent,
     notationComponent: NotationComponent,
-    renderFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderFunc: () => void
   ) {
     this._newTrackComponent = newTrackComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
   }
 
   onDialogClicked(event: MouseEvent): void {
@@ -62,11 +54,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     ) {
       this._newTrackComponent.dialog.close();
     }
-  }
-
-  onFamilyClicked(family: InstrumentFamily): void {
-    this._newTrackComponent.setFamily(family);
-    this._renderFunc();
   }
 
   onTypeClicked(type: InstrumentType): void {
@@ -118,7 +105,7 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
 
   onConfirmClicked(): void {
     const controller = this._notationComponent.trackController;
-    if (controller.isPlaybackActive) {
+    if (!controller.canEdit) {
       this._newTrackComponent.dialog.close();
       return;
     }
@@ -129,7 +116,8 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
     const track = this._notationComponent.trackController.addTrack(
       this._notationComponent.score,
       this._newTrackComponent.makeInstrument(),
-      this._newTrackComponent.trackName
+      this._newTrackComponent.trackName,
+      this._newTrackComponent.staffCount
     );
     if (track === undefined) {
       this._newTrackComponent.dialog.close();
@@ -153,22 +141,6 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
       event: "click",
       handler: (event: MouseEvent) => this.onDialogClicked(event),
     });
-    configs.push({
-      element: this._newTrackComponent.template.dialogContainer as HTMLElement,
-      event: "close",
-      handler: () => this._freeKeyboard(),
-    });
-
-    const families = Object.values(InstrumentFamily);
-    const familiesButtons =
-      this._newTrackComponent.template.instrFamiliesButtons;
-    for (let i = 0; i < families.length; i++) {
-      configs.push({
-        element: familiesButtons[i] as HTMLElement,
-        event: "click",
-        handler: () => this.onFamilyClicked(families[i]),
-      });
-    }
 
     const types = INSTRUMENT_TYPES[this._newTrackComponent.instrumentFamily];
     const typesButtons = this._newTrackComponent.template.instrTypesButtons;
@@ -210,6 +182,16 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
         handler: () => this.onStringCountStep(1),
       },
       {
+        element: this._newTrackComponent.template.staffCountDownButton,
+        event: "click",
+        handler: () => this._newTrackComponent.shiftStaffCount(-1),
+      },
+      {
+        element: this._newTrackComponent.template.staffCountUpButton,
+        event: "click",
+        handler: () => this._newTrackComponent.shiftStaffCount(1),
+      },
+      {
         element: this._newTrackComponent.template
           .wholeTuningDownButton as HTMLElement,
         event: "click",
@@ -227,7 +209,9 @@ export class NewTrackControlsDefaultCallbacks implements NewTrackControlsCallbac
         handler: (event: SubmitEvent) => {
           event.preventDefault();
           const { dialog, template } = this._newTrackComponent;
-          if (!dialog.open || template.confirmButton.disabled) return;
+          if (!dialog.open || template.confirmButton.disabled) {
+            return;
+          }
           this.onConfirmClicked();
         },
       },

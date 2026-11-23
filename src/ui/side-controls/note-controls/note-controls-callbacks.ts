@@ -1,4 +1,10 @@
-import { NoteDuration, VoiceNumber } from "../../../notation/model";
+import {
+  Dynamic,
+  DYNAMICS,
+  NoteDuration,
+  TUPLET_PRESETS,
+  VoiceNumber,
+} from "../../../notation/model";
 import { NotationComponent } from "../../../notation/notation-component";
 import { NoteControlsComponent } from "../..";
 import { ListenerConfig, ListenerManager } from "../../../shared/misc";
@@ -16,11 +22,15 @@ export interface NoteControlsCallbacks {
   onRemoveBeatClicked(): void;
   onRestClicked(): void;
   onVoiceClicked(voiceNumber: VoiceNumber): void;
-  onTupletNormalClicked(normalCount: number): void;
+  onTupletPresetClicked(preset: TupletPreset): void;
   onTupletClicked(): void;
+  onPitchShiftClicked(semitones: number): void;
+  onDynamicClicked(dynamic: Dynamic): void;
   bind(): void;
   unbind(): void;
 }
+
+type TupletPreset = (typeof TUPLET_PRESETS)[keyof typeof TUPLET_PRESETS];
 
 function parseVoiceNumber(value: string | undefined): VoiceNumber {
   const voiceNumber = Number(value);
@@ -43,8 +53,6 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
   private _notationComponent: NotationComponent;
   private _renderFunc: () => void;
   private _renderActiveVoiceFunc: () => void;
-  private _captureKeyboard: () => void;
-  private _freeKeyboard: () => void;
 
   private _listeners = new ListenerManager();
 
@@ -55,30 +63,22 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     noteComponent: NoteControlsComponent,
     notationComponent: NotationComponent,
     renderFunc: () => void,
-    renderActiveVoiceFunc: () => void,
-    captureKeyboard: () => void,
-    freeKeyboard: () => void
+    renderActiveVoiceFunc: () => void
   ) {
     this._noteComponent = noteComponent;
     this._notationComponent = notationComponent;
     this._renderFunc = renderFunc;
     this._renderActiveVoiceFunc = renderActiveVoiceFunc;
-    this._captureKeyboard = captureKeyboard;
-    this._freeKeyboard = freeKeyboard;
 
     this._tupletCallbacks = new TupletControlsDefaultCallbacks(
       this._noteComponent.tupletComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
     this._fretCallbacks = new FretControlsDefaultCallbacks(
       this._noteComponent.fretComponent,
       this._notationComponent,
-      this._renderFunc,
-      this._captureKeyboard,
-      this._freeKeyboard
+      this._renderFunc
     );
   }
 
@@ -117,20 +117,28 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._renderActiveVoiceFunc();
   }
 
-  onTupletNormalClicked(normalCount: number): void {
-    if (normalCount < 2) {
-      throw Error("Tuplet normal count has to be >= 2");
-    }
+  onTupletPresetClicked(preset: TupletPreset): void {
     this._notationComponent.trackController.setSelectedBeatsTuplet(
-      normalCount,
-      normalCount - 1
+      preset.normalCount,
+      preset.tupletCount
     );
     this._renderFunc();
   }
 
   onTupletClicked(): void {
-    this._captureKeyboard();
     this._noteComponent.showTupletControls();
+  }
+
+  onPitchShiftClicked(semitones: number): void {
+    this._notationComponent.trackController.shiftSelectedPitch(semitones);
+    this._renderFunc();
+  }
+
+  /** Sets the dynamic on all selected beats and speaks the result. */
+  onDynamicClicked(dynamic: Dynamic): void {
+    this._notationComponent.trackController.setDynamic(dynamic);
+    this._renderFunc();
+    this._noteComponent.announceDynamic();
   }
 
   bind(): void {
@@ -151,12 +159,30 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
           this.onVoiceClicked(parseVoiceNumber(button.dataset["voiceNumber"])),
       }));
 
+    // Buttons follow DYNAMICS order, so the index names the dynamic.
+    const dynamicConfigs: ListenerConfig[] =
+      this._noteComponent.template.dynamicButtons.map((button, i) => ({
+        element: button,
+        event: "click",
+        handler: () => this.onDynamicClicked(DYNAMICS[i]),
+      }));
+
     // Bind dot and tuplet buttons
     const otherConfigs: ListenerConfig[] = [
       {
         element: this._noteComponent.template.fretButton,
         event: "click",
         handler: () => this._fretCallbacks.onFretButtonClicked(),
+      },
+      {
+        element: this._noteComponent.template.shiftPitchUpButton,
+        event: "click",
+        handler: () => this.onPitchShiftClicked(1),
+      },
+      {
+        element: this._noteComponent.template.shiftPitchDownButton,
+        event: "click",
+        handler: () => this.onPitchShiftClicked(-1),
       },
       {
         element: this._noteComponent.template.restButton,
@@ -191,12 +217,12 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
       {
         element: this._noteComponent.template.tuplet2Button,
         event: "click",
-        handler: () => this.onTupletNormalClicked(2),
+        handler: () => this.onTupletPresetClicked(TUPLET_PRESETS.duplet),
       },
       {
         element: this._noteComponent.template.tuplet3Button,
         event: "click",
-        handler: () => this.onTupletNormalClicked(3),
+        handler: () => this.onTupletPresetClicked(TUPLET_PRESETS.triplet),
       },
       {
         element: this._noteComponent.template.tupletButton,
@@ -208,6 +234,7 @@ export class NoteControlsDefaultCallbacks implements NoteControlsCallbacks {
     this._listeners.bindAll([
       ...durationConfigs,
       ...voiceConfigs,
+      ...dynamicConfigs,
       ...otherConfigs,
     ]);
 

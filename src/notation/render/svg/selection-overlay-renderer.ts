@@ -1,6 +1,7 @@
 import { NoteElement, TabBeatElement, TrackController } from "../../controller";
 import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { createSVGRect } from "../../../shared";
+import { PlaybackState } from "../../../player/score-player";
 
 /**
  * Renders all selection-layer overlays (preview, selected note, beat selection)
@@ -218,6 +219,11 @@ export class SelectionOverlayRenderer {
    * Renders full selection layer state for the current track controller.
    */
   public render(): void {
+    if (this.trackController.playbackState !== PlaybackState.Idle) {
+      this.unrender();
+      return;
+    }
+
     this.renderSelectedNoteOverlay();
     this.renderSelectionRects();
   }

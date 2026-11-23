@@ -32,6 +32,8 @@ export class NotationComponent {
 
   /** Track controller */
   private _trackController: TrackController;
+  /** Score edit listener, passed to each new track controller. */
+  private _scoreEditListener: () => void;
   /** Score-wide player owned by this notation component. */
   private readonly _scorePlayer: ScorePlayer;
   /** True after the notation component has been disposed. */
@@ -53,6 +55,7 @@ export class NotationComponent {
     onPlaybackError?: PlaybackErrorListener,
     renderer?: EditorRenderer
   ) {
+    this._scoreEditListener = () => {};
     const activeTrack = score.tracks[0];
     if (activeTrack === undefined) {
       throw new Error(
@@ -95,6 +98,16 @@ export class NotationComponent {
   }
 
   /**
+   * Called after every change to the saved score, including undo and redo.
+   * Each track switch creates a new track controller, so this keeps the
+   * listener across them.
+   */
+  public set onScoreEdited(listener: () => void) {
+    this._scoreEditListener = listener;
+    this._trackController.onScoreEdited = listener;
+  }
+
+  /**
    * Render current track
    * @returns Active renderers
    */
@@ -123,6 +136,7 @@ export class NotationComponent {
       this.scoreLayoutPlanner,
       this.config.layout.mode
     );
+    newTrackController.onScoreEdited = this._scoreEditListener;
     this._trackController = newTrackController;
     const renderer = new EditorSVGRenderer(
       this.rootDiv,

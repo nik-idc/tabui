@@ -10,6 +10,8 @@ import {
 } from "../notation/model";
 
 const ZERO_FRACTION = { numerator: 0, denominator: 1 };
+/** Total passes through a repeat when the score does not specify a count. */
+const DEFAULT_REPEAT_COUNT = 2;
 
 export interface PlaybackLoopSection {
   /** Loop start beat. */
@@ -349,11 +351,9 @@ export class PlaybackTraversalManager {
     const repeatStatusValid =
       this.score.isMasterBarRepeatStatusValid(masterBar);
     const isSelfContainedRepeat =
-      repeatStatusValid &&
-      masterBar.isRepeatStart &&
-      masterBar.isRepeatEnd &&
-      this._repeatStartMasterBarIndex === undefined;
-    const initializesSelfContainedRepeat = isSelfContainedRepeat;
+      repeatStatusValid && masterBar.isRepeatStart && masterBar.isRepeatEnd;
+    const initializesSelfContainedRepeat =
+      isSelfContainedRepeat && this._repeatStartMasterBarIndex === undefined;
     if (initializesSelfContainedRepeat) {
       this._repeatStartMasterBarIndex = currentMasterBarIndex;
       this._repeatPassCount = 0;
@@ -366,7 +366,7 @@ export class PlaybackTraversalManager {
       (isSelfContainedRepeat || repeatStartIndex !== currentMasterBarIndex);
     const appliesRepeatEnd = honorRepeatEnd && closesActiveRepeat;
     if (appliesRepeatEnd && repeatStartIndex !== undefined) {
-      const repeatCount = masterBar.repeatCount ?? 2;
+      const repeatCount = masterBar.repeatCount ?? DEFAULT_REPEAT_COUNT;
       const isRepeatInsidePlayback = this.isRepeatInsidePlayback(
         repeatStartIndex,
         currentMasterBarIndex

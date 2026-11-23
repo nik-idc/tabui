@@ -5,7 +5,7 @@ test("Enter confirms from a text field but not from another button", async ({
 }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   await editor.getByRole("button", { name: "New track", exact: true }).click();
   const dialog = editor.getByRole("dialog", { name: "New track" });
   const increase = dialog.getByRole("button", {
@@ -22,14 +22,12 @@ test("Enter confirms from a text field but not from another button", async ({
   await input.press("Enter");
   await expect(dialog).toHaveCount(0);
   await expect(
-    editor.getByRole("button", {
-      name: "Select track: Native track",
+    editor.getByRole("group", {
+      name: "Track: Native track",
       exact: true,
     })
   ).toHaveCount(1);
-  await expect(
-    editor.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(2);
+  await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(2);
   await expect(page).toHaveURL(/\/tabui\/\?fixture=empty$/);
 });
 
@@ -80,7 +78,7 @@ test("keeps one announcement region inside the active modal before focus", async
 }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   const opener = editor.getByRole("button", { name: "New track", exact: true });
   const dialog = editor.getByRole("dialog", { name: "New track" });
   const region = editor.getByRole("status");
@@ -100,7 +98,9 @@ test("keeps one announcement region inside the active modal before focus", async
   // open and close the dialog through the visible controls.
   const observations = await editor.evaluateHandle((root) => {
     const status = root.querySelector('[role="status"]');
-    if (status === null) throw Error("Expected editor status region");
+    if (status === null) {
+      throw Error("Expected editor status region");
+    }
     const result = {
       modalFocus: [] as boolean[],
       openerFocus: [] as boolean[],
@@ -120,14 +120,15 @@ test("keeps one announcement region inside the active modal before focus", async
     return result;
   });
   for (let cycle = 0; cycle < 2; cycle++) {
-    await opener.click();
+    await opener.focus();
+    await page.keyboard.press("Enter");
     await expect(dialog.getByRole("status")).toHaveCount(1);
     const raise = dialog.getByRole("button", {
       name: "Raise string 1 by 1 semitone",
       exact: true,
     });
     await raise.focus();
-    await expect(region).toHaveText("String 1: E");
+    await expect(region).toHaveText("String 1: E4");
     await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(dialog).toHaveCount(0);
     await expect(opener).toBeFocused();
@@ -148,9 +149,10 @@ test("keeps one announcement region inside the active modal before focus", async
 test("contains modal behavior within the editor", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   const opener = editor.getByRole("button", { name: "New track", exact: true });
-  await opener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
 
   const dialog = editor.getByRole("dialog", { name: "New track" });
   await expect(dialog).toBeVisible();
@@ -160,8 +162,7 @@ test("contains modal behavior within the editor", async ({ page }) => {
   expect(await dialog.boundingBox()).toEqual(rootBounds);
   // Hidden accessibility-tree controls must still exist and be inert.
   const tracks = editor.getByRole("button", {
-    name: "Tracks",
-    exact: true,
+    name: /^Tracks ·/,
     includeHidden: true,
   });
   expect(
@@ -169,25 +170,21 @@ test("contains modal behavior within the editor", async ({ page }) => {
   ).toBe(true);
 
   // Use real host-page UI to prove that editor-local modality does not block it.
-  const about = page.getByText("About this demo", { exact: true });
-  const description = page.getByText("This is a demo of TabUI.", {
-    exact: false,
-  });
-  await expect(description).toBeVisible();
-  await about.click();
-  await expect(description).toBeHidden();
+  const panels = page.locator("#panels-menu summary");
+  const placement = page.locator("#side-panel-placement-select");
+  await expect(placement).toBeHidden();
+  await panels.click();
+  await expect(placement).toBeVisible();
   await expect(dialog).toBeVisible();
-  await about.click();
-  await expect(description).toBeVisible();
+  await panels.click();
+  await expect(placement).toBeHidden();
   await dialog
     .getByRole("button", { name: "Cancel", exact: true })
     .scrollIntoViewIfNeeded();
   expect(await dialog.boundingBox()).toEqual(await editor.boundingBox());
   await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await expect(dialog).toHaveCount(0);
-  await expect(
-    editor.getByRole("button", { name: "Tracks", exact: true })
-  ).toBeVisible();
+  await expect(editor.getByRole("button", { name: /^Tracks ·/ })).toBeVisible();
   expect(
     await tracks.evaluate((node) => node.closest("[inert]") !== null)
   ).toBe(false);
@@ -196,17 +193,21 @@ test("contains modal behavior within the editor", async ({ page }) => {
 test("traps focus and closes with Escape", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   const opener = editor.getByRole("button", { name: "New track", exact: true });
-  await opener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
 
   const dialog = editor.getByRole("dialog", { name: "New track" });
-  const first = dialog.getByRole("button", { name: "Strings", exact: true });
+  const first = dialog.getByRole("button", {
+    name: "Acoustic Guitar",
+    exact: true,
+  });
   const last = dialog.getByRole("button", { name: "Cancel", exact: true });
   await expect(first).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(
-    dialog.getByRole("button", { name: "Orchestra", exact: true })
+    dialog.getByRole("button", { name: "Electric Guitar", exact: true })
   ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(first).toBeFocused();
@@ -222,27 +223,24 @@ test("traps focus and closes with Escape", async ({ page }) => {
 
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
-  await expect(
-    editor.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(1);
-  await opener.click();
+  await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(1);
+  await opener.focus();
+  await page.keyboard.press("Enter");
   await expect(first).toBeFocused();
   // A backdrop click is distinct from a click on the form's controls.
   await dialog.click({ position: { x: 2, y: 2 } });
   await expect(dialog).toHaveCount(0);
   await expect(opener).toBeFocused();
-  await expect(
-    editor.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(1);
+  await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(1);
 });
 
 test("implements the instance dialog method contract", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
-  const result = await page.evaluate(async (workspace) => {
-    const path = `/tabui/@fs${workspace}/tests/e2e/dialog-fixture.ts`;
+  const result = await page.evaluate(async () => {
+    const path = "/tabui/e2e-fixture.js";
     const { createDialogFixture } = (await import(
       path
-    )) as typeof import("./dialog-fixture");
+    )) as typeof import("./browser-fixture");
     const fixture = createDialogFixture();
     const modal = fixture.first.dialog;
     const element = fixture.first.template.dialogContainer;
@@ -267,7 +265,9 @@ test("implements the instance dialog method contract", async ({ page }) => {
     const closedValue = modal.returnValue;
     modal.open = true;
     const status = element.querySelector('[role="status"]');
-    if (status === null) throw Error("Expected dialog status region");
+    if (status === null) {
+      throw Error("Expected dialog status region");
+    }
     const modeless =
       modal.open &&
       !element.hasAttribute("aria-modal") &&
@@ -319,7 +319,7 @@ test("implements the instance dialog method contract", async ({ page }) => {
     };
     fixture.dispose();
     return result;
-  }, process.cwd());
+  });
 
   expect(result).toEqual({
     events: ["cancel:true", "cancel:true", "close:accepted", "close:complete"],
@@ -343,17 +343,19 @@ for (const mode of ["show", "showModal"] as const) {
     }) => {
       await page.goto("/tabui/?fixture=empty");
       const result = await page.evaluate(
-        async ({ mode, nextMode, workspace }) => {
-          const path = `/tabui/@fs${workspace}/tests/e2e/dialog-fixture.ts`;
+        async ({ mode, nextMode }) => {
+          const path = "/tabui/e2e-fixture.js";
           const { createDialogFixture } = (await import(
             path
-          )) as typeof import("./dialog-fixture");
+          )) as typeof import("./browser-fixture");
           const fixture = createDialogFixture();
           const { root } = fixture;
           const first = fixture.first.dialog;
           const second = fixture.second.dialog;
           const status = root.querySelector('[role="status"]');
-          if (status === null) throw Error("Expected dialog status region");
+          if (status === null) {
+            throw Error("Expected dialog status region");
+          }
           first[mode]();
           const focus = document.activeElement;
           let focusEvents = 0;
@@ -375,8 +377,11 @@ for (const mode of ["show", "showModal"] as const) {
           }
           let errorName = "";
           try {
-            if (nextMode === "open") second.open = true;
-            else second[nextMode]();
+            if (nextMode === "open") {
+              second.open = true;
+            } else {
+              second[nextMode]();
+            }
           } catch (error) {
             if (error instanceof DOMException) {
               errorName = error.name;
@@ -396,14 +401,17 @@ for (const mode of ["show", "showModal"] as const) {
             secondOpen: second.open,
           };
           first.close();
-          if (nextMode === "open") second.open = true;
-          else second[nextMode]();
+          if (nextMode === "open") {
+            second.open = true;
+          } else {
+            second[nextMode]();
+          }
           const secondOpenedAfterRelease = second.open;
           second.close();
           fixture.dispose();
           return { ...result, secondOpenedAfterRelease };
         },
-        { mode, nextMode, workspace: process.cwd() }
+        { mode, nextMode }
       );
       expect(result).toEqual({
         errorName: "InvalidStateError",
@@ -424,11 +432,11 @@ for (const mode of ["show", "showModal"] as const) {
   }) => {
     await page.goto("/tabui/?fixture=empty");
     const results = await page.evaluate(
-      async ({ mode, workspace }) => {
-        const path = `/tabui/@fs${workspace}/tests/e2e/dialog-fixture.ts`;
+      async ({ mode }) => {
+        const path = "/tabui/e2e-fixture.js";
         const { createDialogFixture } = (await import(
           path
-        )) as typeof import("./dialog-fixture");
+        )) as typeof import("./browser-fixture");
         const fixture = createDialogFixture();
         const { root } = fixture;
         const first = fixture.first.dialog;
@@ -466,10 +474,15 @@ for (const mode of ["show", "showModal"] as const) {
               error instanceof DOMException &&
               error.name === "InvalidStateError";
           }
-          if (close === "open") first.open = false;
-          else if (close === "close") first.close();
-          else if (close === "closeOpenDialogs") fixture.ui.closeOpenDialogs();
-          else first.requestClose();
+          if (close === "open") {
+            first.open = false;
+          } else if (close === "close") {
+            first.close();
+          } else if (close === "closeOpenDialogs") {
+            fixture.ui.closeOpenDialogs();
+          } else {
+            first.requestClose();
+          }
           const restored = siblings.map((child) => child.inert);
           second[mode]();
           first.close("stale");
@@ -503,7 +516,7 @@ for (const mode of ["show", "showModal"] as const) {
         fixture.dispose();
         return results;
       },
-      { mode, workspace: process.cwd() }
+      { mode }
     );
     expect(results).toEqual(
       Array(4).fill({
@@ -519,13 +532,11 @@ for (const mode of ["show", "showModal"] as const) {
 
 test("keeps dialogs in separate editors independent", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
-  const otherEditor = await page.evaluateHandle(async (workspace) => {
-    const editorPath = `/tabui/@fs${workspace}/src/tabui-editor.ts`;
-    const fixturePath = "/tabui/data/fixture.ts";
-    const { TabUIEditor: editorClass } = (await import(
-      editorPath
-    )) as typeof import("../../src/tabui-editor");
-    const { resolveEditorFixture } = await import(fixturePath);
+  const otherEditor = await page.evaluateHandle(async () => {
+    const path = "/tabui/e2e-fixture.js";
+    const { TabUIEditor: editorClass, resolveEditorFixture } = (await import(
+      path
+    )) as typeof import("./browser-fixture");
     const otherRoot = document.createElement("div");
     otherRoot.id = "other-editor";
     document.body.appendChild(otherRoot);
@@ -535,7 +546,7 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     );
     otherEditor.init();
     return otherEditor;
-  }, process.cwd());
+  });
   const primary = page.locator("#tabui-editor");
   const other = page.locator("#other-editor");
   const first = primary.getByRole("dialog", { name: "New track" });
@@ -551,7 +562,7 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
 
   // Both editors must work independently before testing isolation.
   for (const [index, editor] of [primary, other].entries()) {
-    await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+    await editor.getByRole("button", { name: /^Tracks ·/ }).click();
     await editor
       .getByRole("button", { name: "New track", exact: true })
       .click();
@@ -561,15 +572,15 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     await name.press("Enter");
     await expect(dialog).toHaveCount(0);
     await expect(
-      editor.getByRole("button", { name: `Select track: Before ${index}` })
+      editor.getByRole("group", { name: `Track: Before ${index}` })
     ).toBeVisible();
-    await expect(
-      editor.getByRole("button", { name: /^Select track:/ })
-    ).toHaveCount(2);
+    await expect(editor.getByRole("group", { name: /^Track:/ })).toHaveCount(2);
   }
 
-  await opener.click();
-  await otherOpener.click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
+  await otherOpener.focus();
+  await page.keyboard.press("Enter");
   await expect(first).toBeVisible();
   await expect(second).toBeVisible();
   await expect(first.getByRole("status")).toHaveCount(1);
@@ -592,6 +603,7 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
 
   // Closing either modal leaves both editors usable.
   for (const [index, editor] of [primary, other].entries()) {
+    await editor.getByRole("button", { name: /^Tracks ·/ }).click();
     await editor
       .getByRole("button", { name: "New track", exact: true })
       .click();
@@ -600,20 +612,21 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
     await name.fill(`After ${index}`);
     await name.press("Enter");
     await expect(dialog).toHaveCount(0);
+    await editor.getByRole("button", { name: /^Tracks ·/ }).click();
     await expect(
-      editor.getByRole("button", { name: `Select track: After ${index}` })
+      editor.getByRole("group", { name: `Track: After ${index}` })
     ).toBeVisible();
   }
-  await expect(
-    primary.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(3);
-  await expect(
-    other.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(4);
+  await expect(primary.getByRole("group", { name: /^Track:/ })).toHaveCount(3);
+  await expect(other.getByRole("group", { name: /^Track:/ })).toHaveCount(4);
 
-  await opener.click();
+  await primary.getByRole("button", { name: /^Tracks ·/ }).click();
+  await opener.focus();
+  await page.keyboard.press("Enter");
   await firstName.fill("Survives other editor disposal");
-  await otherOpener.click();
+  await other.getByRole("button", { name: /^Tracks ·/ }).click();
+  await otherOpener.focus();
+  await page.keyboard.press("Enter");
   await expect(first).toBeVisible();
   await expect(second).toBeVisible();
   await otherEditor.evaluate((editor) => editor.dispose());
@@ -624,14 +637,13 @@ test("keeps dialogs in separate editors independent", async ({ page }) => {
   await firstName.press("Enter");
   await expect(first).toHaveCount(0);
   await expect(opener).toBeFocused();
+  await primary.getByRole("button", { name: /^Tracks ·/ }).click();
   await expect(
-    primary.getByRole("button", {
-      name: "Select track: Survives other editor disposal",
+    primary.getByRole("group", {
+      name: "Track: Survives other editor disposal",
       exact: true,
     })
   ).toBeVisible();
-  await expect(
-    primary.getByRole("button", { name: /^Select track:/ })
-  ).toHaveCount(4);
+  await expect(primary.getByRole("group", { name: /^Track:/ })).toHaveCount(4);
   await otherEditor.dispose();
 });

@@ -1,104 +1,62 @@
 import { Score, MasterBar, NoteDuration, ScoreEditor } from "../../../model";
-import { Command, AffectedModel } from "./command";
+import type { TimeSignatureChange } from "../../../model/editor/score-editor";
+import {
+  Command,
+  AffectedModel,
+  getAffectedModelsFromMasterBars,
+} from "./command";
 
-/**
- * Set bar time signature command
- */
+/** Changes meter without moving notes, restoring mixed original meters on undo. */
 export class SetTimeSigCommand implements Command {
-  /** Score that owns bars tied to this master bar */
-  private _score: Score;
-  /** Bar to append the beat to */
-  private _bar: MasterBar;
-  /** New beats count value */
-  private _newBeatsCount?: number;
-  /** New duration value */
-  private _newDuration?: NoteDuration;
-  /** New beats count value */
-  private _oldBeatsCount: number;
-  /** New duration value */
-  private _oldDuration: NoteDuration;
-  /** True if executed, false otherwise*/
-  private _executed: boolean = false;
-  private _affectedMasterBarIndex: number;
+  /** Original meters saved before execution. */
+  private _before: TimeSignatureChange[] = [];
+  /** Complete meters applied by execute and redo. */
+  private _after: TimeSignatureChange[] = [];
+  private readonly _affectedModels: AffectedModel[];
+  private _executed = false;
 
-  /**
-   * Set guitar bar timeSig command
-   * @param bar Bar whose timeSig to set
-   */
-
-  /**
-   * Set guitar bar time signature command
-   * @param score Score containing bars tied to the master bar
-   * @param bar Bar whose time signature to set
-   * @param beatsCount Time signature beats count
-   * @param duration Time signature duration
-   */
   constructor(
-    score: Score,
-    bar: MasterBar,
-    beatsCount?: number,
-    duration?: NoteDuration
+    private readonly _score: Score,
+    /** Fixed target bars; meter inputs are resolved when execution starts. */
+    private readonly _bars: MasterBar[],
+    /** Requested numerator, or undefined to keep each bar's value. */
+    private readonly _beatsCount?: number,
+    /** Requested beat unit, or undefined to keep each bar's value. */
+    private readonly _duration?: NoteDuration
   ) {
-    this._score = score;
-    this._bar = bar;
-    this._newBeatsCount = beatsCount;
-    this._newDuration = duration;
-    this._oldBeatsCount = bar.beatsCount;
-    this._oldDuration = bar.duration;
-    this._affectedMasterBarIndex = this._score.masterBars.indexOf(bar);
+    this._affectedModels = getAffectedModelsFromMasterBars(_score, _bars);
   }
 
-  /**
-   * Execute set timeSig command
-   */
   execute(): void {
-    ScoreEditor.setTimeSignature(
-      this._score,
-      this._bar,
-      this._newBeatsCount,
-      this._newDuration
-    );
+    this._before = this._bars.map((masterBar) => ({
+      masterBar,
+      beatsCount: masterBar.beatsCount,
+      duration: masterBar.duration,
+    }));
+    this._after = this._before.map((v) => ({
+      masterBar: v.masterBar,
+      beatsCount: this._beatsCount ?? v.beatsCount,
+      duration: this._duration ?? v.duration,
+    }));
+    ScoreEditor.setTimeSignatures(this._score, this._after);
     this._executed = true;
   }
 
-  /**
-   * Undo set timeSig command, i.e. set old timeSig value
-   */
   undo(): void {
     if (!this._executed) {
       return;
     }
-
-    ScoreEditor.setTimeSignature(
-      this._score,
-      this._bar,
-      this._oldBeatsCount,
-      this._oldDuration
-    );
+    ScoreEditor.setTimeSignatures(this._score, this._before);
   }
 
-  /**
-   * Redo, i.e. restore bar state to before execute
-   */
   redo(): void {
     if (!this._executed) {
       throw Error("Redo called before execute");
     }
-
-    ScoreEditor.setTimeSignature(
-      this._score,
-      this._bar,
-      this._newBeatsCount,
-      this._newDuration
-    );
+    ScoreEditor.setTimeSignatures(this._score, this._after);
   }
 
   public get affectedModels(): AffectedModel[] {
-    return [
-      {
-        masterBarIndex: this._affectedMasterBarIndex,
-        modelUUID: this._bar.uuid,
-      },
-    ];
+    return this._affectedModels;
   }
 }

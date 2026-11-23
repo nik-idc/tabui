@@ -1,15 +1,20 @@
+import { AccentType } from "../notation/model/accent-options";
+import { BendTechniqueOptions } from "../notation/model/bend-options";
+import { BendType } from "../notation/model/bend-type";
+import { Dynamic } from "../notation/model/dynamic";
+import { GuitarNote } from "../notation/model/guitar-note";
+import { GuitarTechnique } from "../notation/model/guitar-technique";
+import { GuitarTechniqueType } from "../notation/model/technique-type";
 import {
-  BendTechniqueOptions,
-  BendType,
-  GuitarNote,
-  GuitarTechnique,
-  GuitarTechniqueType,
   Note,
+  NoteValue,
   getNoteFrequency,
+  getFrequencyFromNoteType,
   NOTES_PER_OCTAVE,
-  ticksToSeconds,
-} from "../notation/model";
+} from "../notation/model/note";
+import { ticksToSeconds } from "../notation/model/timing";
 import { PlaybackSampleManager } from "./playback-sample-manager";
+import { CENTS_PER_SEMITONE } from "./playback-constants";
 import {
   getPlaybackToneProfile,
   PlaybackToneProfile,
@@ -18,26 +23,37 @@ import { ScheduledAudioNode, TrackAudioBus } from "./scheduled-audio-node";
 
 type PlaybackSourceNode = OscillatorNode | AudioBufferSourceNode;
 
-// Conservative peak keeps summed multi-track playback from clipping quickly.
-const notePeakGain = 0.06;
+/** Raises all note amplitudes without changing mixer controls; summed notes can clip. */
+const playbackGainMultiplier = 6;
+// Base envelope peak, before tone and beat-context shaping.
+const notePeakGain = 0.06 * playbackGainMultiplier;
+/** Applies a common amplitude reduction to every dead-note strike. */
+const deadNoteGainMultiplier = 0.75;
 // Short attack avoids clicks while preserving plucked-note immediacy.
 const attackSeconds = 0.01;
 // Short release avoids clicks without smearing normal note boundaries.
 const releaseSeconds = 0.02;
 // Palm mutes are quieter because the string is damped at the bridge.
-const palmMuteGain = 0.038;
+const palmMuteGain = 0.038 * playbackGainMultiplier;
+/** Preserves the picked transient before palm damping takes over. */
+const palmMuteAttackSeconds = 0.003;
+/** Damping time constant at A3; low notes keep more body than high notes. */
+const palmMuteDecaySeconds = 0.035;
+/** Bounds pitch-dependent decay so bass notes stay tight and high notes stay audible. */
+const palmMuteMinimumDecaySeconds = 0.025;
+const palmMuteMaximumDecaySeconds = 0.05;
+/** Lets the pick attack through before darkening the damped string body. */
+const palmMuteFilterSweepSeconds = 0.03;
 // Hammer-ons/pull-offs are quieter than picked notes in this single-note model.
-const hammerOnPullOffGain = 0.048;
+const hammerOnPullOffGain = 0.048 * playbackGainMultiplier;
 // Hammer-ons/pull-offs bloom slightly after the fret-hand articulation.
 const hammerOnPullOffAttackSeconds = 0.018;
 // Palm mutes decay quickly; this caps long score durations to a short thump.
 const palmMuteMaxDurationSeconds = 0.18;
 // Harmonics speak more lightly than normal fretted notes in this simple model.
-const harmonicGain = 0.045;
+const harmonicGain = 0.045 * playbackGainMultiplier;
 // Natural/pinch harmonic playback uses the first octave partial for now.
-const harmonicSemitones = 12;
-// Let-ring extends release until note-level sustain exists.
-const letRingExtraSeconds = 0.7;
+const harmonicSemitones = NOTES_PER_OCTAVE;
 // Slides need enough time to hear the source-to-target pitch transition.
 const slideMaxDurationSeconds = 0.4;
 // Slide length scales with the source note while leaving its attack intact.
@@ -54,6 +70,63 @@ const defaultBendDurationRatio = 0.5;
 const downbeatGainMultiplier = 1.08;
 // Repeated notes are softened slightly to reduce machine-gun playback.
 const repeatedNoteGainMultiplier = 0.92;
+/** Makes accented attacks clearly louder than unaccented notes. */
+const accentGainMultiplier = 1.3;
+/** Makes heavily accented attacks louder than accented notes. */
+const heavyAccentGainMultiplier = 1.6;
+/**
+ * Peak gain multiplier of each beat dynamic, relative to mf. Soft levels are
+ * spread wider than loud ones (ppp is about -10 dB, fff about +4 dB), so loud
+ * beats keep headroom for accents.
+ */
+const dynamicGainMultipliers: Record<Dynamic, number> = {
+  [Dynamic.Pianississimo]: 0.3,
+  [Dynamic.Pianissimo]: 0.42,
+  [Dynamic.Piano]: 0.56,
+  [Dynamic.MezzoPiano]: 0.75,
+  [Dynamic.MezzoForte]: 1,
+  [Dynamic.Forte]: 1.2,
+  [Dynamic.Fortissimo]: 1.38,
+  [Dynamic.Fortississimo]: 1.55,
+};
+/**
+ * Highest envelope peak of one note. Sources reach at most full scale, so at
+ * track and master volumes of 0 dB one note cannot clip; the limit leaves a
+ * small safety margin. Only the loudest dynamics with accents can reach it.
+ * Boosts above 0 dB are caught by the master limiter.
+ */
+export const MAX_NOTE_PEAK_GAIN = 0.9;
+/** Allows floating-point timing drift when comparing a tie with the playback boundary. */
+const continuationTimingToleranceSeconds = 1e-9;
+/** Dead-note noise is a short string strike rather than a pitched note. */
+const deadNoteDurationSeconds = 0.05;
+/** Dead-note filter cutoffs follow the tuned open string, including its octave. */
+// Keep low strings dark without flattening the normal bass range to one cutoff.
+const deadNoteMinimumFilterFrequency = 120;
+const deadNoteMaximumFilterFrequency = 6000;
+const deadNoteAttackSeconds = 0.003;
+const deadNoteReleaseSeconds = 0.02;
+const deadNoteShaperCurveLength = 256;
+
+/** One written note in a shared source's tie chain, with any final resonance tail. */
+type SustainSegment = {
+  /** Note whose techniques apply during this segment. */
+  note: Note;
+  /** Absolute audio-context start time in seconds for this note's automation. */
+  startTime: number;
+  /** Absolute segment end in seconds, including any Let Ring resonance. */
+  stopTime: number;
+  /** Written automation end in absolute seconds; resonance must not stretch bends. */
+  automationStopTime: number;
+};
+
+/** Shared tie and resonance information for duration and attack cutoffs. */
+type NoteSustain = {
+  /** Written intervals that share one source and keep separate pitch automation. */
+  segments: SustainSegment[];
+  /** Whether any member of the logical note requests Let Ring resonance. */
+  hasLetRing: boolean;
+};
 
 type BendAutomationValues = {
   bendRamp: PitchRampParams;
@@ -81,6 +154,21 @@ type PitchRampParams = {
   endTime: number;
 };
 
+/** Optional timing and pitch inputs for scheduling one note. */
+export type ScheduleNoteOptions = {
+  /** Hard playback boundary that techniques may not exceed. */
+  maxStopTime?: number;
+  /**
+   * Start of this pass; incoming ties may sound here. The -Infinity default
+   * suppresses all valid continuations.
+   */
+  playbackStartTime?: number;
+  /** Global pitch shift in semitones applied to the source. */
+  pitchShiftSemitones?: number;
+  /** Absolute source start; a stroke moves it away from the beat start. */
+  attackTime?: number;
+};
+
 type TechniqueEnvelopeSettings = {
   attackSeconds: number;
   peakGain: number;
@@ -90,9 +178,8 @@ type TechniqueEnvelopeSettings = {
 
 /**
  * Schedules Web Audio nodes for individual notes.
- * This class owns only one-note audio node creation. Score-level traversal and
- * rolling scheduling are owned by PlaybackScheduler, while transport state stays
- * in ScorePlayer.
+ * Resolves ties and Let Ring tails for each source. Score-level traversal and
+ * rolling scheduling belong to PlaybackScheduler; transport belongs to ScorePlayer.
  */
 export class PlaybackNoteScheduler {
   /** Audio context used to create and schedule note nodes. */
@@ -132,6 +219,14 @@ export class PlaybackNoteScheduler {
 
     const bufferSourceNode = this._audioContext.createBufferSource();
     bufferSourceNode.buffer = sample;
+    const loop = this._sampleManager.getLoop(tone);
+    if (loop !== undefined) {
+      // Play the attack once, then repeat only the authored sustain region.
+      bufferSourceNode.loop = true;
+      bufferSourceNode.loopStart = loop.start;
+      bufferSourceNode.loopEnd = loop.end;
+    }
+
     /**
      * A sample is one recorded pitch. To play another pitch, Web Audio speeds
      * the recording up or slows it down. A playbackRate of 1 means "play the
@@ -155,6 +250,125 @@ export class PlaybackNoteScheduler {
     return getPlaybackToneProfile(note.trackContext.instrument.tone);
   }
 
+  /** Creates and schedules a short filtered-noise strike for a dead note. */
+  private produceDeadNote(
+    note: Note,
+    startTime: number,
+    stopTime: number,
+    trackBus: TrackAudioBus,
+    maxStopTime?: number
+  ): ScheduledAudioNode | null {
+    const effectiveStopTime = Math.min(
+      stopTime,
+      startTime + deadNoteDurationSeconds,
+      maxStopTime ?? Infinity
+    );
+    if (effectiveStopTime <= startTime) {
+      return null;
+    }
+
+    if (!(note instanceof GuitarNote)) {
+      return null;
+    }
+    const openString = note.trackContext.instrument.tuning[note.stringNum - 1];
+    if (openString === undefined || openString.octave === null) {
+      return null;
+    }
+
+    const openFrequency = getFrequencyFromNoteType(openString);
+    if (openFrequency <= 0) {
+      return null;
+    }
+
+    const sampleRate = this._audioContext.sampleRate;
+    const toneProfile = this.getToneProfile(note);
+    const noiseBuffer = this._audioContext.createBuffer(
+      1,
+      Math.ceil(sampleRate * deadNoteDurationSeconds),
+      sampleRate
+    );
+    const noiseData = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < noiseData.length; i++) {
+      noiseData[i] = Math.random() * 2 - 1;
+    }
+
+    const sourceNode = this._audioContext.createBufferSource();
+    sourceNode.buffer = noiseBuffer;
+    const filterNode = this._audioContext.createBiquadFilter();
+    filterNode.type = "lowpass";
+    filterNode.frequency.value = Math.min(
+      deadNoteMaximumFilterFrequency,
+      Math.max(
+        deadNoteMinimumFilterFrequency,
+        openFrequency * toneProfile.deadNoteBrightnessMultiplier
+      )
+    );
+    const intermediateNodes: AudioNode[] = [filterNode];
+    let outputNode: AudioNode = filterNode;
+    if (toneProfile.deadNoteDrive > 1) {
+      const shaperNode = this._audioContext.createWaveShaper();
+      const curve = new Float32Array(deadNoteShaperCurveLength);
+      for (let i = 0; i < curve.length; i++) {
+        const input = (i * 2) / (curve.length - 1) - 1;
+        curve[i] = Math.tanh(input * toneProfile.deadNoteDrive);
+      }
+      shaperNode.curve = curve;
+      shaperNode.oversample = "2x";
+      outputNode.connect(shaperNode);
+      outputNode = shaperNode;
+      intermediateNodes.push(shaperNode);
+    }
+    const gainNode = this._audioContext.createGain();
+    const unlimitedPeakGain =
+      notePeakGain *
+      deadNoteGainMultiplier *
+      toneProfile.deadNoteGainMultiplier *
+      this.getContextGainMultiplier(note) *
+      this.getAttackGainMultiplier(note);
+    const peakGain = Math.min(unlimitedPeakGain, MAX_NOTE_PEAK_GAIN);
+    const attackEndTime = Math.min(
+      startTime + deadNoteAttackSeconds * toneProfile.attackMultiplier,
+      effectiveStopTime
+    );
+    const releaseStartTime = Math.max(
+      attackEndTime,
+      effectiveStopTime - deadNoteReleaseSeconds * toneProfile.releaseMultiplier
+    );
+    gainNode.gain.setValueAtTime(0, startTime);
+    gainNode.gain.linearRampToValueAtTime(peakGain, attackEndTime);
+    gainNode.gain.linearRampToValueAtTime(peakGain, releaseStartTime);
+    gainNode.gain.linearRampToValueAtTime(0, effectiveStopTime);
+
+    try {
+      sourceNode.connect(filterNode);
+      outputNode.connect(gainNode);
+      gainNode.connect(trackBus.gainNode);
+      sourceNode.start(startTime);
+      sourceNode.stop(effectiveStopTime);
+    } catch (error) {
+      try {
+        sourceNode.stop(this._audioContext.currentTime);
+      } catch {
+        // The source may not have started or may already be stopped.
+      }
+      sourceNode.disconnect();
+      filterNode.disconnect();
+      for (const node of intermediateNodes.slice(1)) {
+        node.disconnect();
+      }
+      gainNode.disconnect();
+      throw error;
+    }
+
+    return {
+      sourceNode,
+      track: note.beat.voiceBar.bar.staff.track,
+      gainNode,
+      intermediateNodes,
+      startTime,
+    };
+  }
+
   /** Returns a small musical gain variation from beat/note context. */
   private getContextGainMultiplier(note: Note): number {
     let multiplier = 1;
@@ -164,14 +378,38 @@ export class PlaybackNoteScheduler {
 
     const prevBeat = note.beat.voiceBar.bar.staff.getPrevBeat(note.beat);
     const prevNote = this.getSameStringNote(note, prevBeat?.notes ?? null);
-    if (
+    const repeatsPitch =
       prevNote !== null &&
-      getNoteFrequency(prevNote) === getNoteFrequency(note)
-    ) {
+      getNoteFrequency(prevNote) === getNoteFrequency(note);
+    if (repeatsPitch) {
       multiplier *= repeatedNoteGainMultiplier;
     }
 
     return multiplier;
+  }
+
+  /** Returns the attack loudness of a note: its beat's dynamic times its accent. */
+  private getAttackGainMultiplier(note: Note): number {
+    return (
+      dynamicGainMultipliers[note.beat.dynamic] *
+      this.getAccentGainMultiplier(note)
+    );
+  }
+
+  /** Returns the gain boost of an accented or heavily accented note. */
+  private getAccentGainMultiplier(note: Note): number {
+    if (!(note instanceof GuitarNote)) {
+      return 1;
+    }
+    const accent = note.techniques.find(
+      (t) => t.type === GuitarTechniqueType.Accent
+    )?.accentOptions;
+    if (accent === null || accent === undefined) {
+      return 1;
+    }
+    return accent.kind === AccentType.Heavy
+      ? heavyAccentGainMultiplier
+      : accentGainMultiplier;
   }
 
   /** Returns the source parameter that controls pitch. */
@@ -203,9 +441,10 @@ export class PlaybackNoteScheduler {
     const bendPitch = options.bendPitch ?? options.holdPitch ?? 0;
     const releasePitch = options.releasePitch ?? 0;
     const prebendPitch = options.prebendPitch ?? 0;
-    const bendValue = baseValue * this.semitonesToRate(bendPitch);
-    const prebendValue = baseValue * this.semitonesToRate(prebendPitch);
-    const releaseValue = baseValue * this.semitonesToRate(releasePitch);
+    // Bend options use whole tones; playback pitch conversion uses semitones.
+    const bendValue = baseValue * this.semitonesToRate(bendPitch * 2);
+    const prebendValue = baseValue * this.semitonesToRate(prebendPitch * 2);
+    const releaseValue = baseValue * this.semitonesToRate(releasePitch * 2);
     const continuationPitch =
       params.note instanceof GuitarNote
         ? params.note.getBendContinuationPitch()
@@ -213,7 +452,7 @@ export class PlaybackNoteScheduler {
     const continuationValue =
       continuationPitch === undefined
         ? baseValue
-        : baseValue * this.semitonesToRate(continuationPitch);
+        : baseValue * this.semitonesToRate(continuationPitch * 2);
     const bendStartValue =
       options.type === BendType.Bend || options.type === BendType.BendAndRelease
         ? continuationValue
@@ -256,7 +495,7 @@ export class PlaybackNoteScheduler {
         "Hold and Release playback require a previous bend continuation"
       );
     }
-    return params.baseValue * this.semitonesToRate(continuationPitch);
+    return params.baseValue * this.semitonesToRate(continuationPitch * 2);
   }
 
   /** Dispatches bend automation based on the concrete bend type. */
@@ -396,16 +635,21 @@ export class PlaybackNoteScheduler {
       slideTargetStartTime,
     };
 
-    pitchParam.setValueAtTime(techniqueBaseValue, startTime);
+    const inheritedBendPitch =
+      note instanceof GuitarNote ? note.getBendContinuationPitch() : undefined;
+    // Inherited bends use whole tones; the rate conversion takes semitones.
+    const initialPitchValue =
+      techniqueBaseValue * this.semitonesToRate((inheritedBendPitch ?? 0) * 2);
+    pitchParam.setValueAtTime(initialPitchValue, startTime);
 
     for (const technique of note.techniques) {
       if (!(technique instanceof GuitarTechnique)) {
         continue;
       }
-      if (
+      const isHarmonic =
         technique.type === GuitarTechniqueType.NaturalHarmonic ||
-        technique.type === GuitarTechniqueType.PinchHarmonic
-      ) {
+        technique.type === GuitarTechniqueType.PinchHarmonic;
+      if (isHarmonic) {
         continue;
       }
 
@@ -421,25 +665,45 @@ export class PlaybackNoteScheduler {
     }
   }
 
-  /** Resolves note envelope settings affected by guitar techniques. */
+  /** Resolves note envelope settings, limiting the peak to MAX_NOTE_PEAK_GAIN. */
   private getTechniqueEnvelopeSettings(
     note: Note,
     stopTime: number,
     startTime: number
   ): TechniqueEnvelopeSettings {
+    const settings = this.getUnlimitedEnvelopeSettings(
+      note,
+      stopTime,
+      startTime
+    );
+    settings.peakGain = Math.min(settings.peakGain, MAX_NOTE_PEAK_GAIN);
+    return settings;
+  }
+
+  /** Resolves note envelope settings affected by guitar techniques. */
+  private getUnlimitedEnvelopeSettings(
+    note: Note,
+    stopTime: number,
+    startTime: number
+  ): TechniqueEnvelopeSettings {
     const profile = this.getToneProfile(note);
+    // Legato and harmonics replace the peak gain, so they apply it again.
+    const attackGain = this.getAttackGainMultiplier(note);
     const settings: TechniqueEnvelopeSettings = {
       attackSeconds: attackSeconds * profile.attackMultiplier,
       peakGain:
         notePeakGain *
         profile.gainMultiplier *
-        this.getContextGainMultiplier(note),
+        this.getContextGainMultiplier(note) *
+        attackGain,
       releaseSeconds: releaseSeconds * profile.releaseMultiplier,
       stopTime,
     };
 
-    if (note.hasTechnique(GuitarTechniqueType.PalmMute)) {
-      settings.peakGain = palmMuteGain;
+    const palmMuted = note.hasTechnique(GuitarTechniqueType.PalmMute);
+    if (palmMuted) {
+      settings.attackSeconds = palmMuteAttackSeconds;
+      settings.peakGain *= palmMuteGain / notePeakGain;
       settings.stopTime = Math.min(
         settings.stopTime,
         startTime + palmMuteMaxDurationSeconds
@@ -449,18 +713,14 @@ export class PlaybackNoteScheduler {
 
     if (note.hasTechnique(GuitarTechniqueType.Legato)) {
       settings.attackSeconds = hammerOnPullOffAttackSeconds;
-      settings.peakGain = hammerOnPullOffGain;
+      settings.peakGain = hammerOnPullOffGain * attackGain;
     }
 
-    if (
+    const hasHarmonic =
       note.hasTechnique(GuitarTechniqueType.NaturalHarmonic) ||
-      note.hasTechnique(GuitarTechniqueType.PinchHarmonic)
-    ) {
-      settings.peakGain = harmonicGain;
-    }
-
-    if (note.hasTechnique(GuitarTechniqueType.LetRing)) {
-      settings.stopTime += letRingExtraSeconds;
+      note.hasTechnique(GuitarTechniqueType.PinchHarmonic);
+    if (hasHarmonic) {
+      settings.peakGain = harmonicGain * attackGain;
     }
 
     if (note.hasTechnique(GuitarTechniqueType.Slide)) {
@@ -515,62 +775,345 @@ export class PlaybackNoteScheduler {
   }
 
   /**
+   * Resolves written ties first, then holds their terminal pitch through explicit Let Ring coverage.
+   * @param attackTime Source start; the first segment's automation starts here
+   */
+  private getSustainSegments(
+    note: Note,
+    attackTime: number,
+    stopTime: number
+  ): NoteSustain {
+    const segments: SustainSegment[] = [
+      { note, startTime: attackTime, stopTime, automationStopTime: stopTime },
+    ];
+    if (!(note instanceof GuitarNote)) {
+      return { segments, hasLetRing: false };
+    }
+
+    // Tied notes share one source but keep their own written automation intervals.
+    const staff = note.beat.voiceBar.bar.staff;
+    let sustainStopTime = stopTime;
+    let current = note;
+    let nextBeat = staff.getNextBeat(current.beat);
+    while (nextBeat !== null) {
+      const next = this.getSameStringNote(current, nextBeat.notes);
+      if (!(next instanceof GuitarNote) || !next.isTieContinuation) {
+        break;
+      }
+      const duration = ticksToSeconds(
+        nextBeat.fullDurationTicks,
+        nextBeat.voiceBar.tickResolution,
+        nextBeat.voiceBar.bar.masterBar.tempo
+      );
+      segments.push({
+        note: next,
+        startTime: sustainStopTime,
+        stopTime: sustainStopTime + duration,
+        automationStopTime: sustainStopTime + duration,
+      });
+      sustainStopTime += duration;
+      current = next;
+      nextBeat = staff.getNextBeat(current.beat);
+    }
+
+    const ringTechniques = segments.flatMap((s) =>
+      s.note.techniques.filter((t) => t.type === GuitarTechniqueType.LetRing)
+    );
+    // A selection may start inside a logical note whose marker is before the pass.
+    let predecessor = note;
+    while (predecessor.isTieContinuation) {
+      const previous = predecessor.getTiePredecessor();
+      if (previous === null) {
+        break;
+      }
+      ringTechniques.push(
+        ...previous.techniques.filter(
+          (t) => t.type === GuitarTechniqueType.LetRing
+        )
+      );
+      predecessor = previous;
+    }
+    while (nextBeat !== null && ringTechniques.length > 0) {
+      const next = this.getSameStringNote(note, nextBeat.notes);
+      if (next === null || !next.hasTechnique(GuitarTechniqueType.LetRing)) {
+        break;
+      }
+      sustainStopTime += ticksToSeconds(
+        nextBeat.fullDurationTicks,
+        nextBeat.voiceBar.tickResolution,
+        nextBeat.voiceBar.bar.masterBar.tempo
+      );
+      nextBeat = staff.getNextBeat(nextBeat);
+    }
+    segments[segments.length - 1].stopTime = sustainStopTime;
+    return { segments, hasLetRing: ringTechniques.length > 0 };
+  }
+
+  /**
+   * Finds the next attack on this string in any voice of the staff.
+   * @returns Absolute audio-context seconds, or Infinity when no later attack exists.
+   */
+  private getNextStringAttackTime(note: GuitarNote, startTime: number): number {
+    const staff = note.beat.voiceBar.bar.staff;
+    const firstBar = staff.bars.indexOf(note.beat.voiceBar.bar);
+    // The negative offset aligns this bar's start relative to the initial note.
+    let barStartOffsetSeconds = -ticksToSeconds(
+      note.beat.startTick,
+      note.beat.voiceBar.tickResolution,
+      note.beat.voiceBar.bar.masterBar.tempo
+    );
+    for (const bar of staff.bars.slice(firstBar)) {
+      let nextAttack = Infinity;
+      for (const voice of bar.voiceBarsAsArray) {
+        for (const beat of voice.beats) {
+          const candidate = beat.notes?.[note.stringNum - 1];
+          const attackOffsetSeconds =
+            barStartOffsetSeconds +
+            ticksToSeconds(
+              beat.startTick,
+              voice.tickResolution,
+              bar.masterBar.tempo
+            );
+          const isAttack =
+            candidate instanceof GuitarNote &&
+            candidate.fret !== null &&
+            !candidate.isTieContinuation;
+          if (attackOffsetSeconds > 0 && isAttack) {
+            nextAttack = Math.min(nextAttack, startTime + attackOffsetSeconds);
+          }
+        }
+      }
+      if (nextAttack !== Infinity) {
+        return nextAttack;
+      }
+      const duration = bar.masterBar.barDurationFraction;
+      // A whole note has 4 quarter beats; a minute has 60 seconds.
+      barStartOffsetSeconds +=
+        ((duration.numerator / duration.denominator) * 4 * 60) /
+        bar.masterBar.tempo;
+    }
+    return Infinity;
+  }
+
+  /** Skips a tied continuation when its predecessor belongs to this playback pass. */
+  private isContinuationAlreadyScheduled(
+    note: Note,
+    startTime: number,
+    playbackStartTime: number
+  ): boolean {
+    if (!(note instanceof GuitarNote) || !note.isTieContinuation) {
+      return false;
+    }
+    const previous = note.getTiePredecessor();
+    if (previous === null) {
+      return false;
+    }
+
+    const beat = previous.beat;
+    const duration = ticksToSeconds(
+      beat.fullDurationTicks,
+      beat.voiceBar.tickResolution,
+      beat.voiceBar.bar.masterBar.tempo
+    );
+    // Ties join adjacent beats, so subtracting the predecessor's duration
+    // reconstructs its start on the same audio-context timeline.
+    const predecessorStartTime = startTime - duration;
+    return (
+      predecessorStartTime >=
+      playbackStartTime - continuationTimingToleranceSeconds
+    );
+  }
+
+  /** Whether a playable note follows a slide source and sounds through its source instead. */
+  private isSlideTarget(note: Note): boolean {
+    if (!(note instanceof GuitarNote)) {
+      return false;
+    }
+
+    const prevBeat = note.beat.voiceBar.bar.staff.getPrevBeat(note.beat);
+    const prevNote = prevBeat?.notes?.[note.stringNum - 1];
+    return (
+      prevNote instanceof GuitarNote &&
+      prevNote.hasTechnique(GuitarTechniqueType.Slide) &&
+      getNoteFrequency(note) > 0
+    );
+  }
+
+  /**
+   * Whether the note starts its own sound in this pass. Empty slots, slide
+   * targets, unpitched notes, and tie continuations whose predecessor sounds in
+   * this pass do not attack. A continuation at the pass start does attack.
+   * @param startTime Absolute rhythmic start of the note's beat
+   * @param playbackStartTime Start of this pass
+   */
+  public isAttackInPass(
+    note: Note,
+    startTime: number,
+    playbackStartTime = -Infinity
+  ): boolean {
+    if (note.noteValue === NoteValue.None || this.isSlideTarget(note)) {
+      return false;
+    }
+    if (note.noteValue === NoteValue.Dead) {
+      return true;
+    }
+    if (getNoteFrequency(note) <= 0) {
+      return false;
+    }
+
+    return !this.isContinuationAlreadyScheduled(
+      note,
+      startTime,
+      playbackStartTime
+    );
+  }
+
+  /**
    * Schedules one note using a configured sample or oscillator fallback.
    * @param note Note to schedule
-   * @param startTime Absolute audio context start time
+   * @param startTime Absolute rhythmic start of the note's beat, used for tie and Let Ring timing
    * @param stopTime Absolute audio context stop time
-   * @param maxStopTime Hard playback boundary that techniques may not exceed
-   * @returns Created audio nodes, or null for unplayable notes
+   * @returns Created audio nodes, or null when the note does not attack in this pass
    */
   public scheduleNote(
     note: Note,
     startTime: number,
     stopTime: number,
     trackBus: TrackAudioBus,
-    maxStopTime?: number
+    options: ScheduleNoteOptions = {}
   ): ScheduledAudioNode | null {
-    const frequency = getNoteFrequency(note);
-    if (frequency <= 0) {
+    const {
+      maxStopTime,
+      playbackStartTime = -Infinity,
+      pitchShiftSemitones = 0,
+      attackTime = startTime,
+    } = options;
+    if (!this.isAttackInPass(note, startTime, playbackStartTime)) {
       return null;
     }
+    if (note.noteValue === NoteValue.Dead) {
+      return this.produceDeadNote(
+        note,
+        attackTime,
+        stopTime,
+        trackBus,
+        maxStopTime
+      );
+    }
+    const frequency = getNoteFrequency(note);
 
-    const sourceNode = this.createSourceNode(note, frequency);
-    const gainNode = this._audioContext.createGain();
+    const { segments, hasLetRing } = this.getSustainSegments(
+      note,
+      attackTime,
+      stopTime
+    );
+    const finalSegment = segments[segments.length - 1];
+    const sustainedStopTime = finalSegment.stopTime;
     const envelopeSettings = this.getTechniqueEnvelopeSettings(
       note,
-      stopTime,
-      startTime
+      sustainedStopTime,
+      attackTime
     );
+    if (segments.length > 1) {
+      // Exact tie duration takes precedence over palm-mute shortening and slide
+      // extension of the envelope; their other settings still apply.
+      envelopeSettings.stopTime = sustainedStopTime;
+    }
+    // Known gap: the next attack is found at its beat time, without its stroke offset.
+    const resonanceStopTime =
+      note instanceof GuitarNote && hasLetRing
+        ? this.getNextStringAttackTime(note, startTime)
+        : Infinity;
     const effectiveStopTime = Math.min(
       envelopeSettings.stopTime,
+      resonanceStopTime,
       maxStopTime ?? Infinity
     );
-    const attackEndTime = startTime + envelopeSettings.attackSeconds;
+    const attackEndTime = Math.min(
+      attackTime + envelopeSettings.attackSeconds,
+      effectiveStopTime
+    );
     const releaseStartTime = Math.max(
       attackEndTime,
       effectiveStopTime - envelopeSettings.releaseSeconds
     );
     const track = note.beat.voiceBar.bar.staff.track;
-    gainNode.gain.setValueAtTime(0, startTime);
+
+    const sourceNode = this.createSourceNode(note, frequency);
+    const pitchShiftParam = sourceNode.detune;
+    // Set the initial value, rather than a future event. Live changes must not
+    // be overwritten by a stale buffered-note event at its start time.
+    pitchShiftParam.value = pitchShiftSemitones * CENTS_PER_SEMITONE;
+    const gainNode = this._audioContext.createGain();
+    gainNode.gain.setValueAtTime(0, attackTime);
     gainNode.gain.linearRampToValueAtTime(
       envelopeSettings.peakGain,
       attackEndTime
     );
-    gainNode.gain.setValueAtTime(envelopeSettings.peakGain, releaseStartTime);
+    let releaseGain = envelopeSettings.peakGain;
+    if (note.hasTechnique(GuitarTechniqueType.PalmMute)) {
+      const decaySeconds = Math.min(
+        palmMuteMaximumDecaySeconds,
+        Math.max(
+          palmMuteMinimumDecaySeconds,
+          palmMuteDecaySeconds * Math.sqrt(220 / frequency)
+        )
+      );
+      gainNode.gain.setTargetAtTime(0, attackEndTime, decaySeconds);
+      // Anchor the final fade at the decayed level, not the original peak.
+      releaseGain *= Math.exp(
+        -(releaseStartTime - attackEndTime) / decaySeconds
+      );
+    }
+    gainNode.gain.setValueAtTime(releaseGain, releaseStartTime);
     gainNode.gain.linearRampToValueAtTime(0, effectiveStopTime);
-    this.applyTechniqueAutomation(
-      note,
-      sourceNode,
-      frequency,
-      startTime,
-      effectiveStopTime,
-      note.hasTechnique(GuitarTechniqueType.Slide) ? stopTime : null
-    );
+    for (const segment of segments) {
+      if (segment.startTime >= effectiveStopTime) {
+        break;
+      }
+      const automationStopTime = Math.min(
+        segment.automationStopTime,
+        effectiveStopTime
+      );
+      // A source slide reaches its target at the original note's written end,
+      // before extended sustain. Tied segments currently use that same boundary.
+      this.applyTechniqueAutomation(
+        segment.note,
+        sourceNode,
+        frequency,
+        segment.startTime,
+        automationStopTime,
+        segment.note.hasTechnique(GuitarTechniqueType.Slide) ? stopTime : null
+      );
+    }
+
+    const intermediateNodes: AudioNode[] = [];
+    if (note.hasTechnique(GuitarTechniqueType.PalmMute)) {
+      const filter = this._audioContext.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.Q.value = 0.5;
+      // Follow pitch so high notes keep their body; leave low strings some bite.
+      const maximumCutoff = this._audioContext.sampleRate * 0.45;
+      const cutoff = Math.min(maximumCutoff, Math.max(800, frequency * 4));
+      const attackCutoff = Math.min(maximumCutoff, cutoff * 4);
+      filter.frequency.setValueAtTime(attackCutoff, attackTime);
+      filter.frequency.setValueAtTime(attackCutoff, attackEndTime);
+      filter.frequency.linearRampToValueAtTime(
+        cutoff,
+        Math.min(attackEndTime + palmMuteFilterSweepSeconds, effectiveStopTime)
+      );
+      intermediateNodes.push(filter);
+    }
 
     try {
-      sourceNode.connect(gainNode);
+      if (intermediateNodes.length > 0) {
+        sourceNode.connect(intermediateNodes[0]);
+        intermediateNodes[0].connect(gainNode);
+      } else {
+        sourceNode.connect(gainNode);
+      }
       gainNode.connect(trackBus.gainNode);
-      sourceNode.start(startTime);
+      sourceNode.start(attackTime);
       sourceNode.stop(effectiveStopTime);
     } catch (error) {
       try {
@@ -580,14 +1123,20 @@ export class PlaybackNoteScheduler {
       }
       sourceNode.disconnect();
       gainNode.disconnect();
+      for (const node of intermediateNodes) {
+        node.disconnect();
+      }
       throw error;
     }
 
     return {
       sourceNode,
       track,
+      pitchShiftParam,
       gainNode,
-      startTime,
+      intermediateNodes:
+        intermediateNodes.length > 0 ? intermediateNodes : undefined,
+      startTime: attackTime,
     };
   }
 }

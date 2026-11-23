@@ -1,6 +1,6 @@
 import { Bar, NoteDuration } from "../../../model";
 import { Rect, Point, randomInt } from "../../../../shared";
-import { TrackElement } from "../track-element";
+import type { TrackElement } from "../track-element";
 import {
   NotationElement,
   NotationNode,
@@ -391,6 +391,7 @@ export class BarElement implements NotationElement {
     }
 
     hashArr.push(`${this._barValidState ? 1 : 0}`);
+    hashArr.push(`${this.appendBarRect !== undefined}`);
 
     return hashArr.join("");
   }
@@ -424,6 +425,13 @@ export class BarElement implements NotationElement {
 
   public get beatElements(): BeatElement[] {
     return this._voiceBarContainers.flatMap((element) => element.beatElements);
+  }
+
+  /** Earliest laid-out beat across voices, independent of the active voice. */
+  public get firstBeatElement(): BeatElement | undefined {
+    return this.beatElements.sort(
+      (a, b) => a.barLocalCoords.x - b.barLocalCoords.x
+    )[0];
   }
 
   public getStableIdentity(): string {
@@ -688,6 +696,29 @@ export class BarElement implements NotationElement {
   /** Bar element layout bounding box */
   public get boundingBox(): Rect {
     return this._boundingBox;
+  }
+
+  /** Returns the staff-height append area attached to the final bar's right border. */
+  public get appendBarRect(): Rect | undefined {
+    if (this.bar.staff.bars[this.bar.staff.bars.length - 1] !== this.bar) {
+      return undefined;
+    }
+
+    const firstStaffLine = this._staffLines[0];
+    const lastStaffLine = this._staffLines.at(-1);
+    const top = firstStaffLine?.y ?? 0;
+    const bottom = lastStaffLine?.y ?? this._boundingBox.height;
+    const height = Math.max(
+      this.trackElement.layoutDimensions.noteRectHeight,
+      bottom - top
+    );
+    const y = (top + bottom - height) / 2;
+    return new Rect(
+      this._boundingBox.width,
+      y,
+      this.trackElement.layoutDimensions.barAppendWidth,
+      height
+    );
   }
 
   /** This bar's layout bounding box in global coordinates */

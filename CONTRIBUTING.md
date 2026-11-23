@@ -1,69 +1,67 @@
 # Contributing to TabUI
 
-Read [Code Style](docs/code-style.md) before editing or reviewing code.
-The same rules apply to human and agent contributors.
+TabUI welcomes any kind of contribution, such as bug reports, feature ideas, docs
+fixes, accessibility feedback, and code.
 
-Read [Domain Model and Terms](docs/domain.md) for score structure and notation
-vocabulary.
+Before you start a large change, such as a new feature or a big refactor, open an
+issue to discuss it first. Check the [Roadmap](ROADMAP.md) to see where the
+project is going. This way, nobody spends time on work that may not be accepted.
+
+Please keep in mind that I am one person working on this in my free time, so
+it may take a while for me to respond.
 
 ## Setup
 
-Use Node.js 20 or later and npm.
+Use a supported Node.js LTS release (20.19+, 22.12+, or 24+) and npm.
 
 ```sh
 npm ci
+npx playwright install --with-deps chromium firefox
 npm run dev
 ```
 
 The demo opens at `http://localhost:5173/tabui/`.
 
-## Checks
+See [Development](DEVELOPMENT.md) for focused test commands, framework demos, and
+the repository layout.
 
-Install the browser test dependencies before the first full check:
+## Submitting a PR
 
-```sh
-npx playwright install --with-deps chromium firefox
-```
+If your PR changes code or tests, run `npm run verify` before you open it. This
+command is the final verification gate. It catches most problems, but not all of
+them.
 
-Run `npm run verify` before submitting a change. It checks TypeScript, builds the
-package, runs unit, packed-consumer, and browser tests, then builds the demo.
-Also run `npx eslint .` and `git diff --check`.
+Keep each PR focused on one change. Keep the description short but complete. Use
+Markdown: paragraphs, lists, and code blocks, not one long block of text.
 
-Useful focused commands:
+## Principles
 
-| Command                      | Purpose                                                             |
-| ---------------------------- | ------------------------------------------------------------------- |
-| `npm run test:unit`          | Unit tests and test TypeScript checks                               |
-| `npm run test:pack-consumer` | Build a separate packed-package app and check its icons in Chromium |
-| `npm run test:e2e`           | Chromium and Firefox browser tests                                  |
-| `npm run benchmark:updates`  | Local layout/update performance comparison                          |
-| `npm run build:package`      | Library output in `dist/`                                           |
-| `npm run build:demo`         | Demo output in `demo/dist/`                                         |
+Keep these principles in mind when you design and build any change:
 
-## Repository layout
+- **Embeddability and isolation.** TabUI must work inside any web app. Each
+  instance is fully self-contained and must not affect other instances on the
+  same page.
+- **Customizability.** Users can change themes, icons, and samples.
+- **Performance.** Edits must stay fast, even in large scores. Each edit reports
+  which parts of the score it changed, and TabUI updates only those parts. Keep
+  it that way.
+- **Accessibility.** The mouse and the keyboard are equal input methods:
+  - Every action needs both a mouse control and a keyboard shortcut.
+  - New and updated actions need screen reader announcements.
 
-- `src/`: library code.
-- `demo/`: browser demo and score fixtures.
-- `assets/`: shared runtime icons and demo audio samples. Only icons ship in npm.
-- `tests/`: unit, package-consumer, and browser tests.
-- `docs/`: usage, code style, and playback architecture.
-- `AGENTS.md`: model overview and coding-agent guidance.
-- `ROADMAP.md`: release work and future plans.
+Saved scores must stay readable. New fields in the score format must be optional,
+so older files still load. A breaking format change needs a new schema version and
+a migration from the previous one.
 
-`vite.config.js` builds and serves the demo. `vite.config.lib.js` builds the
-library. Both inline icons from `assets/` as data URLs. The demo also serves
-audio samples through Vite's `publicDir` option.
+## AI policy
 
-All icons live in `assets/img/` and `assets/img-dark/`. Vite discovers and bundles
-them directly through `import.meta.glob` in `src/assets.ts`. Add or remove SVG
-files there; no registry or generation command is needed.
+You can use AI to contribute to TabUI. If you do:
 
-## Releases and deployment
+- Say in the PR description if AI wrote a large part of the code.
+- Make sure you understand the code you submit.
+- You are responsible for your changes, not your AI tool.
 
-Pull requests and pushes to `master` run `npm run verify` in CI. Tags matching
-`v*` run the same checks and deploy `demo/dist` to GitHub Pages. Set the Pages
-source to **GitHub Actions**. The maintainer creates and pushes release tags.
+## License
 
-Before a release, review [ROADMAP.md](ROADMAP.md), run the update benchmark, and
-smoke-test editing, playback, persistence, and editor mount/disposal in the demo.
-Record user-visible changes in the GitHub release notes.
+By contributing, you agree that your contributions are licensed under the
+[MIT License](LICENSE).

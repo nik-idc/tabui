@@ -5,6 +5,7 @@ import { SideControlsTemplate } from "./side-controls-template";
 import { SideControlsTemplateRenderer } from "./side-controls-template-renderer";
 import { TechniqueControlsComponent } from "./technique-controls";
 import { MeasureControlsComponent } from "./measure-controls";
+import { StaffControlsComponent } from "./staff-controls";
 import { ResolvedTabUIConfig } from "../../config/tabui-config";
 
 export class SideControlsComponent {
@@ -17,6 +18,7 @@ export class SideControlsComponent {
   readonly noteControlsComponent: NoteControlsComponent;
   readonly techniqueControlsComponent: TechniqueControlsComponent;
   readonly measureControlsComponent: MeasureControlsComponent;
+  readonly staffControlsComponent: StaffControlsComponent;
 
   constructor(
     parentDiv: HTMLDivElement,
@@ -54,6 +56,10 @@ export class SideControlsComponent {
       this.notationComponent,
       announce
     );
+    this.staffControlsComponent = new StaffControlsComponent(
+      this.template.container,
+      this.notationComponent
+    );
   }
 
   public renderToggle(collapsed: boolean): void {
@@ -66,5 +72,6 @@ export class SideControlsComponent {
     this.noteControlsComponent.render();
     this.techniqueControlsComponent.render();
     this.measureControlsComponent.render();
+    this.staffControlsComponent.render();
   }
 }

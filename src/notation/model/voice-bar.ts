@@ -14,17 +14,25 @@ import {
   lcmAll,
 } from "./timing";
 import { Bar } from "./bar";
+import { DEFAULT_DYNAMIC, Dynamic } from "./dynamic";
 
+/** Beat-array edit metadata with live beat references. */
 export type BeatArrayOperationOutput<
   I extends MusicInstrument = MusicInstrument,
 > = {
+  /** Zero-based starting position in the voice's beat array. */
   index: number;
+  /** Beats inserted or removed by this operation. */
   beats: Beat<I>[];
 };
 
+/** Removal metadata used to restore beats and reverse empty-voice normalization. */
 export type BeatRemovalOutput<I extends MusicInstrument = MusicInstrument> = {
+  /** Original positions and live removed beats. */
   removed: BeatArrayOperationOutput<I>;
+  /** Fallback rests inserted to keep the bar usable. */
   inserted: BeatArrayOperationOutput<I>[];
+  /** Voice slots cleared by normalization, or null if none were cleared. */
   removedVoiceNumbers: VoiceNumber[] | null;
 };
 
@@ -33,21 +41,22 @@ type MetricSpan = {
   endTick: number;
 };
 
+/** One-based voice slot within a staff bar. */
 export type VoiceNumber = 1 | 2 | 3 | 4;
 
 /**
- * Class that represents a musical bar
+ * One voice's beats and derived timing within a staff bar.
  */
 export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   /** Bar's unqiue identifier */
   readonly uuid: number;
-  /** Reference to the master bar the bar belongs to */
+  /** Owning staff bar, retained by reference. */
   readonly bar: Bar<I>;
   /** Track context */
   readonly trackContext: TrackContext<I>;
   /** Number of the voice */
   readonly voiceNumber: VoiceNumber;
-  /**  Array of all beats in the bar */
+  /** Live beat array; use voice methods to maintain timing and staff counts. */
   readonly beats: Beat<I>[];
 
   /**  Beaming groups */
@@ -62,9 +71,12 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   private _actualTicks: number;
 
   /**
-   * Class that represents a musical bar
+   * Creates a voice and rebuilds its timing, tuplet groups, and beaming.
+   * @param bar Owning staff bar, retained by reference.
    * @param trackContext Track context
-   * @param beats Beats for this bar
+   * @param voiceNumber One-based voice slot from 1 through 4.
+   * @param beats Retained live array of beats already owned by this voice; empty creates a quarter rest.
+   * @throws If supplied rhythm or meter cannot be rebuilt consistently.
    */
   constructor(
     bar: Bar<I>,
@@ -371,6 +383,10 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     }
   }
 
+  /**
+   * Rebuilds tuplet groups, tick resolution, beat offsets, and beaming from current data.
+   * @throws If rhythm fractions, tuplet groups, or meter beaming cannot be represented consistently.
+   */
   public rebuildTiming(): void {
     this.recomputeTupletGroups();
     this.rebuildBeatTicks();
@@ -380,6 +396,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   /**
    * Computes beaming for all the beats inside of this bar.
    * Kept for compatibility: delegates to timing rebuild.
+   * @throws If rhythm, tuplet groups, or meter beaming cannot be rebuilt consistently.
    */
   public computeBeaming(): void {
     this.rebuildTiming();
@@ -388,23 +405,24 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   /**
    * Computes bar's tuplet groups from scratch beat-by-beat.
    * Kept for compatibility: delegates to timing rebuild.
+   * @throws If rhythm, tuplet groups, or meter beaming cannot be rebuilt consistently.
    */
   public computeBarTupletGroups(): void {
     this.rebuildTiming();
   }
 
   /**
-   * Gets actual duration of all the beats in the bar
-   * @returns Sum of all bar's beats' durations
+   * Returns the last rebuilt sum of this voice's played durations in whole-note units.
    */
   public getActualBarDuration(): number {
     return this._actualTicks / this._tickResolution;
   }
 
   /**
-   * Checks if the beat needs to be played
+   * Tests whether the beat's rebuilt end tick is within the meter, including rests.
    * @param beatToCheck Beat to check
    * @returns True if beat should be played, false otherwise
+   * @throws If the beat is absent from this voice.
    */
   public beatPlayable(beatToCheck: Beat<I>): boolean {
     if (!this.beats.includes(beatToCheck)) {
@@ -415,64 +433,97 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Inserts beats
-   * @param index Index after which to insert the beat
-   * @param beats Beats to insert
+   * Copies beats into this voice and rebuilds timing and beaming.
+   * @param index Zero-based insertion position, from zero through the beat count.
+   * @param beats Content to copy into this voice; empty has no effect after index validation.
+   * @returns Live inserted copies.
+   * @throws If the index is outside the voice, copying fails, or timing/bookkeeping fails.
    */
   public insertBeats(index: number, beats: Beat<I>[]): Beat<I>[] {
-    if (index < 0 || index > this.beats.length) {
+    if (!Number.isInteger(index) || index < 0 || index > this.beats.length) {
       throw Error(`${index} is invalid beat index`);
     }
-
-    const wasEmpty = this.isEmpty();
-    const beatsCopies: Beat<I>[] = [];
-    for (const beat of beats) {
-      beatsCopies.push(beat.deepCopy(this));
-    }
-    this.beats.splice(index, 0, ...beatsCopies);
-    if (wasEmpty && !this.isEmpty()) {
-      this.bar.staff.recordVoiceBarAdded(this);
+    if (beats.length === 0) {
+      return [];
     }
 
-    this.rebuildTiming();
-
-    return beatsCopies;
-  }
-
-  public replaceBeats(beats: Beat<I>[]): void {
-    const wasEmpty = this.isEmpty();
-    this.beats.splice(0, this.beats.length, ...beats);
-    if (wasEmpty && !this.isEmpty()) {
-      this.bar.staff.recordVoiceBarAdded(this);
-    } else if (!wasEmpty && this.isEmpty()) {
-      this.bar.staff.recordVoiceBarRemoved(this);
-    }
-    this.rebuildTiming();
+    const copies = beats.map((beat) => beat.deepCopy(this));
+    return this.bar.replaceSelectedBeats(
+      [],
+      [{ voiceBar: this, index, beats: copies }]
+    ).insertedBeats;
   }
 
   /**
-   * Insert a beat
-   * @param index Index after which to insert the beat
-   * @param beat Beat to insert
+   * Replaces the beat array contents with supplied references and rebuilds timing.
+   * @param beats Beats already owned by this voice; an empty array normalizes the bar.
+   * @throws If timing/beaming cannot be rebuilt or emptying the voice reveals inconsistent staff counts.
+   */
+  public replaceBeats(beats: Beat<I>[]): void {
+    this.bar.replaceVoiceBeats(this, beats);
+  }
+
+  /**
+   * Inserts a beat copy and rebuilds timing and beaming.
+   * @param index Zero-based insertion position, from zero through the beat count.
+   * @param beat Content to copy; omitted creates a quarter-duration beat with empty note slots and the inherited dynamic.
+   * @returns Live inserted copy and its insertion index.
+   * @throws If the index is outside the voice, copying fails, or timing/bookkeeping fails.
    */
   public insertBeat(
     index: number,
     beat?: Beat<I>
   ): BeatArrayOperationOutput<I> {
     if (beat === undefined) {
-      beat = new Beat<I>(this, this.trackContext);
+      beat = this.createDefaultBeat(index, true);
     }
     const insertedBeats = this.insertBeats(index, [beat]);
 
     return { index: index, beats: insertedBeats };
   }
 
-  private createDefaultBeat(index: number): Beat<I> {
+  /**
+   * Creates a detached default beat for an index in this voice. All new default
+   * beats come from here, so each one takes the inherited dynamic.
+   * @param index Zero-based position the beat will take.
+   * @param hasNotes True for a quarter beat with empty note slots; false for a
+   *   rest with the previous beat's written duration (quarter at index zero).
+   */
+  public createDefaultBeat(index: number, hasNotes: boolean = false): Beat<I> {
+    const previous = index > 0 ? this.beats[index - 1] : undefined;
     const duration =
-      index === 0 ? NoteDuration.Quarter : this.beats[index - 1].baseDuration;
-    return new Beat(this, this.trackContext, null, duration);
+      hasNotes || previous === undefined
+        ? NoteDuration.Quarter
+        : previous.baseDuration;
+    return new Beat<I>(
+      this,
+      this.trackContext,
+      hasNotes ? [] : null,
+      duration,
+      0,
+      null,
+      this.getInheritedDynamic(index)
+    );
   }
 
+  /**
+   * Returns the dynamic a new beat at this index takes: the one of the previous
+   * beat in this voice, also in earlier bars of the staff, or mf if there is none.
+   * @param index Zero-based insertion position in this voice.
+   */
+  public getInheritedDynamic(index: number): Dynamic {
+    // The constructor creates its default rest before `beats` is assigned.
+    const previous =
+      index > 0
+        ? this.beats[index - 1]
+        : this.bar.staff.getLastBeatBefore(this.bar, this.voiceNumber);
+    return previous?.dynamic ?? DEFAULT_DYNAMIC;
+  }
+
+  /**
+   * Inserts a quarter rest at index zero and returns its live edit metadata.
+   * @throws If beat construction or timing rebuild fails.
+   */
   public insertDefaultRest(): BeatArrayOperationOutput<I> {
     const insertedBeat = this.insertBeats(0, [this.createDefaultBeat(0)]);
     return {
@@ -482,7 +533,9 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Prepends beats to the beginning of the bar
+   * Prepends beat copies and rebuilds timing; omitted beats insert a quarter rest.
+   * @returns Live inserted copies and index zero.
+   * @throws If copying or timing/bookkeeping fails.
    */
   public prependBeats(beats?: Beat<I>[]): BeatArrayOperationOutput<I> {
     const beatsToInsert = beats ?? [this.createDefaultBeat(0)];
@@ -492,7 +545,9 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Appends beats to the end of the bar
+   * Appends beat copies and rebuilds timing; omitted beats insert a rest with the previous beat's written duration (quarter if empty).
+   * @returns Live inserted copies and their zero-based starting position.
+   * @throws If copying or timing/bookkeeping fails.
    */
   public appendBeats(beats?: Beat<I>[]): BeatArrayOperationOutput<I> {
     const index = this.beats.length;
@@ -503,49 +558,35 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Remove beat from beats array
-   * @param index Index of the beat
+   * Removes one beat and rebuilds timing, clearing empty voice slots or adding fallback rests when needed.
+   * @param index Zero-based beat position.
+   * @returns Removed content and fallback-rest/voice-slot metadata for restoration.
+   * @throws If the index is outside this voice or timing/bookkeeping fails.
    */
   public removeBeat(index: number): BeatRemovalOutput<I> {
     if (index < 0 || index >= this.beats.length) {
       throw Error(`${index} is invalid beat index`);
     }
 
-    const willBecomeEmpty = this.beats.length === 1;
-    if (willBecomeEmpty) {
-      this.bar.staff.recordVoiceBarRemoved(this);
-    }
-    const removed = { index, beats: this.beats.splice(index, 1) };
-
-    if (this.beats.length === 0) {
-      const { inserted, removedVoiceNumbers } =
-        this.bar.resolveEmptyVoiceBars();
-
-      this.rebuildTiming();
-      return { removed, inserted, removedVoiceNumbers };
-    }
-
-    this.rebuildTiming();
-    return { removed, inserted: [], removedVoiceNumbers: null };
+    return this.bar.replaceSelectedBeats([this.beats[index]]).removals[0];
   }
 
   /**
-   * Removes beats from bar
-   * @param beats Beats to remove
+   * Removes beats in input order and normalizes the bar once after removal.
+   * @param beats Live beats still present in this voice; duplicates are not supported.
+   * @returns Removal and fallback-rest metadata for each input beat.
+   * @throws If a beat is absent or timing/bookkeeping fails.
    */
   public removeBeats(beats: Beat<I>[]): BeatRemovalOutput<I>[] {
-    const outputs: BeatRemovalOutput<I>[] = [];
-    for (const beat of beats) {
-      const beatIndex = this.beats.indexOf(beat);
-      outputs.push(this.removeBeat(beatIndex));
+    if (beats.some((b) => b.voiceBar !== this)) {
+      throw Error("Beat belongs to another voice");
     }
-
-    return outputs;
+    return this.bar.replaceSelectedBeats(beats).removals;
   }
 
   /**
-   * Creates bar's deep copy
-   * @returns Deep copy of the bar
+   * Copies beats and techniques into a new voice, retaining the owning bar and context, then rebuilds timing.
+   * @throws If copied data or timing is invalid.
    */
   public deepCopy(): VoiceBar<I> {
     const voiceBar = new VoiceBar<I>(
@@ -568,8 +609,8 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Indicates if all beats in the bar fit.
-   * Returns true if durations fit OR no beats in the bar
+   * Returns true if this voice is empty or its rebuilt duration exactly fills the meter.
+   * Underfilled and overfull voices return false; no content is trimmed.
    */
   public checkDurationsFit(): boolean {
     if (this.isEmpty()) {
@@ -579,12 +620,12 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
     return this._actualTicks === this._barTicks;
   }
 
-  /** Beaming groups getter*/
+  /** Live metric grouping lengths, in eighth-note or finer meter units; replaced on timing rebuild. */
   public get beamingGroups(): number[] {
     return this._beamingGroups;
   }
 
-  /** Tuplet groups getter*/
+  /** Live derived groups containing beat references; replaced on timing rebuild. */
   public get tupletGroups(): BarTupletGroup[] {
     return this._tupletGroups;
   }
@@ -605,8 +646,7 @@ export class VoiceBar<I extends MusicInstrument = MusicInstrument> {
   }
 
   /**
-   * Compares contents of this bar with some other bar
-   * (ignoring UUID)
+   * Compares shared master-bar identity and beat content, ignoring UUID, voice number, and derived timing.
    * @param otherBar Bar to compare with
    * @returns True if equal, false otherwise
    */

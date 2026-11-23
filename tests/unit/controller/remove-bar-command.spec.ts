@@ -27,13 +27,13 @@ function createMultiTrackScore(masterBarCount = 3) {
 function expectStaffBars(score: Score, expectedBars: Bar[][]) {
   const staves = score.tracks.flatMap((v) => v.staves);
   expect(staves).toHaveLength(expectedBars.length);
-  staves.forEach((s, i) => {
+  for (const [i, s] of staves.entries()) {
     expect(s.bars).toHaveLength(expectedBars[i].length);
-    s.bars.forEach((b, j) => {
+    for (const [j, b] of s.bars.entries()) {
       expect(b).toBe(expectedBars[i][j]);
       expect(b.masterBar).toBe(score.masterBars[j]);
-    });
-  });
+    }
+  }
 }
 
 describe("RemoveBarsCommand", () => {
@@ -55,7 +55,7 @@ describe("RemoveBarsCommand", () => {
     if (!(removedNote instanceof GuitarNote)) {
       throw Error("Expected a guitar note in the removed bar");
     }
-    removedNote.fret = 9;
+    removedNote.setFret(9);
     removedBeat.baseDuration = NoteDuration.Eighth;
     removedBeat.dots = 1;
     const command = new RemoveBarsCommand(score, 1);
@@ -72,7 +72,9 @@ describe("RemoveBarsCommand", () => {
     command.undo();
     expect(score.masterBars).toHaveLength(3);
     expect(score.masterBars.map((bar) => bar.tempo)).toEqual(originalTempos);
-    originalMasterBars.forEach((v, i) => expect(score.masterBars[i]).toBe(v));
+    for (const [i, v] of originalMasterBars.entries()) {
+      expect(score.masterBars[i]).toBe(v);
+    }
     expectStaffBars(score, originalBars);
     const restoredBeat =
       score.tracks[1].staves[0].bars[1].getVoiceBar(1)?.beats[0];
@@ -116,7 +118,9 @@ describe("RemoveBarsCommand", () => {
 
     command.undo();
     expect(score.masterBars.map((bar) => bar.uuid)).toEqual(originalUUIDs);
-    originalMasterBars.forEach((v, i) => expect(score.masterBars[i]).toBe(v));
+    for (const [i, v] of originalMasterBars.entries()) {
+      expect(score.masterBars[i]).toBe(v);
+    }
     expectStaffBars(score, originalBars);
 
     command.redo();
@@ -129,14 +133,17 @@ describe("RemoveBarsCommand", () => {
     expectStaffBars(score, remainingBars);
   });
 
-  test("affected models identify the removed master bars at their original indices", () => {
+  test("affected models identify removed bars and the newly joined boundary", () => {
     const { score } = createMultiTrackScore(5);
     const removedUUIDs = score.masterBars.slice(1, 4).map((bar) => bar.uuid);
     const command = new RemoveBarsCommand(score, [1, 2, 3]);
 
     command.execute();
 
+    // Bar 0 is saved too: its last note gets a new next note.
     expect(command.affectedModels).toEqual([
+      { masterBarIndex: 0, modelUUID: score.masterBars[0].uuid },
+      { masterBarIndex: 1, modelUUID: score.masterBars[1].uuid },
       { masterBarIndex: 1, modelUUID: removedUUIDs[0] },
       { masterBarIndex: 2, modelUUID: removedUUIDs[1] },
       { masterBarIndex: 3, modelUUID: removedUUIDs[2] },

@@ -18,9 +18,20 @@ Audio nodes are scheduled on the audio context timeline.
   - release ramps back to `0`.
 - Each track has a persistent audio bus, and all track buses feed one master bus:
   `note source -> note gain -> track gain -> track panner -> master gain ->`
-  `master panner -> destination`.
+  `master panner -> limiter -> destination`.
+- Volumes are gains: 1 is 0 dB, and the highest, `MAX_VOLUME` (about 3.16), is
+  +10 dB. The volume sliders show decibels from -170 dB (silent) to +10 dB, on
+  a curve like Guitar Pro's faders: the middle of a slider is about -14 dB.
+- The limiter is a `DynamicsCompressorNode` that starts just below full scale
+  (-1 dB, ratio 20:1). It leaves normal mixes alone and keeps boosted ones from
+  clipping.
 - Track volume/mute/solo controls update the track bus gain.
 - Track pan updates the track bus `StereoPannerNode`.
+- The optional global pitch shift uses each pitched source's `detune` parameter;
+  it does not change notation, serialized score data, or transport timing.
+- The synthesized metronome is a score-wide bus after all track buses, so track
+  mute, solo, volume, and pan do not affect it. Buffered clicks are always
+  scheduled and the bus gain makes live toggling safe.
 - Master volume and pan update the score-wide master bus without changing any
   per-track mix state.
 - Tone profiles can adjust fallback oscillator type, note gain, attack, and
@@ -55,6 +66,12 @@ Audio nodes are scheduled on the audio context timeline.
   - Schedules all tracks, even muted or non-soloed tracks, so controls remain
     reversible while audio is already buffered.
 
+- `playback-metronome`
+  - Defines the synthesized click sound and creates its oscillator and envelope.
+  - Leaves click timing and accent selection to `PlaybackScheduler`.
+  - Uses one score-wide metronome bus level, so live enable/disable changes do
+    not alter the levels of already buffered clicks.
+
 - `PlaybackCursorCoordinator`
   - Converts scheduler timing into playback cursor UI timeouts.
   - Retains buffered timing for active-track cursor retargeting.
@@ -78,12 +95,19 @@ Audio nodes are scheduled on the audio context timeline.
   - Loads configured samples by instrument preset.
   - Caches decoded `AudioBuffer`s and in-flight loads.
   - Provides each sample's configured root frequency.
+  - Reads explicitly authored WAV sustain loops and checks their buffer bounds.
 
 - `PlaybackNoteScheduler`
   - Creates the source node for one note.
   - Connects it through a note envelope into the owning track bus.
   - Starts/stops the source at absolute audio-context times.
   - Applies tone-profile, context, and technique shaping for note playback.
+  - Keeps the rhythmic beat start for tie and Let Ring timing separate from the
+    note's attack time, which a stroke can move.
+
+- `playback-stroke`
+  - Calculates per-string attack offsets for a stroke beat. It is a pure
+    helper; `PlaybackAudioEngine` picks the attacking notes and applies offsets.
 
 ## Lookahead
 
@@ -139,23 +163,93 @@ If a sample is configured, playback uses an `AudioBufferSourceNode`:
   `noteFrequency / rootFrequency`.
 - this is single-sample pitch shifting, not multisampling.
 
+### Sample sustain
+
+Samples without loop metadata play once, with their recorded decay. Raising the
+pitch also shortens the available recording. A long note or tie cannot extend a
+one-shot recording after it ends.
+
+For sustained playback, supply a prepared WAV with one infinite forward loop in
+its standard `smpl` chunk. TabUI reads integer loop frame positions, converts the
+inclusive WAV end to an exclusive Web Audio end, and checks the decoded duration.
+Unsupported or invalid loops are ignored. Other audio formats remain one-shot.
+Loop points refer to the recording, so pitch changes and bends use the same loop.
+
+Prepare the loop audio before use: metadata alone cannot remove clicks or restore
+a recorded decay. See the [demo samples](../assets/samples/README.md) for attribution
+and maintenance. Ordinary notes and ties use one attack and one source, with the
+final gain release at the scheduled end.
+
 ## Technique Playback
 
 Technique playback is currently implemented as Web Audio shaping over the same
-scheduled note source rather than articulation-specific samples.
+scheduled note source rather than articulation-specific samples. See
+[Guitar techniques](features.md#guitar-techniques) for musical meaning, applicability, and
+[Let Ring passage rules](features.md#let-ring).
 
 - Bends automate the source pitch according to bend options.
-- Palm mutes shorten and soften the note envelope.
-- Let-ring extends the note release.
+- Palm Mute keeps rhythmic accents but softens the peak, decays faster at higher
+  pitches, and darkens through a 30 ms low-pass sweep after the attack. Duration
+  is capped at 180 ms unless tied; ties still decay.
+- Ties are scheduled as one logical note with one source and attack. Written
+  durations are converted from ticks at each bar's tempo and summed.
+- Let Ring extends that source's stop time through marked coverage. Empty markers
+  create no source. The scheduler resolves markers across the logical tie chain,
+  including predecessors before a playback pass's start, and checks same-string
+  attacks across staff voices to clip resonance.
+- Bend automation keeps each tied member's written interval. Let Ring resonance
+  holds the terminal bend pitch instead of stretching the bend over the tail.
 - Natural and pinch harmonics shift playback to the first octave partial and use
   a softer envelope.
 - Hammer-on/pull-off uses a softer, slightly slower legato-style attack.
 - Vibrato modulates pitch around the target pitch.
+- A normal accent raises the attack's peak gain by 30%, and a heavy one by 60%. This
+  also applies to dead notes, palm mutes, harmonics, and hammer-ons/pull-offs.
+- Tap plays like a normal attack.
+- The beat's dynamic sets the attack loudness. `mf` keeps the normal level.
+  Soft dynamics go down to about -10 dB (`ppp`), and loud ones go up to about
+  +4 dB (`fff`). The loud side is smaller, so accents keep some headroom. The
+  dynamic and the accent multiply: the peak is `dynamic × accent` times the
+  other note gains. This applies to all attack kinds.
+- One note's envelope peak is limited to `MAX_NOTE_PEAK_GAIN` (0.9). Sources
+  reach at most full scale, so at track and master volumes of 0 dB one note
+  cannot clip, even with `fff` and a heavy accent. Only the loudest dynamics
+  with a heavy accent can reach the limit. Many notes that sound together, or
+  volumes above 0 dB, can add up above full scale; the master limiter catches
+  those.
 - Slides pair the source note with the next playable same-string target note:
   - the source is scheduled through the target note's duration.
   - pitch ramps from source pitch to target pitch.
   - the target note is skipped as a separate source only when it is a playable
     slide target.
+
+- Strokes spread the attacks of one beat over the stroke duration, converted at
+  the bar tempo:
+  - down strokes start on the highest string number and up strokes start on
+    string 1. This follows string order, not pitch, so re-entrant tunings
+    strum like the physical instrument.
+  - only notes that attack in this pass take part. Empty slots, slide targets,
+    and tie continuations whose earlier note sounds in this pass are skipped;
+    dead notes take part. A tie continuation at the pass start attacks, so it
+    takes part in the stroke.
+  - alignment moves that percent of the stroke before the beat time.
+  - the stroke spread is limited to half of the stroke beat, so every string
+    keeps at least half of the beat to sound. Only the stroke beat's length is
+    used. An early stroke (alignment above 0) after a short beat can therefore
+    start before that short beat starts. This is accepted.
+  - attacks never start before the playback pass start or the current audio
+    clock. The whole stroke moves later instead, so it keeps its shape. This
+    rule applies at every pass start: playback start and each loop restart.
+    For example, a "falls on time" stroke on the first beat of a loop is late
+    on every loop pass. When playback reaches the same beat through a notation
+    repeat, it is inside the pass, so the stroke is on time.
+  - only the attack, envelope, and technique automation move. Stop times, tie
+    resolution, and cursor events stay on the rhythmic beat time.
+  - early attacks of a bar's beats are scheduled with that bar, inside the
+    previous bar's time. `stopAudioFrom` compares the actual attack time, which
+    is never before the pass start, so loop truncation still stops them.
+  - Let Ring resonance still stops at the next same-string beat time, not at
+    that beat's stroke-delayed attack.
 
 Technique shaping is intentionally lightweight. It improves playback feedback
 without requiring multisampling, velocity layers, or technique-specific samples.
@@ -176,8 +270,9 @@ without requiring multisampling, velocity layers, or technique-specific samples.
 - Playback startup and rolling scheduling failures stop cleanly, invalidate stale
   async continuations, release partial audio resources, and preserve a retry
   anchor where possible.
-- Normal score edits are blocked while playback is active. Copy, transport,
-  active-track selection, and track volume/mute/solo/pan remain available.
+- Normal score edits and copying are blocked while playback is active.
+  Transport, active-track selection, and track volume/mute/solo/pan remain
+  available.
 - Fatal asynchronous playback startup or scheduling failures are projected to
   the owning `TabUIEditor` as structured `"error"` events. Error codes distinguish
   audio-context initialization/start, sample loading, and scheduling failures;
@@ -192,5 +287,3 @@ without requiring multisampling, velocity layers, or technique-specific samples.
   materialized only for that range and its overscan.
 - Downbeat notes receive a small gain accent and repeated same-string/same-pitch
   notes are softened slightly to reduce mechanical playback.
-- Current sample playback still uses one sample per configured tone. It does not
-  support multisampling, velocity layers, or articulation-specific samples yet.

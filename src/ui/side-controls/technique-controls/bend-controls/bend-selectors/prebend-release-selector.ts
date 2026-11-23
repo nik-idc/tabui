@@ -120,7 +120,9 @@ export class PrebendReleaseSelector implements Selector {
   }
 
   private onDocumentMouseMove(event: MouseEvent) {
-    if (this._isDragging === false) return;
+    if (this._isDragging === false) {
+      return;
+    }
 
     const pt = this.bendGraphSVG.createSVGPoint();
     pt.x = event.clientX;

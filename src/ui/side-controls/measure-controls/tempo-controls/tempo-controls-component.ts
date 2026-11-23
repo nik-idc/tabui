@@ -38,7 +38,7 @@ export class TempoControlsComponent {
 
   /** Announces the current draft tempo on focus or a successful step. */
   public announceValue(): void {
-    this._announce(`Tempo ${this.template.value.textContent} beats per minute`);
+    this._announce(`Tempo ${this.template.valueInput.value} beats per minute`);
   }
 
   public render(): void {

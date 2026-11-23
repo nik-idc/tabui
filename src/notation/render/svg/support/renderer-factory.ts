@@ -5,11 +5,13 @@ import {
 } from "../../../controller";
 import { TrackLineElement } from "../../../controller/element/track/track-line-element";
 import { TrackLineInfoElement } from "../../../controller/element/track/track-line-info-element";
+import { GuitarTuningElement } from "../../../controller/element/track/guitar-tuning-element";
 import { BarElement } from "../../../controller/element/bar/bar-element";
 import { TabBeatElement } from "../../../controller/element/beat/tab-beat-element";
 import { TabBeatRhythmElement } from "../../../controller/element/beat/tab-beat-rhythm-element";
 import { TabNoteSlotElement } from "../../../controller/element/note/tab-note-slot-element";
 import { GuitarTechniqueElement } from "../../../controller/element/technique/guitar-technique/guitar-technique-element";
+import { BeatGuitarTechniqueElement } from "../../../controller/element/technique/beat-technique/beat-guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "../../../controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "../../../controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "../../../controller/element/bar/bar-tuplet-group-element";
@@ -17,6 +19,7 @@ import { ElementRenderer, ElementRendererClass } from "../../element-renderer";
 import type { ResolvedAssetConfig } from "../../../../assets";
 import { SVGTrackLineRenderer } from "../svg-track-line-renderer";
 import { SVGTrackLineInfoRenderer } from "../svg-track-line-info-renderer";
+import { SVGGuitarTuningRenderer } from "../svg-guitar-tuning-renderer";
 import { SVGBarRenderer } from "../svg-bar-renderer";
 import { SVGTabBeatRenderer } from "../svg-tab-beat-renderer";
 import { SVGTabBeatRhythmRenderer } from "../svg-tab-beat-rhythm-renderer";
@@ -35,10 +38,13 @@ const RENDERER_CTORS = new Map<
 >([
   [TrackLineElement, SVGTrackLineRenderer],
   [TrackLineInfoElement, SVGTrackLineInfoRenderer],
+  [GuitarTuningElement, SVGGuitarTuningRenderer],
   [BarElement, SVGBarRenderer],
   [TabBeatElement, SVGTabBeatRenderer],
   [TabNoteSlotElement, SVGTabNoteRenderer],
   [GuitarTechniqueElement, SVGTechniqueRenderer],
+  // Beat techniques are path-only visuals too, so they share the renderer.
+  [BeatGuitarTechniqueElement, SVGTechniqueRenderer],
   [GuitarTechniqueLabelElement, SVGTechniqueLabelRenderer],
   [TabBeatRhythmElement, SVGTabBeatRhythmRenderer],
   [BeamSegmentElement, SVGBeamSegmentRenderer],

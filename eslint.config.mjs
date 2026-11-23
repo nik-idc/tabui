@@ -55,9 +55,16 @@ const namingConventions = [
 ];
 
 export default defineConfig(
-  globalIgnores(["dist/**", "demo/dist/**", ".agents/**"]),
+  globalIgnores([
+    "dist/**",
+    "demo/dist/**",
+    "docs/api/**",
+    "docs/.vitepress/cache/**",
+    "site/dist/**",
+    ".agents/**",
+  ]),
   {
-    files: ["**/*.{js,ts}"],
+    files: ["**/*.{js,ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommended],
     rules: {
       "@typescript-eslint/no-unused-vars": [
@@ -70,6 +77,14 @@ export default defineConfig(
         { assertionStyle: "as" },
       ],
       "@typescript-eslint/naming-convention": ["error", ...namingConventions],
+      curly: ["error", "all"],
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "CallExpression[callee.property.name='forEach']",
+          message: "Use a for...of loop instead of forEach.",
+        },
+      ],
     },
   },
   {

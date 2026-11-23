@@ -100,7 +100,9 @@ export class BeatInteractionRenderer {
         hint.setAttribute("text-anchor", "middle");
         hint.setAttribute("dominant-baseline", "central");
         hint.setAttribute("fill", "var(--tu-notation-ink)");
-        hint.setAttribute("font-size", "20");
+        const fontSize =
+          this.trackController.layoutDimensions.beatAppendTextSize;
+        hint.setAttribute("font-size", `${fontSize}`);
         this._interactionGroup.appendChild(hint);
         this._endGapHints.set(modelUUID, hint);
       }

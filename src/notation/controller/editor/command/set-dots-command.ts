@@ -7,10 +7,10 @@ import { Command, AffectedModel, getAffectedModelsFromBeats } from "./command";
 export class SetDotsCommand implements Command {
   /** Beats whose dot value to set */
   private _beats: Beat[];
-  /** New dots value */
-  private _newDots: number;
-  /** Old dots map */
-  private _oldDotsMap: Map<number, number>;
+  /** Fixed dot count applied by execute and redo. */
+  private _after: number;
+  /** Original dot counts saved before execution. */
+  private _before: Map<number, number> = new Map();
   /** True if executed, false otherwise*/
   private _executed: boolean = false;
   private _affectedModels: AffectedModel[];
@@ -22,20 +22,16 @@ export class SetDotsCommand implements Command {
    */
   constructor(beats: Beat[], newDots: number) {
     this._beats = beats;
-    this._newDots = newDots;
+    this._after = newDots;
     this._affectedModels = getAffectedModelsFromBeats(beats);
-
-    this._oldDotsMap = new Map();
-    for (const beat of this._beats) {
-      this._oldDotsMap.set(beat.uuid, beat.dots);
-    }
   }
 
   /**
    * Execute set dots command
    */
   execute(): void {
-    ScoreEditor.setDots(this._beats, this._newDots);
+    this._before = new Map(this._beats.map((b) => [b.uuid, b.dots]));
+    ScoreEditor.setDots(this._beats, this._after);
     this._executed = true;
   }
 
@@ -47,7 +43,7 @@ export class SetDotsCommand implements Command {
       return;
     }
 
-    ScoreEditor.restoreDots(this._beats, this._oldDotsMap);
+    ScoreEditor.restoreDots(this._beats, this._before);
   }
 
   /**
@@ -58,7 +54,7 @@ export class SetDotsCommand implements Command {
       throw Error("Redo called before execute");
     }
 
-    ScoreEditor.setDots(this._beats, this._newDots);
+    ScoreEditor.setDots(this._beats, this._after);
   }
 
   public get affectedModels(): AffectedModel[] {

@@ -16,6 +16,18 @@ import { TECHNIQUE_IS_INLINE } from "./guitar-technique-element-lists";
 import type { BarElement } from "../../bar/bar-element";
 import type { TrackLineElement } from "../../track/track-line-element";
 
+/** Note-local left x and square size of a harmonic diamond. */
+type HarmonicDiamondBox = { x: number; size: number };
+
+/**
+ * Largest curve height, as a share of the curve width. The visible arc is
+ * 3/4 of this height, because the curve doesn't reach its control points.
+ */
+const MAX_CURVE_HEIGHT_TO_WIDTH = 0.3;
+
+/** Gap between a fret number and a curve, as a share of the note text size. */
+const CURVE_GAP_TO_TEXT_SIZE = 0.4;
+
 /**
  * Class that handles geometry & visually relevant
  * info of a guitar note technique.
@@ -23,12 +35,15 @@ import type { TrackLineElement } from "../../track/track-line-element";
  * to which the technique is applied
  */
 export class GuitarTechniqueElement implements TechniqueElement {
-  readonly nodeType = NotationNodeType.Element;
-
-  public static createStableIdentity(technique: GuitarTechnique): string {
-    return `technique:${technique.uuid}`;
+  public static createStableIdentity(
+    technique: GuitarTechnique,
+    tieStart = false
+  ): string {
+    return `technique:${technique.uuid}${tieStart ? ":start" : ""}`;
   }
 
+  /** Identifies this notation element's node type */
+  readonly nodeType = NotationNodeType.Element;
   /** Guitar note element's unique identifier */
   readonly uuid: number;
   /** Technique */
@@ -54,13 +69,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
   private _startPoint: Point;
   /** SVG path descriptors rendered from this origin */
   private _pathDescriptors?: SVGPathDescriptor[];
+  /** Indicates if the provided technique is a tie start */
+  private _tieStart;
 
   /**
    * Class that represents a guitar technique
    * @param technique Technique
    * @param noteElement Parent note element
    */
-  constructor(technique: GuitarTechnique, noteElement: TabNoteSlotElement) {
+  constructor(
+    technique: GuitarTechnique,
+    noteElement: TabNoteSlotElement,
+    tieStart = false
+  ) {
     this.uuid = randomInt();
     this.technique = technique;
     this.noteElement = noteElement;
@@ -70,8 +91,19 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.width / 2,
       this.noteElement.boundingBox.height / 2
     );
+    this._tieStart = tieStart;
 
     this.createPath();
+  }
+
+  /**
+   * Gap between a fret number and a legato or tie curve. Curve ends also stop
+   * this far from the fret centers.
+   */
+  private get curveGap(): number {
+    return (
+      this.trackElement.layoutDimensions.noteTextSize * CURVE_GAP_TO_TEXT_SIZE
+    );
   }
 
   private get note(): GuitarNote {
@@ -82,23 +114,80 @@ export class GuitarTechniqueElement implements TechniqueElement {
     return this.noteElement.note;
   }
 
+  /** Fits bend curves and arrowheads before the next fret, keeping their proportions. */
+  private getBendSegmentWidth(type: BendType): number {
+    const beatElement = this.noteElement.beatElement;
+    const nextBeat = this.note.beat.voiceBar.bar.staff.getNextBeat(
+      this.note.beat
+    );
+    const nextNote =
+      nextBeat === null ? null : this.getNextNoteElement(nextBeat);
+    const startX =
+      beatElement.attackLocalX + this.noteElement.textRect.width / 2;
+    const layoutDimensions = this.trackElement.layoutDimensions;
+    const gap = layoutDimensions.noteTextSize / 4;
+    const isNextBeatInVoiceBar =
+      nextBeat !== null && nextBeat.voiceBar === this.note.beat.voiceBar;
+    // With no next beat in this bar and no next note, end at the voice
+    // content edge: the attack padding after the box, before the barline.
+    let endX =
+      this.noteElement.boundingBox.width + layoutDimensions.rhythmAttackPadding;
+    if (nextBeat !== null && isNextBeatInVoiceBar) {
+      // End where the next fret text starts. Tab beats share one attack
+      // offset. If the next slot is not built, assume a fret as wide as this
+      // one, so the bend length does not depend on materialization.
+      const container = beatElement.voiceBarContainer;
+      const nextTextWidth =
+        nextNote?.textRect.width ?? this.noteElement.textRect.width;
+      endX =
+        container.getBeatX(nextBeat) -
+        container.getBeatX(this.note.beat) +
+        layoutDimensions.beatAttackOffset -
+        nextTextWidth / 2;
+    } else if (nextNote !== null) {
+      endX =
+        nextNote.globalCoords.x +
+        nextNote.textRect.left -
+        this.noteElement.globalCoords.x;
+    }
+    let quarterCount;
+    switch (type) {
+      case BendType.BendAndRelease:
+        quarterCount = 3;
+        break;
+      case BendType.Prebend:
+        quarterCount = 1;
+        break;
+      default:
+        quarterCount = 2;
+    }
+    const availableWidth = Math.max(
+      0,
+      endX - gap - GuitarTechniqueDescriptors.arrowWidth / 2 - startX
+    );
+    return Math.min(
+      this.noteElement.boundingBox.width / 4,
+      availableWidth / quarterCount
+    );
+  }
+
   /** Calculates curve-end X coordinates in pitch-label order. */
   public calculateBendCurveEndXs(type: BendType): number[] {
     const startX =
       this.noteElement.beatElement.attackLocalX +
       this.noteElement.textRect.width / 2;
-    const quarterWidth = this.noteElement.boundingBox.width / 4;
+    const bendSegmentWidth = this.getBendSegmentWidth(type);
     switch (type) {
       case BendType.Bend:
       case BendType.Release:
-        return [startX + quarterWidth * 2];
+        return [startX + bendSegmentWidth * 2];
       case BendType.BendAndRelease:
-        return [startX + quarterWidth * 2, startX + quarterWidth * 3];
+        return [startX + bendSegmentWidth * 2, startX + bendSegmentWidth * 3];
       case BendType.Prebend:
-        return [startX + quarterWidth];
+        return [startX + bendSegmentWidth];
       case BendType.PrebendAndRelease:
       case BendType.PrebendBend:
-        return [startX + quarterWidth, startX + quarterWidth * 2];
+        return [startX + bendSegmentWidth, startX + bendSegmentWidth * 2];
       case BendType.Hold:
         return [];
     }
@@ -118,7 +207,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const curve = GuitarTechniqueDescriptors.createUpCurvePath(
       x,
       y,
-      this.noteElement.boundingBox.width / 2,
+      this.getBendSegmentWidth(BendType.Bend) * 2,
       verticalOffset
     );
 
@@ -147,7 +236,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const bendCurve = GuitarTechniqueDescriptors.createUpCurvePath(
       bendX,
       bendY,
-      this.noteElement.boundingBox.width / 2,
+      this.getBendSegmentWidth(BendType.BendAndRelease) * 2,
       verticalOffset
     );
 
@@ -162,12 +251,12 @@ export class GuitarTechniqueElement implements TechniqueElement {
     );
 
     // Step 3: build release curve
-    const releaseX = bendX + this.noteElement.boundingBox.width / 2;
+    const releaseX = bendArrowX;
     const releaseY = bendY - verticalOffset;
     const releaseCurve = GuitarTechniqueDescriptors.createDownCurvePath(
       releaseX,
       releaseY,
-      this.noteElement.boundingBox.width / 4,
+      this.getBendSegmentWidth(BendType.BendAndRelease),
       this.noteElement.boundingBox.height / 4,
       verticalOffset
     );
@@ -248,7 +337,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const releaseCurve = GuitarTechniqueDescriptors.createDownCurvePath(
       releaseX,
       releaseY,
-      this.noteElement.boundingBox.width / 4,
+      this.getBendSegmentWidth(BendType.PrebendAndRelease),
       this.noteElement.boundingBox.height / 4,
       verticalOffset
     );
@@ -279,7 +368,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
       this.noteElement.boundingBox.height / 2;
     const releaseX = this._startPoint.x;
     const releaseY = this._startPoint.y - verticalOffset;
-    const releaseWidth = this.noteElement.boundingBox.width / 2;
+    const releaseWidth = this.getBendSegmentWidth(BendType.Release) * 2;
     const releaseCurve = GuitarTechniqueDescriptors.createDownCurvePath(
       releaseX,
       releaseY,
@@ -319,7 +408,7 @@ export class GuitarTechniqueElement implements TechniqueElement {
     const bendCurve = GuitarTechniqueDescriptors.createUpCurvePath(
       prebendX,
       prebendTopY,
-      this.noteElement.boundingBox.width / 4,
+      this.getBendSegmentWidth(BendType.PrebendBend),
       bendHeight
     );
     const bendArrow = GuitarTechniqueDescriptors.createVerticalArrowPath(
@@ -341,19 +430,70 @@ export class GuitarTechniqueElement implements TechniqueElement {
       : null;
   }
 
+  /**
+   * Returns the given curve height, made smaller when the curve is short, so
+   * short curves stay flat. Keeps the sign, so downward curves stay downward.
+   */
+  private static capCurveHeight(height: number, width: number): number {
+    const maxHeight = Math.max(width, 0) * MAX_CURVE_HEIGHT_TO_WIDTH;
+    return Math.sign(height) * Math.min(Math.abs(height), maxHeight);
+  }
+
+  /**
+   * Returns the note-local x where visuals that come from the left must end
+   * on the target slot: the given x, or earlier when a beat in the target
+   * column, in any voice, has a beat technique, such as a stroke arrow.
+   */
+  private static getEndXBeforeBeatTechnique(
+    targetElement: TabNoteSlotElement,
+    targetX: number
+  ): number {
+    const beatTechniqueX = targetElement.beatElement.beatTechniqueX;
+    if (beatTechniqueX === null) {
+      return targetX;
+    }
+
+    const gap = targetElement.trackElement.layoutDimensions.noteTextSize / 8;
+    return Math.min(targetX, beatTechniqueX - gap);
+  }
+
   /** Returns a transition endpoint in the source note's local coordinates. */
   private getTransitionEndX(
     nextNoteElement: TabNoteSlotElement | null
   ): number {
     if (nextNoteElement !== null) {
+      const targetX = GuitarTechniqueElement.getEndXBeforeBeatTechnique(
+        nextNoteElement,
+        nextNoteElement.selectionRect.left - nextNoteElement.globalCoords.x
+      );
       return (
-        nextNoteElement.selectionRect.left - this.noteElement.globalCoords.x
+        nextNoteElement.globalCoords.x +
+        targetX -
+        this.noteElement.globalCoords.x
       );
     }
 
     return (
       this.owningTrackLineElement.lineLocalBoundingBox.right -
       this.noteElement.lineLocalCoords.x
+    );
+  }
+
+  /**
+   * Returns the note-local x where a curve to the next note ends: just before
+   * the next fret's center, or earlier when a beat technique is in the way. Without a
+   * next note element, the curve runs to the line's right edge.
+   */
+  private getCurveEndX(nextNoteElement: TabNoteSlotElement | null): number {
+    if (nextNoteElement === null) {
+      return this.getTransitionEndX(null);
+    }
+    const targetX = GuitarTechniqueElement.getEndXBeforeBeatTechnique(
+      nextNoteElement,
+      nextNoteElement.textRect.middleX - this.curveGap
+    );
+    return (
+      nextNoteElement.globalCoords.x + targetX - this.noteElement.globalCoords.x
     );
   }
 
@@ -423,12 +563,17 @@ export class GuitarTechniqueElement implements TechniqueElement {
     }
     const nextNoteElement = this.getNextNoteElement(nextBeat);
 
-    const legatoStartX =
-      this.noteElement.selectionRect.right - this.noteElement.globalCoords.x;
-    const legatoStartY = this._startPoint.y;
-    const legatoEndX = this.getTransitionEndX(nextNoteElement);
+    // Like ties, the curve spans the fret centers, not the gap between the
+    // frets, so it stays visible on short notes. Both ends stop short of the
+    // centers, so curves in a row don't touch.
+    const legatoStartX = this.noteElement.textRect.middleX + this.curveGap;
+    const legatoStartY = this.noteElement.textRect.top - this.curveGap;
+    const legatoEndX = this.getCurveEndX(nextNoteElement);
     const legatoWidth = legatoEndX - legatoStartX;
-    const legatoHeight = this.noteElement.boundingBox.height / 2;
+    const legatoHeight = GuitarTechniqueElement.capCurveHeight(
+      this.noteElement.boundingBox.height / 2,
+      legatoWidth
+    );
     const legatoCurve = GuitarTechniqueDescriptors.createHorizontalCurvePath(
       legatoStartX,
       legatoStartY,
@@ -441,26 +586,111 @@ export class GuitarTechniqueElement implements TechniqueElement {
     this._pathDescriptors = [legatoCurve];
   }
 
+  /** Draws an incoming tie from the previous note, or the current line's left edge. */
+  private createTiePath(): void {
+    this._pathDescriptors = [];
+    if (this._tieStart) {
+      const nextBeat = this.note.beat.voiceBar.bar.staff.getNextBeat(
+        this.note.beat
+      );
+      const nextNote = nextBeat?.notes?.[this.note.stringNum - 1];
+      if (nextBeat === null) {
+        return;
+      }
+      if (
+        !(nextNote instanceof GuitarNote && nextNote.isTieContinuation) ||
+        this.getNextNoteElement(nextBeat) !== null
+      ) {
+        return;
+      }
+
+      const startX = this.noteElement.textRect.middleX + this.curveGap;
+      const endX = this.getCurveEndX(null);
+      this._pathDescriptors = [
+        GuitarTechniqueDescriptors.createHorizontalCurvePath(
+          startX,
+          this.noteElement.textRect.bottom + this.curveGap,
+          endX - startX,
+          GuitarTechniqueElement.capCurveHeight(
+            -this.noteElement.boundingBox.height / 3,
+            endX - startX
+          )
+        ),
+      ];
+      return;
+    }
+
+    if (!this.note.isTieContinuation) {
+      return;
+    }
+
+    const previous = this.note.getTiePredecessor();
+    if (previous === null) {
+      return;
+    }
+
+    const previousElement = this.getNextNoteElement(previous.beat);
+    const startX = previousElement
+      ? previousElement.textRectGlobal.middleX +
+        this.curveGap -
+        this.noteElement.globalCoords.x
+      : -this.noteElement.lineLocalCoords.x;
+    const endX = GuitarTechniqueElement.getEndXBeforeBeatTechnique(
+      this.noteElement,
+      this.noteElement.textRect.middleX - this.curveGap
+    );
+    const y = this.noteElement.textRect.bottom + this.curveGap;
+    this._pathDescriptors = [
+      GuitarTechniqueDescriptors.createHorizontalCurvePath(
+        startX,
+        y,
+        endX - startX,
+        GuitarTechniqueElement.capCurveHeight(
+          -this.noteElement.boundingBox.height / 3,
+          endX - startX
+        )
+      ),
+    ];
+  }
+
+  /**
+   * Note-local left x and size of a harmonic diamond. It sits left of the
+   * note and of any beat technique in the column. Next to a beat technique
+   * it shrinks when needed, so it stays inside the bar content.
+   */
+  private getHarmonicDiamondBox(): HarmonicDiamondBox {
+    const fullSize = this.trackElement.layoutDimensions.noteTextSize * 0.8;
+    const fretTextX =
+      this.noteElement.selectionRect.left - this.noteElement.globalCoords.x;
+    if (this.noteElement.beatElement.beatTechniqueX === null) {
+      return { x: fretTextX - fullSize, size: fullSize };
+    }
+    const rightX = GuitarTechniqueElement.getEndXBeforeBeatTechnique(
+      this.noteElement,
+      fretTextX
+    );
+
+    // On the first beat of a bar, the space left of a stroke arrow can be
+    // smaller than the diamond.
+    const contentStartX =
+      this.noteElement.beatElement.voiceBarContainer.globalCoords.x -
+      this.noteElement.globalCoords.x;
+    const size = Math.max(0, Math.min(fullSize, rightX - contentStartX));
+    return { x: rightX - size, size };
+  }
+
   /**
    * Calc natural harmonic path
    */
   private createNaturalHarmonicPath(): void {
-    const nhWidth = this.trackElement.layoutDimensions.noteTextSize * 0.8;
-    const nhStartX =
-      this.noteElement.selectionRect.left -
-      this.noteElement.globalCoords.x -
-      nhWidth;
-    const nhStartY = this._startPoint.y;
-    const nhHeight = this.trackElement.layoutDimensions.noteTextSize * 0.8;
+    const { x, size } = this.getHarmonicDiamondBox();
     const nhLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
-      nhStartX,
-      nhStartY,
-      nhWidth,
-      nhHeight,
+      x,
+      this._startPoint.y,
+      size,
+      size,
       false
     );
-
-    // this._rect = new Rect(nhStartX, nhStartY - nhHeight / 2, nhWidth, nhHeight);
 
     this._pathDescriptors = [nhLine];
   }
@@ -469,22 +699,14 @@ export class GuitarTechniqueElement implements TechniqueElement {
    * Calc pinch harmonic path
    */
   private createPinchHarmonicPath(): void {
-    const phWidth = this.trackElement.layoutDimensions.noteTextSize * 0.8;
-    const phStartX =
-      this.noteElement.selectionRect.left -
-      this.noteElement.globalCoords.x -
-      phWidth;
-    const phStartY = this._startPoint.y;
-    const phHeight = this.trackElement.layoutDimensions.noteTextSize * 0.8;
+    const { x, size } = this.getHarmonicDiamondBox();
     const phLine = GuitarTechniqueDescriptors.createHarmonicDiamondPath(
-      phStartX,
-      phStartY,
-      phWidth,
-      phHeight,
+      x,
+      this._startPoint.y,
+      size,
+      size,
       true
     );
-
-    // this._rect = new Rect(phStartX, phStartY - phHeight / 2, phWidth, phHeight);
 
     this._pathDescriptors = [phLine];
   }
@@ -528,6 +750,9 @@ export class GuitarTechniqueElement implements TechniqueElement {
   private createPath(): void {
     // Calc offsets & assign image paths
     switch (this.technique.type) {
+      case GuitarTechniqueType.Tie:
+        this.createTiePath();
+        break;
       case GuitarTechniqueType.Bend:
         this.createBendTechPath();
         break;
@@ -606,7 +831,10 @@ export class GuitarTechniqueElement implements TechniqueElement {
   }
 
   public getStableIdentity(): string {
-    return GuitarTechniqueElement.createStableIdentity(this.technique);
+    return GuitarTechniqueElement.createStableIdentity(
+      this.technique,
+      this._tieStart
+    );
   }
 
   /** Start point */

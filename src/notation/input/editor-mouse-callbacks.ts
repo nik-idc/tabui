@@ -7,13 +7,11 @@ import { UIComponent } from "../../ui";
 import { RenderType } from "./render-type";
 import { SelectionDragController } from "./selection-drag-controller";
 import { PlaybackState } from "../../player";
-import { SVGTechniqueRenderer } from "../render/svg/svg-technique-renderer";
-import type { TechniqueElement, TechniqueLabelElement } from "../controller";
-import { SVGTechniqueLabelRenderer } from "../render/svg/svg-technique-label-renderer";
-import { BarRepeatStatus, GuitarTechniqueType } from "../model";
+import { BarRepeatStatus } from "../model";
 import type { BarElement, BarTupletGroupElement } from "../controller";
 import { SVGBarRenderer } from "../render/svg/svg-bar-renderer";
 import { SVGTrackLineInfoRenderer } from "../render/svg/svg-track-line-info-renderer";
+import { SVGGuitarTuningRenderer } from "../render/svg/svg-guitar-tuning-renderer";
 import { SVGTupletRenderer } from "../render/svg/tuplet/svg-tuplet-renderer";
 import { SVGTabBeatRhythmRenderer } from "../render/svg/svg-tab-beat-rhythm-renderer";
 import { SVGBeamSegmentRenderer } from "../render/svg/svg-beam-segment-renderer";
@@ -22,9 +20,8 @@ import type { TabBeatRhythmElement, BeamSegmentElement } from "../controller";
 export interface EditorMouseCallbacks {
   readonly isSelectingBeats: boolean;
   onNoteClick(event: MouseEvent, noteElement: NoteElement): void;
-  onTechniqueClick(event: MouseEvent, techniqueElement: TechniqueElement): void;
-  onLabelClick(event: MouseEvent, labelElement: TechniqueLabelElement): void;
   onTempoClicked(event: MouseEvent, barElement: BarElement): void;
+  onTuningClicked(event: MouseEvent): void;
   onTimeSignatureClicked(event: MouseEvent, barElement: BarElement): void;
   onRepeatStartClicked(event: MouseEvent, barElement: BarElement): void;
   onRepeatEndClicked(event: MouseEvent, barElement: BarElement): void;
@@ -66,8 +63,12 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private _boundRenderers = new Map<ElementRenderer, () => void>();
   /** Bound global pointer completion listener reference. */
   private _boundOnWindowPointerUp?: (event: MouseEvent) => void;
+  /** Window movement keeps an active selection following the mouse across gaps. */
+  private _boundOnWindowPointerMove?: (event: MouseEvent) => void;
   /** Selection drag state machine. */
   private _selectionDragController: SelectionDragController;
+  /** Mouse-up point whose browser-generated click belongs to a completed drag. */
+  private _completedDragClickPoint?: Point;
   private _announce: () => void;
   private _focusViewport: () => void;
 
@@ -125,14 +126,29 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Handles note click selection (full render path).
    */
   public onNoteClick(event: MouseEvent, noteElement: NoteElement): void {
-    void event;
     const tc = this.notationComponent.trackController;
 
     this.notationComponent.renderer.hideSelectionPreview();
+    const completedDragClickPoint = this._completedDragClickPoint;
+    this._completedDragClickPoint = undefined;
+    if (
+      tc.playbackState === PlaybackState.Idle &&
+      completedDragClickPoint !== undefined &&
+      event.pageX === completedDragClickPoint.x &&
+      event.pageY === completedDragClickPoint.y
+    ) {
+      return;
+    }
+
     if (tc.playbackState !== PlaybackState.Idle) {
       this._selectionDragController.reset();
+      const previousActiveVoiceNumber = tc.activeVoiceNumber;
       tc.restartPlayerFromBeat(noteElement.beatElement.beat);
-      this.renderFunc(RenderType.SelectionRefresh);
+      this.renderFunc(
+        previousActiveVoiceNumber === tc.activeVoiceNumber
+          ? RenderType.SelectionRefresh
+          : RenderType.ActiveVoiceSelection
+      );
       return;
     }
 
@@ -152,46 +168,6 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     );
     if (tc.selectionCursor !== undefined) {
       this._announce();
-    }
-  }
-
-  /** Removes only the clicked inline technique, preserving selection. */
-  public onTechniqueClick(event: MouseEvent, element: TechniqueElement): void {
-    const note = element.noteElement.note;
-    if (event.button !== 0 || note === null) {
-      return;
-    }
-
-    const changed = this.notationComponent.trackController.removeTechniques(
-      [note],
-      element.technique.type
-    );
-    if (!changed) {
-      return;
-    }
-
-    this.renderFunc(RenderType.Full);
-  }
-
-  /** Removes the clicked label's techniques from its beat, preserving selection. */
-  public onLabelClick(event: MouseEvent, element: TechniqueLabelElement): void {
-    const type = element.technique.type;
-    if (event.button !== 0 || type === GuitarTechniqueType.Bend) {
-      return;
-    }
-
-    if (element.beatElement.beat.notes === null) {
-      throw new Error("Label attached to a rest beat");
-    }
-
-    const notes = [];
-    for (const note of element.beatElement.beat.notes) {
-      if (note.hasTechnique(type)) {
-        notes.push(note);
-      }
-    }
-    if (this.notationComponent.trackController.removeTechniques(notes, type)) {
-      this.renderFunc(RenderType.Full);
     }
   }
 
@@ -248,7 +224,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     element: TabBeatRhythmElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+    if (event.button !== 0 || !tc.canSelect) {
       return;
     }
 
@@ -258,7 +234,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Clears all dots from the clicked beat without changing selection. */
   public onDotsClick(event: MouseEvent, element: TabBeatRhythmElement): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
 
@@ -272,7 +248,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Selects every beat in the clicked connected beam group. */
   public onBeamClick(event: MouseEvent, element: BeamSegmentElement): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || tc.playbackState !== PlaybackState.Idle) {
+    if (event.button !== 0 || !tc.canSelect) {
       return;
     }
 
@@ -306,9 +282,17 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   private onBarClicked(
     event: MouseEvent,
     bar: BarElement,
-    target: "timeSignature" | "repeatStart" | "repeatEnd"
+    target: "timeSignature" | "repeatStart" | "repeatEnd" | "appendBar"
   ): void {
-    if (target === "repeatStart") {
+    if (target === "appendBar") {
+      const tc = this.notationComponent.trackController;
+      if (event.button === 0 && tc.canEdit) {
+        tc.appendBar();
+        this.renderFunc(RenderType.Full);
+        this._focusViewport();
+        this._announce();
+      }
+    } else if (target === "repeatStart") {
       this.onRepeatStartClicked(event, bar);
     } else if (target === "repeatEnd") {
       this.onRepeatEndClicked(event, bar);
@@ -320,9 +304,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Opens the tempo dialog for the clicked bar. */
   public onTempoClicked(event: MouseEvent, bar: BarElement): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
@@ -330,12 +312,21 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     this.uiComponent.sideComponent.measureControlsComponent.showTempoControls();
   }
 
+  /** Opens the existing settings dialog for the displayed track tuning. */
+  public onTuningClicked(event: MouseEvent): void {
+    const tc = this.notationComponent.trackController;
+    if (event.button !== 0 || !tc.canEdit) {
+      return;
+    }
+    this.uiComponent.topComponent.scoreComponent.showTrackSettingsDialog(
+      tc.track
+    );
+  }
+
   /** Opens the time-signature dialog for the clicked bar. */
   public onTimeSignatureClicked(event: MouseEvent, bar: BarElement): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
@@ -365,9 +356,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
   /** Opens the repeat-count dialog for the clicked bar. */
   public onRepeatEndClicked(event: MouseEvent, bar: BarElement): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beat = this.getBarDialogBeat(bar);
@@ -382,9 +371,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     beatIndex?: number
   ): void {
     const tc = this.notationComponent.trackController;
-    const canEdit =
-      tc.editingEnabled && tc.playbackState === PlaybackState.Idle;
-    if (event.button !== 0 || !canEdit) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
     const beats =
@@ -403,11 +390,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
+    this._completedDragClickPoint = undefined;
+
     this._focusViewport();
-    if (
-      this.notationComponent.trackController.playbackState !==
-      PlaybackState.Idle
-    ) {
+    if (!this.notationComponent.trackController.canSelect) {
       return;
     }
 
@@ -433,7 +419,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     noteElement: NoteElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (tc.playbackState !== PlaybackState.Idle) {
+    if (!tc.canSelect) {
       this._selectionDragController.reset();
       this.notationComponent.renderer.hideSelectionPreview();
       return;
@@ -476,10 +462,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
-    if (
-      this.notationComponent.trackController.playbackState !==
-      PlaybackState.Idle
-    ) {
+    if (!this.notationComponent.trackController.canSelect) {
       this._selectionDragController.reset();
       return;
     }
@@ -506,8 +489,13 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const tc = this.notationComponent.trackController;
     this._selectionDragController.reset();
     this.notationComponent.renderer.hideSelectionPreview();
+    const previousActiveVoiceNumber = tc.activeVoiceNumber;
     tc.restartPlayerFromBeat(beatElement.beat);
-    this.renderFunc(RenderType.SelectionRefresh);
+    this.renderFunc(
+      previousActiveVoiceNumber === tc.activeVoiceNumber
+        ? RenderType.SelectionRefresh
+        : RenderType.ActiveVoiceSelection
+    );
   }
 
   /** Inserts a beat when an eligible end-gap target receives a primary click. */
@@ -516,7 +504,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     beatElement: BeatElement
   ): void {
     const tc = this.notationComponent.trackController;
-    if (event.button !== 0 || !tc.editingEnabled) {
+    if (event.button !== 0 || !tc.canEdit) {
       return;
     }
 
@@ -559,10 +547,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
    * Starts drag-selection from beat mouse-down.
    */
   public onBeatPointerDown(event: MouseEvent, beatElement: BeatElement): void {
-    if (
-      this.notationComponent.trackController.playbackState !==
-      PlaybackState.Idle
-    ) {
+    if (!this.notationComponent.trackController.canSelect) {
       return;
     }
 
@@ -570,6 +555,7 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       return;
     }
 
+    this._completedDragClickPoint = undefined;
     this._selectionDragController.begin(
       beatElement,
       new Point(event.pageX, event.pageY),
@@ -586,9 +572,19 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     const tc = this.notationComponent.trackController;
-    if (tc.playbackState !== PlaybackState.Idle) {
+    if (!tc.canSelect) {
       this._selectionDragController.reset();
       return;
+    }
+
+    const anchor = this._selectionDragController.anchorBeat;
+    if (anchor !== undefined) {
+      beatElement =
+        this.notationComponent.renderer.getDragSelectionBeat?.(
+          event.clientX,
+          event.clientY,
+          anchor
+        ) ?? beatElement;
     }
 
     const dragMoveResult = this._selectionDragController.handleMove(
@@ -606,8 +602,32 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     }
 
     if (dragMoveResult.shouldSelectCurrentBeat) {
-      tc.selectBeat(beatElement);
-      this.renderFunc(RenderType.DragSelection);
+      if (tc.selectionEndBeat !== beatElement.beat) {
+        tc.selectBeat(beatElement);
+        this.renderFunc(RenderType.DragSelection);
+      }
+    }
+  }
+
+  /** Continues an active mouse drag without requiring a beat DOM target. */
+  private onWindowPointerMove(event: MouseEvent): void {
+    if (!this.isSelectingBeats || "pointerType" in event) {
+      return;
+    }
+    if ((event.buttons & 1) === 0) {
+      this.onBeatPointerUp(event);
+      return;
+    }
+    const anchor = this._selectionDragController.anchorBeat;
+    if (anchor !== undefined) {
+      const beat = this.notationComponent.renderer.getDragSelectionBeat?.(
+        event.clientX,
+        event.clientY,
+        anchor
+      );
+      if (beat !== undefined) {
+        this.onBeatPointerMove(event, beat);
+      }
     }
   }
 
@@ -622,10 +642,14 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     const interactionActive =
       this._selectionDragController.isSelectingBeats ||
       this._selectionDragController.isDragPending;
+    const completedDrag = this._selectionDragController.isSelectingBeats;
     if (
       this._selectionDragController.finish(event.button) &&
       interactionActive
     ) {
+      if (completedDrag) {
+        this._completedDragClickPoint = new Point(event.pageX, event.pageY);
+      }
       this.renderFunc(RenderType.DragSelection);
     }
   }
@@ -639,6 +663,8 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
     if (!this._globalPointerCompletionBound) {
       this._boundOnWindowPointerUp = this.onWindowPointerUp.bind(this);
       window.addEventListener("mouseup", this._boundOnWindowPointerUp);
+      this._boundOnWindowPointerMove = this.onWindowPointerMove.bind(this);
+      window.addEventListener("mousemove", this._boundOnWindowPointerMove);
       this._globalPointerCompletionBound = true;
     }
 
@@ -694,32 +720,17 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
         );
       } else if (renderer instanceof SVGTrackLineInfoRenderer) {
         renderer.attachMouseEvent("click", this.onTempoClicked.bind(this));
-
+        this._boundRenderers.set(renderer, () => {
+          renderer.detachMouseEvent("click");
+        });
+      } else if (renderer instanceof SVGGuitarTuningRenderer) {
+        renderer.attachMouseEvent(this.onTuningClicked.bind(this));
         this._boundRenderers.set(
           renderer,
           renderer.detachMouseEvent.bind(renderer, "click")
         );
       } else if (renderer instanceof SVGTupletRenderer) {
         renderer.attachMouseEvent("click", this.onTupletClick.bind(this));
-
-        this._boundRenderers.set(
-          renderer,
-          renderer.detachMouseEvent.bind(renderer, "click")
-        );
-      } else if (renderer instanceof SVGTechniqueRenderer) {
-        renderer.attachMouseEvent("click", this.onTechniqueClick.bind(this));
-
-        this._boundRenderers.set(
-          renderer,
-          renderer.detachMouseEvent.bind(renderer, "click")
-        );
-      } else if (renderer instanceof SVGTechniqueLabelRenderer) {
-        const type = renderer.techniqueLabelElement.technique.type;
-        if (type === GuitarTechniqueType.Bend) {
-          continue;
-        }
-
-        renderer.attachMouseEvent("click", this.onLabelClick.bind(this));
 
         this._boundRenderers.set(
           renderer,
@@ -758,6 +769,10 @@ export class EditorMouseDefCallbacks implements EditorMouseCallbacks {
       this._boundOnWindowPointerUp !== undefined
     ) {
       window.removeEventListener("mouseup", this._boundOnWindowPointerUp);
+      if (this._boundOnWindowPointerMove !== undefined) {
+        window.removeEventListener("mousemove", this._boundOnWindowPointerMove);
+        this._boundOnWindowPointerMove = undefined;
+      }
       this._boundOnWindowPointerUp = undefined;
       this._globalPointerCompletionBound = false;
     }

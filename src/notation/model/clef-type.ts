@@ -1,5 +1,5 @@
 /**
- * Different types of clefs
+ * Staff clef identifiers; these values do not enable the unimplemented standard-notation renderer.
  */
 export enum ClefType {
   Treble = "Treble",

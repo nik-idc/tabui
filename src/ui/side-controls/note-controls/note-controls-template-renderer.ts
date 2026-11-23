@@ -1,7 +1,19 @@
-import { renderOnce, setImageAsset, setShortcutTooltip } from "../../shared";
+import {
+  labelGroup,
+  renderOnce,
+  setImageAsset,
+  setShortcutTooltip,
+} from "../../shared";
 import { NoteControlsTemplate } from "./note-controls-template";
 import { NotationComponent } from "../../../notation/notation-component";
 import type { ResolvedAssetConfig } from "../../../assets";
+import {
+  DYNAMIC_NAMES,
+  DYNAMIC_SYMBOLS,
+  DYNAMICS,
+  TUPLET_PRESETS,
+  tupletSettingsEqual,
+} from "../../../notation/model";
 
 export class NoteControlsTemplateRenderer {
   readonly parentDiv: HTMLDivElement;
@@ -30,7 +42,13 @@ export class NoteControlsTemplateRenderer {
     this.template.container.classList.add(cssClass);
 
     this.template.fretSection.classList.add("tu-control-section");
-    this.template.fretSection.append("Fret:", this.template.fretButton);
+    this.template.fretGrid.classList.add("tu-control-grid");
+    this.template.fretSection.append("Fret:", this.template.fretGrid);
+    this.template.fretGrid.append(
+      this.template.fretButton,
+      this.template.shiftPitchUpButton,
+      this.template.shiftPitchDownButton
+    );
 
     this.template.durationSection.classList.add("tu-control-section");
     this.template.durationGrid.classList.add(
@@ -55,7 +73,16 @@ export class NoteControlsTemplateRenderer {
 
     this.template.beatSection.classList.add("tu-control-section");
     this.template.beatGrid.classList.add("tu-control-grid", "tu-beat-grid");
-    this.template.beatSection.append("Beat:", this.template.beatGrid);
+    this.template.dynamicGrid.classList.add(
+      "tu-control-grid",
+      "tu-dynamic-grid"
+    );
+    this.template.dynamicGrid.append(...this.template.dynamicButtons);
+    this.template.beatSection.append(
+      "Beat:",
+      this.template.beatGrid,
+      this.template.dynamicGrid
+    );
     this.template.beatGrid.append(
       this.template.restButton,
       this.template.insertBeatBeforeButton,
@@ -71,6 +98,10 @@ export class NoteControlsTemplateRenderer {
     this.template.voiceSection.append("Voices:", this.template.voiceGrid);
     this.template.voiceGrid.append(...this.template.voiceButtons);
 
+    labelGroup(this.template.fretSection, "Fret");
+    labelGroup(this.template.durationSection, "Duration");
+    labelGroup(this.template.beatSection, "Beat");
+    labelGroup(this.template.voiceSection, "Voices");
     this.template.container.append(
       this.template.fretSection,
       this.template.durationSection,
@@ -109,7 +140,7 @@ export class NoteControlsTemplateRenderer {
           "data-duration": dataDuration,
         }
       );
-      setShortcutTooltip(button, alt, "+: lengthen, -: shorten");
+      setShortcutTooltip(button, `1/${notes[i].num} note`, "+/−");
 
       // Mark applied status
       const beatsOfCurDuration = selectedBeats.find(
@@ -127,11 +158,7 @@ export class NoteControlsTemplateRenderer {
       "img/notes/rest-4.svg",
       "Quarter rest"
     );
-    setShortcutTooltip(
-      this.template.restButton,
-      "Set selected beat as rest",
-      "Shift+X"
-    );
+    setShortcutTooltip(this.template.restButton, "Rest", "Shift+X");
     this.template.restButton.dataset["beatAction"] = "rest";
     this.template.restButton.classList.add("tu-rest-button");
     this.template.restButton.classList.toggle(appliedCSSClass, hasRest);
@@ -152,7 +179,7 @@ export class NoteControlsTemplateRenderer {
         `img/ui/voice-${voiceNumber}.svg`,
         `Voice ${voiceNumber}`
       );
-      setShortcutTooltip(button, `Activate voice ${voiceNumber}`, "Shift+V");
+      setShortcutTooltip(button, `Voice ${voiceNumber}`, "Shift+V");
       button.dataset["voiceNumber"] = `${voiceNumber}`;
       button.classList.add("tu-voice-button");
       const isActive = voiceNumber === activeVoiceNumber;
@@ -248,14 +275,10 @@ export class NoteControlsTemplateRenderer {
         continue;
       }
 
-      if (
-        beat.tupletSettings.normalCount === 2 &&
-        beat.tupletSettings.tupletCount === 1
-      ) {
+      if (tupletSettingsEqual(beat.tupletSettings, TUPLET_PRESETS.duplet)) {
         hasTuplet2 = true;
       } else if (
-        beat.tupletSettings.normalCount === 3 &&
-        beat.tupletSettings.tupletCount === 2
+        tupletSettingsEqual(beat.tupletSettings, TUPLET_PRESETS.triplet)
       ) {
         hasTuplet3 = true;
       } else {
@@ -271,6 +294,34 @@ export class NoteControlsTemplateRenderer {
 
     this.template.tupletButton.classList.toggle(appliedCSSClass, hasTuplet);
     this.template.tupletButton.setAttribute("aria-pressed", `${hasTuplet}`);
+  }
+
+  /** Marks every dynamic that any selected beat has, like the duration buttons. */
+  private renderDynamicButtons(): void {
+    const selectedBeats =
+      this.notationComponent.trackController.selectionAsBeats;
+    const appliedCSSClass = "tu-applied-img";
+
+    for (const [i, dynamic] of DYNAMICS.entries()) {
+      const button = this.template.dynamicButtons[i];
+      const symbol = DYNAMIC_SYMBOLS[dynamic];
+      // Starts with the visible symbol, so voice control users can say
+      // "click mf"; the full word follows for screen readers.
+      const label = `${symbol}, ${DYNAMIC_NAMES[dynamic].toLowerCase()}`;
+      setImageAsset(
+        button,
+        this.assetsPath,
+        `img/ui/dynamic-${symbol}.svg`,
+        label,
+        { "data-dynamic": symbol }
+      );
+      // The shortcuts shift one level louder or softer, like +/− for durations.
+      setShortcutTooltip(button, label, ">/<");
+
+      const isApplied = selectedBeats.some((b) => b.dynamic === dynamic);
+      button.classList.toggle(appliedCSSClass, isApplied);
+      button.setAttribute("aria-pressed", `${isApplied}`);
+    }
   }
 
   private renderBeatEditButtons(): void {
@@ -323,16 +374,47 @@ export class NoteControlsTemplateRenderer {
       "img/ui/edit-fret.svg",
       "Edit fret"
     );
-    setShortcutTooltip(
-      this.template.fretButton,
-      "Edit fret",
-      "0–9 set fret / Backspace clear"
-    );
+    setShortcutTooltip(this.template.fretButton, "Edit fret", "0–9");
+    const pitchButtons = [
+      [
+        this.template.shiftPitchUpButton,
+        "shift-up.svg",
+        "Increase pitch",
+        1,
+        "Shift+Up",
+      ],
+      [
+        this.template.shiftPitchDownButton,
+        "shift-down.svg",
+        "Decrease pitch",
+        -1,
+        "Shift+Down",
+      ],
+    ] as const;
+    for (const [button, icon, label, semitones, shortcut] of pitchButtons) {
+      try {
+        setImageAsset(button, this.assetsPath, `img/ui/${icon}`, label, {
+          "data-pitch-shift": `${semitones}`,
+        });
+      } catch {
+        button.classList.add("tu-icon-button");
+        button.setAttribute("aria-label", label);
+        button.title = label;
+        button.dataset.tooltip = label;
+        button.dataset.pitchShift = `${semitones}`;
+      }
+      setShortcutTooltip(button, label, shortcut);
+      button.disabled =
+        !this.notationComponent.trackController.canShiftSelectedPitch(
+          semitones
+        );
+      button.classList.toggle("tu-disabled-img", button.disabled);
+    }
   }
 
   /**
    * Responsible for setting up the note controls:
-   * Duration change, Dots & Tuplets
+   * Duration change, Dots, Tuplets & Dynamics
    */
   public render(): void {
     this.renderDurationButtons();
@@ -341,6 +423,7 @@ export class NoteControlsTemplateRenderer {
     this.renderBeatEditButtons();
     this.renderFretButton();
     this.renderTupletButtons();
+    this.renderDynamicButtons();
 
     this._assembled = renderOnce(this._assembled, () =>
       this.assembleContainer()

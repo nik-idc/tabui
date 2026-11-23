@@ -1,0 +1,51 @@
+/* Page colors follow the selected editor theme (set by demo-app.ts). */
+:root {
+  --demo-text: var(--tu-font-color, var(--demo-default-text));
+  --demo-muted: color-mix(in srgb, var(--demo-text) 65%, transparent);
+  --demo-border: var(--tu-border-color, var(--demo-default-border));
+  --demo-surface: var(--tu-primary-color, var(--demo-default-surface));
+  --demo-active: var(--tu-secondary-color, var(--demo-default-active));
+
+  /*
+   * Colors until demo-app.ts applies the theme, which takes a moment in dev
+   * mode. They match the Light and Dark themes in data/theme.ts, so a dark
+   * system doesn't show a white page first.
+   */
+  --demo-default-background: #ffffff;
+  --demo-default-text: #3c3c43;
+  --demo-default-border: #c2c2c4;
+  --demo-default-surface: #f6f6f7;
+  --demo-default-active: #ebebef;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --demo-default-background: #1b1b1f;
+    --demo-default-text: #dfdfd6;
+    --demo-default-border: #3c3f44;
+    --demo-default-surface: #202127;
+    --demo-default-active: #2e2e32;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0 16px 16px;
+  background-color: var(--tu-background-color, var(--demo-default-background));
+  color: var(--demo-text);
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+.page-header h1 {
+  margin: 16px 0 4px;
+  font-size: 24px;
+}
+
+.page-header p {
+  margin: 0 0 16px;
+  color: var(--demo-muted);
+}
+
+.page-header a {
+  color: inherit;
+}

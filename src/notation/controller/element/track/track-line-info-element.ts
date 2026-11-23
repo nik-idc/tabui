@@ -1,8 +1,16 @@
 import { Point, Rect, randomInt } from "../../../../shared";
-import { TrackElement } from "../track-element";
+import type { TrackElement } from "../track-element";
 import { NotationElement, NotationNodeType } from "../notation-element";
 import { BarElement } from "../bar/bar-element";
 import { TrackLineElement } from "./track-line-element";
+import { GuitarTuningElement } from "./guitar-tuning-element";
+import { TabNoteSlotElement } from "../note/tab-note-slot-element";
+
+/** A score-wide bar number positioned in the track-line header. */
+type BarNumberLabel = {
+  number: number;
+  x: number;
+};
 
 /**
  * Class representing the visual info about all
@@ -35,10 +43,14 @@ export class TrackLineInfoElement implements NotationElement {
 
   /** Track line encapsulating rectangle */
   private _boundingBox: Rect;
+  /** Optional tuning child, created only for the first tablature line. */
+  private _guitarTuningElement?: GuitarTuningElement;
   /** Stores all the bars whose tempo to display & the tempo rect */
   private _barTempoRectsMap: Map<BarElement, Rect>;
   /** Displayed tempo captured during build for stale pre-update diffing. */
   private _barTempoState: Map<BarElement, number>;
+  /** Materialized bar numbers captured during build for stale pre-update diffing. */
+  private _barNumbers: BarNumberLabel[] = [];
   /**
    * Class representing the visual info about all
    * info that needs to be on this track line element
@@ -56,10 +68,25 @@ export class TrackLineInfoElement implements NotationElement {
       this.trackLineElement.boundingBox.width,
       0
     );
+    if (this.shouldCreateTuningElement()) {
+      this._guitarTuningElement = new GuitarTuningElement(
+        this.trackLineElement
+      );
+    }
     this._barTempoRectsMap = new Map();
     this._barTempoState = new Map();
 
     this.build();
+  }
+
+  private shouldCreateTuningElement(): boolean {
+    return (
+      this.trackLineElement.trackLineBars.some(
+        ({ masterBarIndex }) => masterBarIndex === 0
+      ) &&
+      this.trackElement.track.context.instrument.tuning !== undefined &&
+      this.trackElement.track.staves.some((staff) => staff.showTablature)
+    );
   }
 
   /**
@@ -69,6 +96,7 @@ export class TrackLineInfoElement implements NotationElement {
     this._boundingBox.height = 0;
     this._barTempoRectsMap.clear();
     this._barTempoState.clear();
+    this._barNumbers = [];
 
     const barElements =
       this.trackLineElement.staffLineContainers[0].styleLinesAsArray[0]
@@ -76,7 +104,22 @@ export class TrackLineInfoElement implements NotationElement {
     if (barElements === undefined) {
       throw Error("Bar elements undefine in track line info build");
     }
+    const score = this.trackElement.track.score;
+    const barNumbers = new Map(
+      this.trackLineElement.trackLineBars.map(({ masterBarIndex }) => [
+        score.masterBars[masterBarIndex],
+        masterBarIndex + 1,
+      ])
+    );
     for (const barElement of barElements) {
+      const number = barNumbers.get(barElement.bar.masterBar);
+      if (number === undefined) {
+        throw Error("Bar number missing from track line");
+      }
+      this._barNumbers.push({
+        number,
+        x: barElement.boundingBox.x,
+      });
       if (barElement.showTempo) {
         const rect = new Rect(
           barElement.boundingBox.x,
@@ -99,8 +142,9 @@ export class TrackLineInfoElement implements NotationElement {
       : 0;
     this._boundingBox.setDimensions(
       this.trackLineElement.boundingBox.width,
-      height
+      height + this.trackElement.layoutDimensions.barNumberRowHeight
     );
+    this._guitarTuningElement?.measure();
   }
 
   private buildStateHash(): string {
@@ -112,6 +156,9 @@ export class TrackLineInfoElement implements NotationElement {
     ];
 
     const barRectsEntries = this._barTempoRectsMap.entries();
+    for (const label of this._barNumbers) {
+      hashArr.push(`number:${label.number}:${label.x}`);
+    }
     for (const [barElement, rect] of barRectsEntries) {
       hashArr.push(`${rect.x}`);
       hashArr.push(`${rect.y}`);
@@ -128,21 +175,55 @@ export class TrackLineInfoElement implements NotationElement {
    */
   public layout(): void {
     this._boundingBox.setCoords(0, 0);
+    this._guitarTuningElement?.layout();
 
     for (const [barElement, rect] of this._barTempoRectsMap) {
-      rect.setCoords(barElement.boundingBox.x, 0);
+      const firstBeatElement = barElement.firstBeatElement;
+      const firstNoteElement = firstBeatElement?.noteElements.find(
+        (noteElement) => noteElement.note !== null
+      );
+      const firstFretX =
+        firstNoteElement instanceof TabNoteSlotElement
+          ? firstNoteElement.textRectBarLocal.x
+          : (firstBeatElement?.barLocalCoords.x ?? 0);
+      const x = barElement.lineLocalCoords.x + firstFretX;
+      rect.setCoords(x, 0);
     }
+  }
+
+  public get guitarTuningElement(): GuitarTuningElement | undefined {
+    return this._guitarTuningElement;
+  }
+
+  /** Score-wide numbers for the materialized bars, once per track line. */
+  public get barNumbers(): readonly BarNumberLabel[] {
+    return this._barNumbers;
+  }
+
+  /** Baseline below the tempo row, leaving padding before the staff content. */
+  public get barNumberBaseline(): number {
+    const dimensions = this.trackElement.layoutDimensions;
+    return (
+      (this.trackLineElement.hasTempo ? dimensions.tempoRectHeight : 0) +
+      dimensions.noteTextSize
+    );
   }
 
   public update(): void {
     this.build();
+
+    if (this._guitarTuningElement !== undefined) {
+      this._guitarTuningElement.update();
+    }
 
     this.measure();
     this.layout();
   }
 
   public refreshOwnedNotationNodes(): NotationElement[] {
-    return [this];
+    return this._guitarTuningElement === undefined
+      ? [this]
+      : [this, ...this._guitarTuningElement.refreshOwnedNotationNodes()];
   }
 
   /**
@@ -242,7 +323,7 @@ export class TrackLineInfoElement implements NotationElement {
     }
 
     const tempo = this._barTempoState.get(barElement);
-    return tempo === undefined ? undefined : `=${tempo}`;
+    return tempo === undefined ? undefined : `${tempo}`;
   }
 
   /** String encoding the state of this element */

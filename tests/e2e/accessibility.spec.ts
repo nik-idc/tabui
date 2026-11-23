@@ -1,5 +1,82 @@
 import { expect, test } from "@playwright/test";
 
+for (const theme of ["paper", "midnight"]) {
+  test(`top buttons match voice button interaction styles in ${theme}`, async ({
+    page,
+  }) => {
+    await page.goto(`/tabui/?fixture=empty&theme=${theme}`);
+    // Compare static interaction states instead of transient transition frames.
+    await page.addStyleTag({
+      content:
+        "#tabui-editor .tu-icon-button, #tabui-editor .tu-icon-button img {" +
+        " transition: none !important; animation: none !important; }",
+    });
+    const editor = page.locator("#tabui-editor");
+    const loop = editor.getByRole("button", { name: "Loop", exact: true });
+    const voice = editor.getByRole("button", { name: "Voice 1", exact: true });
+    const styles = (button: typeof loop) =>
+      button.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          radius: style.borderRadius,
+          background: style.backgroundColor,
+          shadow: style.boxShadow,
+          outline: style.outline,
+          outlineWidth: style.outlineWidth,
+          outlineOffset: style.outlineOffset,
+        };
+      });
+
+    await loop.click();
+    await page.mouse.move(0, 0);
+    await expect(loop).toHaveAttribute("aria-pressed", "true");
+    const selected = await styles(voice);
+    await expect.poll(() => styles(loop)).toEqual(selected);
+
+    await voice.hover();
+    const selectedHover = await styles(voice);
+    await loop.hover();
+    await expect(loop).toHaveCSS("background-color", selectedHover.background);
+    await loop.click();
+    await expect(loop).toHaveAttribute("aria-pressed", "false");
+    const otherVoice = editor.getByRole("button", {
+      name: "Voice 2",
+      exact: true,
+    });
+    await otherVoice.hover();
+    await expect(otherVoice).toHaveCSS(
+      "transform",
+      "matrix(1.1, 0, 0, 1.1, 0, 0)"
+    );
+    await expect(otherVoice).not.toHaveCSS(
+      "background-color",
+      selected.background
+    );
+    const hover = await styles(otherVoice);
+    await loop.hover();
+    await expect(loop).toHaveCSS("background-color", hover.background);
+    await page.mouse.move(0, 0);
+    await loop.click();
+    await expect(loop).toHaveAttribute("aria-pressed", "true");
+    await loop.focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Shift+Tab");
+    await expect(loop).toBeFocused();
+    const focused = await styles(loop);
+    await voice.focus();
+    await expect(voice).toHaveCSS("border-radius", focused.radius);
+    await expect(voice).toHaveCSS("outline", focused.outline);
+    await expect(voice).toHaveCSS("outline-width", focused.outlineWidth);
+    await expect(voice).toHaveCSS("outline-offset", focused.outlineOffset);
+    expect(focused.outline).not.toContain("none");
+    expect(focused.outlineWidth).toBe("2px");
+    await expect(loop.locator("img")).toHaveCSS(
+      "border-radius",
+      focused.radius
+    );
+  });
+}
+
 test("announces the tempo when it opens and changes", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
@@ -18,7 +95,7 @@ test("announces the tempo when it opens and changes", async ({ page }) => {
   await expect(region).toHaveText("Tempo 121 beats per minute");
 });
 
-test("publishes the final full selection after tempo confirmation", async ({
+test("announces only the changed bar after tempo confirmation", async ({
   page,
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
@@ -31,8 +108,7 @@ test("publishes the final full selection after tempo confirmation", async ({
 
   await expect(dialog).toBeHidden();
   await expect(editor.locator(".tu-announcement-host")).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 121 BPM, " +
-      "Beat 1, whole, String 1, empty."
+    "Bar 1, 4/4, 91 BPM, Beat 1, quarter, String 1, empty."
   );
 });
 
@@ -105,8 +181,8 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(notation).toBeFocused();
     await expect(status).toHaveText(
       fixture === "empty"
-        ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, whole, String 1, empty."
+        ? "Track Track 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
+        : "Track Clean rhythm, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 
@@ -128,8 +204,8 @@ for (const fixture of ["empty", "feature_showcase"] as const) {
     await expect(notation).toBeFocused();
     await expect(status).toHaveText(
       fixture === "empty"
-        ? "Track Track 1, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
-        : "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, Beat 1, whole, String 1, empty."
+        ? "Track Track 1, Bar 1, 4/4, 120 BPM, Beat 1, quarter, String 1, rest."
+        : "Track Clean rhythm, Bar 1, 4/4, 90 BPM, Beat 1, quarter, String 1, empty."
     );
   });
 }
@@ -146,8 +222,8 @@ test("announces the selected context when entering notation with the mouse", asy
 
   await expect(notation).toBeFocused();
   await expect(editor.getByRole("status")).toHaveText(
-    "Track Rhythm track, Staff 1, voice 1, Bar 1, 4/4, 120 BPM, " +
-      "Beat 1, whole, String 1, empty."
+    "Track Clean rhythm, Bar 1, 4/4, 90 BPM, " +
+      "Beat 1, quarter, String 1, empty."
   );
 });
 
@@ -204,13 +280,25 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
   await page.keyboard.press("Tab");
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Tab");
-  const tracks = editor.getByRole("button", { name: "Tracks" });
-  await expect(tracks).toBeFocused();
+  await expect(
+    editor.getByRole("button", { name: "Loop", exact: true })
+  ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(skipLink).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(beforeEditor).toBeFocused();
+
+  const tracks = editor.getByRole("button", { name: "Tracks" });
+  const newTrack = editor.getByRole("button", { name: "New track" });
+  await newTrack.focus();
   await page.keyboard.press("Tab");
+  await expect(tracks).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(newTrack).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect(editor.getByRole("button", { name: "Copy" })).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(newTrack).toBeFocused();
 
   const afterEditor = page.getByRole("button", { name: "After editor" });
   const tabStops = editor.locator(
@@ -241,10 +329,22 @@ test("Tab and Shift+Tab move through and out of editor controls", async ({
     await page.keyboard.press("Tab");
   }
   await expect(afterEditor).toBeFocused();
+  // The score header fields come after the notation, top to bottom.
+  const headerFields = ["Score name", "Artist", "Album", "Release date"].map(
+    (name) => editor.getByRole("textbox", { name, exact: true })
+  );
+  for (const field of headerFields.toReversed()) {
+    await page.keyboard.press("Shift+Tab");
+    await expect(field).toBeFocused();
+  }
   await page.keyboard.press("Shift+Tab");
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(editor.locator(".tu-notation-viewport")).toBeFocused();
+  for (const field of headerFields) {
+    await page.keyboard.press("Tab");
+    await expect(field).toBeFocused();
+  }
   await page.keyboard.press("Tab");
   await expect(afterEditor).toBeFocused();
 });
@@ -284,12 +384,15 @@ test("basic controls expose accessible names and native behavior", async ({
     await expect(controls.nth(i)).toHaveAccessibleName(/\S/);
   }
 
-  for (const name of ["Rhythm track", "Lead track", "Bass track"]) {
+  for (const name of [
+    "Clean rhythm",
+    "Bass",
+    "Clean lead",
+    "Distortion rhythm",
+    "Distortion lead",
+  ]) {
     await expect(
-      editor.getByRole("button", { name: `Select track: ${name}` })
-    ).toBeVisible();
-    await expect(
-      editor.getByRole("textbox", { name: `${name} name` })
+      editor.getByRole("group", { name: `Track: ${name}`, exact: true })
     ).toBeVisible();
     await expect(
       editor.getByRole("slider", { name: `${name} volume` })
@@ -299,24 +402,28 @@ test("basic controls expose accessible names and native behavior", async ({
     ).toBeVisible();
   }
 
-  const rhythmTrack = editor.getByRole("button", {
-    name: "Select track: Rhythm track",
+  const rhythmTrack = editor.getByRole("group", {
+    name: "Track: Clean rhythm",
+    exact: true,
   });
-  await expect(rhythmTrack).toHaveAttribute("aria-pressed", "true");
+  await expect(rhythmTrack).toHaveAttribute("aria-current", "true");
   await expect(
-    editor.getByRole("button", { name: "Move Rhythm track up" })
+    editor.getByRole("textbox", { name: "Clean rhythm name", exact: true })
+  ).toBeVisible();
+  await expect(
+    editor.getByRole("button", { name: "Move Clean rhythm up" })
   ).toBeDisabled();
   await rhythmTrack.focus();
   await page.keyboard.press("Tab");
   await expect(
-    editor.getByRole("button", { name: "Move Rhythm track down" })
+    editor.getByRole("button", { name: "Move Clean rhythm down" })
   ).toBeFocused();
 });
 
 test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
   const editor = page.locator("#tabui-editor");
-  const play = editor.getByRole("button", { name: "Play" });
+  const play = editor.getByRole("button", { name: "Play", exact: true });
   // Firefox preserves this attr() expression; Chromium returns its resolved text.
   const tooltipContent = (button: typeof play) =>
     button.evaluate((element) => {
@@ -347,10 +454,10 @@ test("provides icon tooltips on hover and keyboard focus", async ({ page }) => {
 
   for (const [name, tooltip] of [
     ["Tempo", "Tempo (m)"],
-    ["Repeat End", "Repeat End and count (Shift+R)"],
-    ["Time Signature", "Time Signature (Shift+M)"],
-    ["Whole note", "Whole note (+: lengthen, -: shorten)"],
-    ["Voice 1", "Activate voice 1 (Shift+V)"],
+    ["Repeat End", "Repeat end (Shift+r)"],
+    ["Time Signature", "Time Signature (Shift+m)"],
+    ["Whole note", "1/1 note (+/−)"],
+    ["Voice 1", "Voice 1 (Shift+v)"],
   ]) {
     const button = editor.getByRole("button", { name, exact: true });
     await button.hover();
@@ -397,7 +504,7 @@ test("new track string-count actions update per-string tuning labels", async ({
   ]) {
     await dialog.getByRole("button", { name: action, exact: true }).click();
   }
-  await expect(value).toHaveText("7");
+  await expect(value).toHaveText("Strings: 7");
   await expect(dialog.locator(".tu-nt-tuning-string")).toHaveCount(7);
   await dialog
     .getByRole("button", {
@@ -405,14 +512,14 @@ test("new track string-count actions update per-string tuning labels", async ({
       exact: true,
     })
     .press("Space");
-  await expect(dialog.getByRole("status")).toHaveText("String 7: C");
+  await expect(dialog.getByRole("status")).toHaveText("String 7: C2");
   await dialog
     .getByRole("button", {
       name: "Raise string 1 by 1 semitone",
       exact: true,
     })
     .press("Space");
-  await expect(dialog.getByRole("status")).toHaveText("String 1: F");
+  await expect(dialog.getByRole("status")).toHaveText("String 1: F4");
 });
 
 test("announces tuning changes without moving keyboard focus", async ({
@@ -420,8 +527,9 @@ test("announces tuning changes without moving keyboard focus", async ({
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
-  for (const opener of ["New track", "Rhythm track settings"]) {
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  for (const opener of ["New track", "Clean rhythm settings"]) {
+    await editor.getByRole("button", { name: /^Tracks ·/ }).click();
     await editor.getByRole("button", { name: opener, exact: true }).click();
     const dialog = editor.getByRole("dialog");
     const region = dialog.getByRole("status");
@@ -429,10 +537,35 @@ test("announces tuning changes without moving keyboard focus", async ({
       name: "Raise string 1 by 1 semitone",
       exact: true,
     });
+    if (opener === "Clean rhythm settings") {
+      const keepFrets = dialog.getByRole("button", {
+        name: "Keep frets",
+        exact: true,
+      });
+      const transpose = dialog.getByRole("button", {
+        name: "Transpose",
+        exact: true,
+      });
+      await expect(keepFrets).toBeVisible();
+      await expect(transpose).toBeVisible();
+      await expect(keepFrets).toBeDisabled();
+      await expect(transpose).toBeDisabled();
+      await raise.click();
+      await expect(keepFrets).toBeEnabled();
+      await expect(transpose).toBeEnabled();
+      await dialog
+        .getByRole("button", {
+          name: "Lower string 1 by 1 semitone",
+          exact: true,
+        })
+        .click();
+      await expect(keepFrets).toBeDisabled();
+      await expect(transpose).toBeDisabled();
+    }
     await raise.focus();
-    await expect(region).toHaveText("String 1: E");
+    await expect(region).toHaveText("String 1: E4");
     await page.keyboard.press("Space");
-    await expect(region).toHaveText("String 1: F");
+    await expect(region).toHaveText("String 1: F4");
     await expect(raise).toBeFocused();
     await dialog
       .getByRole("button", {
@@ -440,8 +573,10 @@ test("announces tuning changes without moving keyboard focus", async ({
         exact: true,
       })
       .click();
+    // The showcase rhythm track is in drop D; a new track uses standard tuning.
+    const lowString = opener === "New track" ? "D sharp 2" : "C sharp 2";
     await expect(region).toHaveText(
-      "Tuning, strings 6 to 1: D sharp, G sharp, C sharp, F sharp, A sharp, E"
+      `Tuning, strings 6 to 1: ${lowString}, G sharp 2, C sharp 3, F sharp 3, A sharp 3, E4`
     );
     await page.keyboard.press("Escape");
   }
@@ -452,19 +587,125 @@ test("names a delete confirmation with the track being deleted", async ({
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase");
   const editor = page.locator("#tabui-editor");
-  await editor.getByRole("button", { name: "Tracks", exact: true }).click();
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
   const removeRhythm = editor.getByRole("button", {
-    name: "Remove Rhythm track",
+    name: "Remove Clean rhythm",
     exact: true,
   });
   await removeRhythm.click();
   const dialog = editor.getByRole("dialog");
   await expect(dialog).toHaveAccessibleName(
-    'Are you sure you want to delete track "Rhythm track"?'
+    'Are you sure you want to delete track "Clean rhythm"?'
   );
   await expect(dialog.getByRole("button", { name: "Cancel" })).toBeFocused();
   await page.keyboard.press("Enter");
   await expect(dialog).toHaveCount(0);
   await expect(removeRhythm).toBeVisible();
-  await expect(editor.locator(".tu-track-select-button")).toHaveCount(3);
+  await expect(editor.locator('.tu-track-controls[role="group"]')).toHaveCount(
+    5
+  );
+});
+
+test("reaches the track list after Paste and moves between rows with arrows", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  const rows = editor.locator(".tu-track-controls");
+  await expect(rows.nth(1)).toBeVisible();
+  await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
+
+  await editor.getByRole("button", { name: "Paste", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  await expect(rows.nth(0)).toBeFocused();
+
+  // Arrows move focus between rows without selecting a track.
+  await page.keyboard.press("ArrowDown");
+  await expect(rows.nth(1)).toBeFocused();
+  await expect(rows.nth(1)).toHaveAttribute("aria-current", "false");
+  await expect(rows.nth(0)).toHaveAttribute("aria-current", "true");
+
+  // They also work from a button inside a row.
+  await rows.nth(1).locator(".tu-track-mute-button").focus();
+  await page.keyboard.press("ArrowUp");
+  await expect(rows.nth(0)).toBeFocused();
+  await page.keyboard.press("ArrowUp");
+  await expect(rows.nth(0)).toBeFocused();
+});
+
+test("Alt+Up and Alt+Down move focus between editor sections", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const notation = editor.locator(".tu-notation-viewport");
+  await editor.locator('[id^="note-rect-"]').first().click();
+  await expect(notation).toBeFocused();
+
+  // Names the labeled group, or the control, that holds focus.
+  const focusedSection = () =>
+    page.evaluate(() => {
+      const active = document.activeElement;
+      if (active?.classList.contains("tu-notation-viewport")) {
+        return "Notation";
+      }
+      return (
+        active
+          ?.closest("[role=group][aria-label]")
+          ?.getAttribute("aria-label") ??
+        active?.getAttribute("aria-label") ??
+        ""
+      );
+    });
+
+  const visited: string[] = [];
+  for (let i = 0; i < 12; i++) {
+    await page.keyboard.press("Alt+ArrowDown");
+    visited.push(await focusedSection());
+  }
+  expect(visited).toEqual([
+    "Playback",
+    "Score and editing",
+    "Collapse side panel",
+    "Fret",
+    "Duration",
+    "Beat",
+    "Voices",
+    "Techniques",
+    "Measure",
+    "Staff",
+    "Score details",
+    "Notation",
+  ]);
+
+  await page.keyboard.press("Alt+ArrowUp");
+  expect(await focusedSection()).toBe("Score details");
+  await page.keyboard.press("Alt+ArrowUp");
+  expect(await focusedSection()).toBe("Staff");
+
+  // Escape returns to the notation and reads the position.
+  await page.keyboard.press("Escape");
+  await expect(notation).toBeFocused();
+  await expect(editor.getByRole("status")).toContainText("Track Clean rhythm");
+
+  // An open track list is a section too.
+  await editor.getByRole("button", { name: /^Tracks ·/ }).click();
+  await editor.getByRole("button", { name: "Set selection anchor" }).focus();
+  // Focus lands on the first track row.
+  await page.keyboard.press("Alt+ArrowDown");
+  expect(await focusedSection()).toBe("Track: Clean rhythm");
+});
+
+test("W reads a full recap of the selection", async ({ page }) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  await editor.locator('[id^="note-rect-"]').first().click();
+  const status = editor.getByRole("status");
+
+  await page.keyboard.press("w");
+  await expect(status).toContainText("Track Clean rhythm, 1 of");
+  await expect(status).toContainText("Staff 1 of 1, voice 1.");
+  await expect(status).toContainText("Bar 1 of");
+  await expect(status).toContainText("String 1, empty.");
 });

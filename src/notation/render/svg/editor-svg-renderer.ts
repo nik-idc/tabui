@@ -6,7 +6,7 @@ import {
   TrackController,
 } from "../../controller";
 import type { ResolvedAssetConfig } from "../../../assets";
-import { createSVG, createSVGG, Rect } from "../../../shared";
+import { createSVG, createSVGG, Point, Rect } from "../../../shared";
 import { EditorRenderer } from "../editor-renderer";
 import { EditorRenderOptions } from "../editor-renderer";
 import { ElementRenderer } from "../element-renderer";
@@ -19,6 +19,7 @@ import { TabBeatElement } from "../../controller/element/beat/tab-beat-element";
 import { TabBeatRhythmElement } from "../../controller/element/beat/tab-beat-rhythm-element";
 import { TabNoteSlotElement } from "../../controller/element/note/tab-note-slot-element";
 import { GuitarTechniqueElement } from "../../controller/element/technique/guitar-technique/guitar-technique-element";
+import { BeatGuitarTechniqueElement } from "../../controller/element/technique/beat-technique/beat-guitar-technique-element";
 import { GuitarTechniqueLabelElement } from "../../controller/element/technique/guitar-technique/guitar-technique-label-element";
 import { BeamSegmentElement } from "../../controller/element/bar/beam-segment-element";
 import { BarTupletGroupElement } from "../../controller/element/bar/bar-tuplet-group-element";
@@ -70,6 +71,7 @@ const ELEMENT_VOICE_PART = new Map<NotationElementClass, VoicePart>([
   [TabBeatElement, VoicePart.Content],
   [TabNoteSlotElement, VoicePart.Content],
   [GuitarTechniqueElement, VoicePart.Content],
+  [BeatGuitarTechniqueElement, VoicePart.Content],
   [TabBeatRhythmElement, VoicePart.Rhythm],
   [BeamSegmentElement, VoicePart.Rhythm],
   [BarTupletGroupElement, VoicePart.Rhythm],
@@ -119,6 +121,11 @@ export class EditorSVGRenderer implements EditorRenderer {
   private _lastRenderedViewportEnd?: number;
   private _lastRenderedMasterBarStart?: number;
   private _lastRenderedMasterBarEnd?: number;
+  /**
+   * Active voice of the last full notation render. Note hit areas depend on
+   * it, so a change forces a redraw even when no element changed.
+   */
+  private _lastRenderedActiveVoice?: VoiceNumber;
   /** Viewport scroll listener. */
   private _viewportScrollListener?: EventListener;
   /** Viewport rectangle inside notation scroll container. */
@@ -166,8 +173,11 @@ export class EditorSVGRenderer implements EditorRenderer {
       return undefined;
     }
 
-    targetScrollTop = Math.max(0, targetScrollTop);
-    return targetScrollTop === this._viewportRect.y
+    targetScrollTop = Math.max(
+      0,
+      targetScrollTop + this.getNotationOffsetTop()
+    );
+    return targetScrollTop === this.notationViewportDiv.scrollTop
       ? undefined
       : targetScrollTop;
   }
@@ -267,9 +277,18 @@ export class EditorSVGRenderer implements EditorRenderer {
     const padding = this.trackController.layoutDimensions.horizontalPadding;
     this._viewportRect.set(
       this.notationViewportDiv.scrollLeft - padding,
-      this.notationViewportDiv.scrollTop,
+      this.notationViewportDiv.scrollTop - this.getNotationOffsetTop(),
       this.notationViewportDiv.clientWidth,
       this.notationViewportDiv.clientHeight
+    );
+  }
+
+  /** Converts scroll coordinates to SVG coordinates below the score title. */
+  private getNotationOffsetTop(): number {
+    return (
+      this.rootSVGElement.getBoundingClientRect().top -
+      this.notationViewportDiv.getBoundingClientRect().top +
+      this.notationViewportDiv.scrollTop
     );
   }
 
@@ -952,6 +971,25 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._beatInteractionRenderer.detachEvent(eventType);
   }
 
+  /** Converts screen coordinates to score coordinates for drag-selection lookup. */
+  public getDragSelectionBeat(
+    clientX: number,
+    clientY: number,
+    anchor: BeatElement
+  ): BeatElement | undefined {
+    const screenMatrix = this.rootSVGElement.getScreenCTM?.();
+    if (screenMatrix == null) {
+      return undefined;
+    }
+    const inverse = screenMatrix.inverse();
+    const x = inverse.a * clientX + inverse.c * clientY + inverse.e;
+    const y = inverse.b * clientX + inverse.d * clientY + inverse.f;
+    return this.trackController.trackElement.getNearestBeat(
+      new Point(x, y),
+      anchor
+    );
+  }
+
   private syncRootSVGDimensions(): void {
     const trackWindowHeight = this.trackController.trackElement.height;
     const padding = this.trackController.layoutDimensions.horizontalPadding;
@@ -965,6 +1003,13 @@ export class EditorSVGRenderer implements EditorRenderer {
 
   private renderNotation(options: EditorRenderOptions): void {
     this.setViewportRect();
+
+    // Some edits change the active voice as a side effect, for example
+    // removing the last beat of a voice. Redraw as for a voice switch.
+    const activeVoice = this.trackController.activeVoiceNumber;
+    if (activeVoice !== this._lastRenderedActiveVoice) {
+      options = { ...options, forceNotation: true };
+    }
 
     const { start, end } = this.getLinesInViewport();
     const singleLine =
@@ -1039,6 +1084,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._lastRenderedViewportEnd = end;
     this._lastRenderedMasterBarStart = masterBarRange.start;
     this._lastRenderedMasterBarEnd = masterBarRange.end;
+    this._lastRenderedActiveVoice = activeVoice;
 
     this._beatInteractionRenderer.render(visibleElements);
 
@@ -1051,6 +1097,12 @@ export class EditorSVGRenderer implements EditorRenderer {
   public render(
     options: EditorRenderOptions = DEFAULT_RENDER_OPTIONS
   ): ElementRenderer[] {
+    // Keep playback presentation current even when only an overlay is rendered.
+    const playbackActive = this.trackController.isPlaybackActive;
+    this.rootSVGElement.setAttribute(
+      "data-playback-active",
+      `${playbackActive}`
+    );
     if (options.renderNotation) {
       this.renderNotation(options);
     }
@@ -1081,6 +1133,7 @@ export class EditorSVGRenderer implements EditorRenderer {
     this._lastRenderedViewportEnd = undefined;
     this._lastRenderedMasterBarStart = undefined;
     this._lastRenderedMasterBarEnd = undefined;
+    this._lastRenderedActiveVoice = undefined;
     this._playerOverlayRenderer.unrender();
     this._selectionOverlayRenderer.unrender();
     this._beatInteractionRenderer.unrender();
@@ -1092,7 +1145,7 @@ export class EditorSVGRenderer implements EditorRenderer {
   public dispose(): void {
     this.detachViewportScrollEvent();
     this.unrender();
-    this.notationViewportDiv.replaceChildren();
+    this.rootSVGElement.remove();
     this.notationViewportDiv.classList.remove("tu-single-line-notation");
   }
 }

@@ -1,13 +1,20 @@
 import { expect, test } from "@playwright/test";
 import { requiredBoundingBox } from "./helpers";
 
-async function openBendDialog(page: import("@playwright/test").Page) {
+async function openBendDialog(
+  page: import("@playwright/test").Page,
+  keyboard = false
+) {
   const editor = page.locator("#tabui-editor");
   await editor.locator('.tu-root-svg [id^="note-rect-"]').first().click();
   await page.keyboard.press("1");
   const opener = editor.getByRole("button", { name: "Bend" });
   await opener.focus();
-  await opener.click();
+  if (keyboard) {
+    await page.keyboard.press("Enter");
+  } else {
+    await opener.click();
+  }
   return {
     dialog: editor.getByRole("dialog", { name: "Bend" }),
     editor,
@@ -138,7 +145,9 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
   await expect(status).toHaveText(
     "Bend point. Pitch full tone. Duration 67 percent."
   );
-  for (let i = 0; i < 5; i++) await page.keyboard.press("ArrowUp");
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press("ArrowUp");
+  }
   await page.keyboard.press("Tab");
   await page.keyboard.press("Shift+Tab");
   await expect(status).toHaveText(
@@ -171,7 +180,9 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     return messages;
   });
   expect(updates).toEqual([]);
-  for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowUp");
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press("ArrowUp");
+  }
   await expect(status).toHaveText(
     "Bend point. Pitch three tones. Duration 67 percent."
   );
@@ -195,7 +206,9 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
     const cancel = element.querySelector<HTMLButtonElement>(
       ".tu-bend-controls-cancel-button"
     );
-    if (cancel === null) throw Error("Expected bend cancel button");
+    if (cancel === null) {
+      throw Error("Expected bend cancel button");
+    }
     cancel.click();
     await new Promise((resolve) => setTimeout(resolve, 100));
     return { clampedUpdates, text: region.textContent };
@@ -205,7 +218,7 @@ test("uses arrows, not Tab, to move the selected bend point", async ({
 
 test("contains bend focus and restores its opener", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
-  const { dialog, opener } = await openBendDialog(page);
+  const { dialog, opener } = await openBendDialog(page, true);
   const cancel = dialog.getByRole("button", { name: "Cancel" });
   const first = dialog.getByRole("button", { name: "Bend", exact: true });
 
@@ -253,6 +266,10 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
   const graph = dialog.locator(".tu-bend-controls-svg");
   await expect(dialog).toHaveAttribute("open", "");
   await expect(graph).toBeVisible();
+  // Screen readers pass arrow keys through to an application region.
+  await expect(
+    dialog.getByRole("application", { name: "Bend curve editor" })
+  ).toBeVisible();
 
   // Record the handle position and notation scroll state before dragging.
   const handle = graph.locator('circle[aria-label="Bend point"]');
@@ -273,7 +290,9 @@ test("moves a bend handle without scrolling notation", async ({ page }) => {
   await expect(handle).not.toHaveAttribute("cy", handleYBefore ?? "");
   await expect(notation).toHaveJSProperty("scrollTop", scrollTopBefore);
   const editedY = await handle.getAttribute("cy");
-  if (editedY === null) throw Error("Expected a positioned bend handle");
+  if (editedY === null) {
+    throw Error("Expected a positioned bend handle");
+  }
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(dialog).not.toBeVisible();
   await expect(editor.locator(".tu-inline-technique")).toHaveCount(1);
@@ -336,4 +355,40 @@ test("moves a bend handle through a touch gesture", async ({
 
   // The touch gesture updates the snapped graph point through Pointer Events.
   await expect(handle).not.toHaveAttribute("cy", handleYBefore ?? "");
+});
+
+test("scales the bend graph down when the dialog is narrow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 900, height: 900 });
+  await page.goto("/tabui/?fixture=empty");
+  // A larger default font size makes the graph's preferred width
+  // (26.25rem = 630px) wider than the space beside the bend type list.
+  await page.addStyleTag({ content: "html { font-size: 24px; }" });
+  const { dialog } = await openBendDialog(page);
+  const graph = dialog.locator(".tu-bend-controls-svg");
+  const box = await requiredBoundingBox(graph);
+  // It grows with the font size but shrinks to fit the dialog.
+  expect(box.width).toBeGreaterThan(420);
+  expect(box.width).toBeLessThan(630);
+  // The graph keeps its 420:300 shape.
+  expect(box.height / box.width).toBeCloseTo(300 / 420, 2);
+
+  // A drag on the scaled graph snaps the point to the row under the pointer.
+  const handle = graph.locator('circle[aria-label="Bend point"]');
+  const handleBox = await requiredBoundingBox(handle);
+  const x = handleBox.x + handleBox.width / 2;
+  const y = handleBox.y + handleBox.height / 2;
+  const rowHeight = box.height / 12;
+  const targetY = y - 3 * rowHeight;
+  await page.mouse.move(x, y);
+  await page.mouse.down();
+  await page.mouse.move(x, targetY, { steps: 5 });
+  await page.mouse.up();
+  await expect
+    .poll(async () => {
+      const moved = await requiredBoundingBox(handle);
+      return Math.abs(moved.y + moved.height / 2 - targetY);
+    })
+    .toBeLessThan(rowHeight / 2);
 });

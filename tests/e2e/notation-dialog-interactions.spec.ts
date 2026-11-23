@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { clickSvgText, hoverSvgText } from "./helpers";
 
 test("time signature hover and click use the clicked bar", async ({ page }) => {
   await page.goto("/tabui/?fixture=empty");
@@ -27,7 +28,8 @@ test("time signature hover and click use the clicked bar", async ({ page }) => {
     .click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
   await expect(clickedText).toHaveText("5");
-  await expect(editor.locator(".tu-time-signature")).toHaveCount(2);
+  // Both bars shared 4/4, so the edit changes the section without a reset marker.
+  await expect(editor.locator(".tu-time-signature")).toHaveCount(1);
 
   // A second edit must refresh the existing signature, not only create it.
   await clickedText.click();
@@ -56,44 +58,73 @@ test("tempo hover and click use the clicked bar value", async ({ page }) => {
   const first = tempos.first();
   const image = first.locator('[id^="tempo-img-"]');
   const text = first.locator('[id^="tempo-text-"]');
-  const original = await text.evaluate((node) => getComputedStyle(node).fill);
+  const hitArea = first.locator(".tu-tempo-hit-area");
+  // The tempo marker is rebuilt right after the first render, and a replaced
+  // element has no computed fill. Wait for a real one.
+  const readFill = () => text.evaluate((node) => getComputedStyle(node).fill);
+  await expect.poll(readFill).not.toBe("");
+  const original = await readFill();
 
-  await image.hover();
+  // Even empty space around the asset belongs to the same pointer target.
+  await hitArea.hover({ position: { x: 5, y: 5 } });
   await expect(text).not.toHaveCSS("fill", original);
+  const highlight = await text.evaluate((node) => getComputedStyle(node).fill);
+  await expect(image).toHaveCSS("fill", highlight);
   await page.mouse.move(0, 0);
   await expect(text).toHaveCSS("fill", original);
-  await image.click();
+  await expect(image).toHaveCSS("fill", original);
+  await hitArea.hover();
+  await expect(image).toHaveCSS("fill", highlight);
+  await hitArea.click({ position: { x: 5, y: 5 } });
   const dialog = editor.getByRole("dialog", { name: "Tempo" });
-  await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("120");
+  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("90");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
-  await expect(text).toHaveText("=121");
+  await expect(text).toHaveText("91");
 
-  await image.click();
-  await expect(dialog.locator(".tu-number-stepper-value")).toHaveText("121");
+  await hitArea.click();
+  await expect(dialog.locator(".tu-number-stepper-value")).toHaveValue("91");
   await dialog.getByRole("button", { name: "Increase tempo by 1 BPM" }).click();
   await dialog.getByRole("button", { name: "Confirm" }).click();
-  await expect(text).toHaveText("=122");
+  await expect(text).toHaveText("92");
 
-  await tempos.nth(1).locator('[id^="tempo-img-"]').click();
-  await expect(
-    editor
-      .getByRole("dialog", { name: "Tempo" })
-      .locator(".tu-number-stepper-value")
-  ).toHaveText("120");
-  await editor
-    .getByRole("dialog", { name: "Tempo" })
-    .getByRole("button", {
-      name: "Cancel",
-    })
-    .click();
   await page.keyboard.press("Control+z");
-  await expect(text).toHaveText("=121");
+  await expect(text).toHaveText("91");
   await page.keyboard.press("Control+y");
-  await expect(text).toHaveText("=122");
+  await expect(text).toHaveText("92");
   await page.keyboard.press("Control+z");
   await page.keyboard.press("Control+z");
-  await expect(text).toHaveText("=120");
+  await expect(text).toHaveText("90");
+});
+
+test("tempo input supports text, keyboard, escape, and wheel changes", async ({
+  page,
+}) => {
+  await page.goto("/tabui/?fixture=feature_showcase");
+  const editor = page.locator("#tabui-editor");
+  const hitArea = editor.locator(".tu-tempo-hit-area").first();
+  const text = editor
+    .locator(".tu-tempo")
+    .first()
+    .locator('[id^="tempo-text-"]');
+  await hitArea.click();
+  const dialog = editor.getByRole("dialog", { name: "Tempo" });
+  const tempoInput = dialog.locator('input[name="tempo"]');
+
+  await tempoInput.fill("120.5");
+  await tempoInput.press("ArrowUp");
+  await tempoInput.press("Enter");
+  await expect(text).toHaveText("121");
+
+  await hitArea.click();
+  await tempoInput.fill("999");
+  await tempoInput.press("Escape");
+  await expect(text).toHaveText("121");
+
+  await hitArea.click();
+  await tempoInput.hover();
+  await page.mouse.wheel(0, -100);
+  await expect(tempoInput).toHaveValue("122");
 });
 
 async function addTuplet(page: Page, complete: boolean) {
@@ -106,6 +137,7 @@ async function addTuplet(page: Page, complete: boolean) {
     await gap.click();
     await gap.click();
     await firstNote.click();
+    await page.keyboard.press("Shift+ArrowRight");
     await page.keyboard.press("Shift+ArrowRight");
     await page.keyboard.press("Shift+ArrowRight");
   }
@@ -123,9 +155,9 @@ test("complete tuplet click selects all beats and opens its existing dialog", as
   await editor.locator('[id^="note-rect-"]').first().click();
   const label = editor.locator('[id^="tuplet-complete-text-"]').first();
   const original = await label.evaluate((node) => getComputedStyle(node).fill);
-  await label.hover();
+  await hoverSvgText(label);
   await expect(label).not.toHaveCSS("fill", original);
-  await label.click();
+  await clickSvgText(label);
   const dialog = editor.getByRole("dialog", { name: "Tuplet" });
   await expect(dialog.locator(".tu-number-stepper-value").first()).toHaveText(
     "3"
@@ -149,7 +181,7 @@ test("incomplete tuplet label opens only its beat context", async ({
   await page.goto("/tabui/?fixture=empty");
   await addTuplet(page, true);
   const editor = page.locator("#tabui-editor");
-  await editor.locator('[id^="tuplet-complete-text-"]').click();
+  await clickSvgText(editor.locator('[id^="tuplet-complete-text-"]'));
   const dialog = editor.getByRole("dialog", { name: "Tuplet" });
   await dialog
     .getByRole("button", { name: "Increase normal notes by 1" })
@@ -160,11 +192,11 @@ test("incomplete tuplet label opens only its beat context", async ({
   const original = await labels
     .nth(1)
     .evaluate((node) => getComputedStyle(node).fill);
-  await labels.nth(1).hover();
+  await hoverSvgText(labels.nth(1));
   await expect(labels.nth(1)).not.toHaveCSS("fill", original);
   await page.mouse.move(0, 0);
   await expect(labels.nth(1)).toHaveCSS("fill", original);
-  await labels.nth(1).click();
+  await clickSvgText(labels.nth(1));
   await expect(dialog.locator(".tu-number-stepper-value").first()).toHaveText(
     "4"
   );
@@ -182,13 +214,32 @@ test("notation clicks do not open dialogs in view-only mode or playback", async 
 }) => {
   await page.goto("/tabui/?fixture=feature_showcase&mode=view-only");
   const editor = page.locator("#tabui-editor");
-  await editor.locator('[id^="tempo-img-"]').first().click();
+  await editor.locator(".tu-tempo-hit-area").first().click();
   await expect(editor.getByRole("dialog")).toHaveCount(0);
 
   await page.goto("/tabui/?fixture=empty");
-  const tempo = editor.locator('[id^="tempo-img-"]').first();
-  await editor.getByRole("button", { name: "Play" }).click();
-  await tempo.click();
+  const tempo = editor.locator(".tu-tempo-hit-area").first();
+  // The tempo marker is rebuilt right after the first render. This check
+  // retries, so it doesn't fail on the replaced element.
+  await expect(tempo).toBeInViewport();
+  await editor.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
+  const tempoBounds = await tempo.boundingBox();
+  expect(tempoBounds).not.toBeNull();
+  if (tempoBounds === null) {
+    throw Error("Expected tempo hit target bounds");
+  }
+  await page.mouse.click(
+    tempoBounds.x + tempoBounds.width / 2,
+    tempoBounds.y + tempoBounds.height / 2
+  );
   await expect(editor.getByRole("dialog")).toHaveCount(0);
+  await expect(editor.getByRole("button", { name: "Pause" })).toHaveAttribute(
+    "aria-pressed",
+    "true"
+  );
   await editor.getByRole("button", { name: "Pause" }).click();
 });

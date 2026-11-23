@@ -26,11 +26,15 @@ export class ListenerManager {
 
   bindAll(configs: ListenerConfig[]): void {
     this.unbindAll();
-    configs.forEach((config) => this.addListener(config));
+    for (const config of configs) {
+      this.addListener(config);
+    }
   }
 
   unbindAll(): void {
-    this._listeners.forEach((cleanup) => cleanup());
+    for (const cleanup of this._listeners) {
+      cleanup();
+    }
     this._listeners = [];
   }
 }

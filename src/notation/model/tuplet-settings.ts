@@ -1,10 +1,25 @@
 import { Beat } from "./beat";
 import { MusicInstrument } from "./instrument/instrument";
 
+/** Tuplet ratio: normalCount notes occupy tupletCount written units, such as 3 in the time of 2. */
 export type TupletSettings = {
+  /** Number of notes in a complete group; supported integers are 1–256. */
   normalCount: number;
+  /** Number of written units occupied by the group; supported integers are 1–256. */
   tupletCount: number;
 };
+
+/**
+ * Tuplet ratios with their own buttons and keyboard cycle. They also always
+ * show only their first number, so adding a preset changes how that ratio is
+ * labeled.
+ */
+export const TUPLET_PRESETS = {
+  /** Two notes in the time of three, such as two eighths in a dotted quarter. */
+  duplet: { normalCount: 2, tupletCount: 3 },
+  /** Three notes in the time of two. */
+  triplet: { normalCount: 3, tupletCount: 2 },
+} as const satisfies Record<string, TupletSettings>;
 
 /**
  * Lowest accepted tuplet normalCount. The storage layer accepts any positive
@@ -22,7 +37,7 @@ export const MIN_TUPLET_TUPLET_COUNT = 1;
 /** Highest accepted tupletCount. Shared with serialization & UI. */
 export const MAX_TUPLET_TUPLET_COUNT = 256;
 
-/** True when `settings` falls within the storage layer's accepted range. */
+/** Returns true only when both counts are safe integers in 1–256; null returns false. */
 export function tupletSettingsInRange(
   settings: TupletSettings | null
 ): boolean {
@@ -39,6 +54,7 @@ export function tupletSettingsInRange(
   );
 }
 
+/** Checks for two numeric count fields; does not check bounds, finiteness, or integers. */
 export function isTupletSettings(
   value: Record<string, unknown> | unknown
 ): value is TupletSettings {
@@ -52,6 +68,7 @@ export function isTupletSettings(
   );
 }
 
+/** Compares both beats' tuplet counts; two beats without tuplets are equal. */
 export function beatsTupletSettingsEqual<I extends MusicInstrument>(
   beat1: Beat<I>,
   beat2: Beat<I>
@@ -62,6 +79,7 @@ export function beatsTupletSettingsEqual<I extends MusicInstrument>(
   );
 }
 
+/** Compares both ratio counts; two null settings are equal. */
 export function tupletSettingsEqual(
   settings1: TupletSettings | null,
   settings2: TupletSettings | null

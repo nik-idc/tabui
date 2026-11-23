@@ -4,6 +4,7 @@ import { resolveTabUIConfig } from "../../../src/config/tabui-config";
 import { NotationComponent } from "../../../src/notation/notation-component";
 import { PlaybackState } from "../../../src/player";
 import { Guitar, Score } from "../../../src/notation/model";
+import { faderPositionToVolume } from "../../../src/ui/shared/volume-slider";
 import { DialogEnforcer } from "../../../src/shared/hmtl/dialog-enforcer";
 import { ScoreControlsComponent } from "../../../src/ui/top-controls/score-controls/score-controls-component";
 import { TrackControlsDefaultCallbacks } from "../../../src/ui/top-controls/score-controls/track-controls/track-controls-callbacks";
@@ -40,6 +41,7 @@ describe("Track controls", () => {
     );
     controls = new ScoreControlsComponent(
       host,
+      root,
       new DialogEnforcer(dialogs, () => {}),
       notation,
       () => {}
@@ -51,8 +53,6 @@ describe("Track controls", () => {
       lead,
       notation,
       () => controls.render(),
-      () => {},
-      () => {},
       () => controls.showTrackSettingsDialog(lead.track),
       () => controls.showTrackRemoveDialog(lead.track)
     );
@@ -86,24 +86,53 @@ describe("Track controls", () => {
     expect(notation.score.tracks).toEqual([rhythm.track]);
   });
 
-  test("track editing controls render disabled during playback", async () => {
-    notation.trackController.startPlayer();
-    await settleTransport();
-    expect(notation.trackController.playbackState).toBe(PlaybackState.Playing);
-    controls.render();
-    const template = controls.trackComponents[1].template;
-    for (const button of [
-      template.moveUpButton,
-      template.moveDownButton,
-      template.removeButton,
-      template.settingsButton,
-    ]) {
-      expect(button.disabled).toBe(true);
+  test.each([
+    { state: "idle", edit: true, mix: true, select: true },
+    { state: "playing", edit: false, mix: true, select: false },
+    { state: "view-only", edit: false, mix: false, select: true },
+  ])(
+    "controls follow the controller rules when $state",
+    async ({ state, edit, mix, select }) => {
+      if (state === "playing") {
+        notation.trackController.startPlayer();
+        await settleTransport();
+      } else if (state === "view-only") {
+        notation.setEditingEnabled(false);
+      }
+      controls.render();
+      const score = controls.template;
+      const lead = controls.trackComponents[1].template;
+      const enabled = (elements: { disabled: boolean }[]) =>
+        elements.map((element) => !element.disabled);
+
+      expect(
+        enabled([
+          lead.moveUpButton,
+          lead.removeButton,
+          lead.settingsButton,
+          lead.trackNameInput,
+          score.newTrackButton,
+          score.cutButton,
+          score.pasteButton,
+        ])
+      ).toEqual(Array(7).fill(edit));
+      expect(
+        enabled([
+          lead.volumeInput,
+          lead.panningInput,
+          lead.muteButton,
+          lead.soloButton,
+          score.masterVolumeInput,
+          score.masterPanningInput,
+        ])
+      ).toEqual(Array(6).fill(mix));
+      expect(
+        enabled([score.rangeButton, score.selectAllButton, score.copyButton])
+      ).toEqual(Array(3).fill(select));
+      // The last track can't move down in any state.
+      expect(lead.moveDownButton.disabled).toBe(true);
     }
-    expect(template.trackNameInput.disabled).toBe(true);
-    expect(template.volumeInput.disabled).toBe(false);
-    expect(template.panningInput.disabled).toBe(false);
-  });
+  );
 
   test("playback blocks track editing but preserves selection and mix controls", async () => {
     const lead = controls.trackComponents[1];
@@ -114,7 +143,7 @@ describe("Track controls", () => {
     input(lead.template.trackNameInput, "Blocked");
     callbacks.onTrackRemoveClicked();
     callbacks.onTrackSettingsClicked();
-    lead.template.selectButton.click();
+    lead.template.container.click();
     expect(notation.trackController.track).toBe(lead.track);
     expect(notation.trackController.playbackState).toBe(PlaybackState.Playing);
     expect(notation.score.tracks).toEqual(tracks);
@@ -130,7 +159,7 @@ describe("Track controls", () => {
       lead.track.pan,
       lead.track.muted,
       lead.track.soloed,
-    ]).toEqual([0.75, -0.5, true, true]);
+    ]).toEqual([faderPositionToVolume(75), -0.5, true, true]);
     lead.template.muteButton.click();
     lead.template.soloButton.click();
     expect([lead.track.muted, lead.track.soloed]).toEqual([false, false]);
@@ -152,7 +181,8 @@ describe("Track controls", () => {
       lead.track.muted,
       lead.track.soloed,
     ]).toEqual([0.5, 0, false, false]);
-    expect(lead.template.volumeInput.value).toBe("50");
+    // 0.5 is about -6 dB, at position 63 on the fader curve.
+    expect(lead.template.volumeInput.value).toBe("63");
     expect(lead.template.muteButton.getAttribute("aria-pressed")).toBe("false");
     expect(lead.template.soloButton.getAttribute("aria-pressed")).toBe("false");
   });
@@ -160,7 +190,7 @@ describe("Track controls", () => {
   test("bound controls select, reorder, rename and open track dialogs; unbind stops edits", () => {
     const lead = controls.trackComponents[1];
     const rhythm = notation.score.tracks[0];
-    lead.template.selectButton.click();
+    lead.template.container.click();
     expect(notation.trackController.track).toBe(lead.track);
     lead.template.moveUpButton.click();
     expect(notation.score.tracks).toEqual([lead.track, rhythm]);
@@ -181,5 +211,44 @@ describe("Track controls", () => {
     input(lead.template.trackNameInput, "Detached");
     expect(notation.score.tracks).toEqual([rhythm, lead.track]);
     expect(lead.track.name).toBe("Solo");
+  });
+
+  test("selects from the inactive name without focusing its editor and supports row keys", () => {
+    const lead = controls.trackComponents[1];
+    const rhythm = controls.trackComponents[0];
+
+    lead.template.trackNameLabel.click();
+    expect(notation.trackController.track).toBe(lead.track);
+    expect(document.activeElement).not.toBe(lead.template.trackNameInput);
+    // A mouse click leaves focus to the editor, so Space stays a shortcut.
+    expect(document.activeElement).not.toBe(lead.template.container);
+    expect(lead.template.trackNameInput.hidden).toBe(false);
+
+    notation.loadTrack(rhythm.track);
+    controls.render();
+    lead.template.container.focus();
+    lead.template.container.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true })
+    );
+    expect(notation.trackController.track).toBe(lead.track);
+    expect(document.activeElement).toBe(lead.template.container);
+
+    notation.loadTrack(rhythm.track);
+    controls.render();
+    for (const key of ["Enter", " "]) {
+      lead.template.muteButton.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true })
+      );
+      expect(notation.trackController.track).toBe(rhythm.track);
+    }
+    lead.template.muteButton.click();
+    expect(notation.trackController.track).toBe(rhythm.track);
+    expect(lead.track.muted).toBe(true);
+
+    lead.template.container.focus();
+    lead.template.container.dispatchEvent(
+      new KeyboardEvent("keydown", { key: " ", bubbles: true })
+    );
+    expect(notation.trackController.track).toBe(lead.track);
   });
 });

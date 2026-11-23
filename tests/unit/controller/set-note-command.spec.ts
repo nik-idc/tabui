@@ -23,12 +23,12 @@ describe("SetNoteCommand", () => {
     expect(note.octave).toBe(5);
 
     command.undo();
-    expect(note.noteValue).toBe(NoteValue.None);
-    expect(note.octave).toBeNull();
+    expect(beat.notes?.[0].noteValue).toBe(NoteValue.None);
+    expect(beat.notes?.[0].octave).toBeNull();
 
     command.redo();
-    expect(note.noteValue).toBe(NoteValue.GSharp);
-    expect(note.octave).toBe(5);
+    expect(beat.notes?.[0].noteValue).toBe(NoteValue.GSharp);
+    expect(beat.notes?.[0].octave).toBe(5);
   });
 
   test("setting note on a rest beat converts it and undo restores the rest", () => {

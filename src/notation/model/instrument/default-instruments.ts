@@ -6,9 +6,11 @@ import {
   ElectricGuitarTone,
   BassGuitarTone,
   OtherStringTone,
+  StringInstrumentTone,
 } from "./instrument-tone";
 import { StringInstrumentType } from "./instrument-type";
 
+/** Acoustic presets keyed by tone; shared instances and tuning data should be copied before mutation. */
 export const DEFAULT_ACOUSTIC_GUITARS: Record<
   AcousticGuitarTone,
   MusicInstrument
@@ -31,6 +33,7 @@ export const DEFAULT_ACOUSTIC_GUITARS: Record<
   ),
 };
 
+/** Electric presets keyed by tone; shared instances and tuning data should be copied before mutation. */
 export const DEFAULT_ELECTRIC_GUITARS: Record<
   ElectricGuitarTone,
   MusicInstrument
@@ -61,6 +64,7 @@ export const DEFAULT_ELECTRIC_GUITARS: Record<
   ),
 };
 
+/** Bass presets keyed by tone; shared instances and tuning data should be copied before mutation. */
 export const DEFAULT_BASS_GUITARS: Record<BassGuitarTone, MusicInstrument> = {
   [BassGuitarTone.Acoustic]: new Guitar(
     StringInstrumentType.BassGuitar,
@@ -88,6 +92,7 @@ export const DEFAULT_BASS_GUITARS: Record<BassGuitarTone, MusicInstrument> = {
   ),
 };
 
+/** Other string presets keyed by tone; copy shared instances and tuning data before mutation. */
 export const DEFAULT_OTHER_STRING: Record<OtherStringTone, MusicInstrument> = {
   [OtherStringTone.Banjo]: new Guitar(
     StringInstrumentType.Other,
@@ -106,3 +111,26 @@ export const DEFAULT_OTHER_STRING: Record<OtherStringTone, MusicInstrument> = {
     15
   ),
 };
+
+const DEFAULT_STRING_INSTRUMENTS: Record<
+  StringInstrumentTone,
+  MusicInstrument
+> = {
+  ...DEFAULT_ACOUSTIC_GUITARS,
+  ...DEFAULT_ELECTRIC_GUITARS,
+  ...DEFAULT_BASS_GUITARS,
+  ...DEFAULT_OTHER_STRING,
+};
+
+/**
+ * Returns the preset for a tone. The preset is shared, so copy its tuning
+ * before changing it.
+ * @throws If the preset is not a guitar-like string instrument.
+ */
+export function getDefaultStringInstrument(tone: StringInstrumentTone): Guitar {
+  const instrument = DEFAULT_STRING_INSTRUMENTS[tone];
+  if (!(instrument instanceof Guitar)) {
+    throw new Error(`No string instrument preset for ${tone}`);
+  }
+  return instrument;
+}
