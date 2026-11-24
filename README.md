@@ -59,8 +59,7 @@ With that said, along the way it got a few things I haven't seen elsewhere:
   things:
   - Equal input methods. The mouse and the keyboard are meant to be equally
     important, so you can use TabUI with only a keyboard, only a mouse, or both.
-    Most actions already work both ways. Some, such as undo and copy, still need
-    the keyboard. These gaps are tracked as issues.
+    Most actions already work both ways.
   - Announcements. Navigation, selection, and edits are announced for screen
     readers. I have tested this with NVDA on Windows (in a VM) and Orca on Linux.
     macOS is not tested yet, mainly because I don't own a Mac.
