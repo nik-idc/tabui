@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
 
 concurrency:
   group: github-pages
@@ -30,7 +31,7 @@ jobs:
       - name: Configure Git safe directory
         run: git config --global --add safe.directory /__w/tabui/tabui
 
-      - name: Verify tagged commit belongs to master
+      - name: Verify the commit belongs to master
         run: |
           git fetch origin master --no-tags
           git merge-base --is-ancestor HEAD origin/master
