@@ -22,7 +22,7 @@ web app, with any framework or none.
 <a :href="withBase('/api/')" target="_self">API reference</a> ·
 [GitHub](https://github.com/nik-idc/tabui)
 
-![The TabUI editor with a four-track score](/screenshot.png)
+<video :src="withBase('/demonstration.mp4')" autoplay loop muted playsinline aria-label="Editing a tab in TabUI and playing it back" style="width: 100%; border-radius: 8px"></video>
 
 ## What it does
 

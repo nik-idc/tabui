@@ -11,6 +11,8 @@ TypeScript.
 [Features](docs/features.md) ·
 [Roadmap](ROADMAP.md)
 
+![Editing a tab in TabUI and playing it back](docs/public/demonstration.gif)
+
 ## Features
 
 - Mouse, touch, and keyboard interaction.
