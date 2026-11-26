@@ -243,7 +243,7 @@ export class NoteControlsTemplateRenderer {
         "data-tuplet": "2",
       }
     );
-    setShortcutTooltip(this.template.tuplet2Button, "Tuplet preset", "t");
+    setShortcutTooltip(this.template.tuplet2Button, "Duplet preset", "t");
 
     setImageAsset(
       this.template.tuplet3Button,

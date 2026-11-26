@@ -101,15 +101,6 @@ Let Ring and Palm Mute passages are not stored as spans. Each note carries its
 own mark, and TabUI draws a passage from consecutive marks. A Tie belongs to the
 second note, the continuation, not to the note it continues.
 
-### Note transition
-
-A guitar technique from a source note to a compatible target note, such as a
-slide or a hammer-on. In TabUI, the target is the immediate next beat's note on
-the same voice and string.
-
-Use **note transition** instead of relation target, spanner, or slur when
-describing this concept in TabUI documentation, code, tests, and issues.
-
 ### Technique list
 
 | Technique                   | Meaning                                                                      |
@@ -128,8 +119,3 @@ describing this concept in TabUI documentation, code, tests, and issues.
 
 See [Features](features.md#guitar-techniques) for the rules and controls of each
 technique.
-
-## Display and playback
-
-TabUI shows one track at a time. Playback plays all tracks. Mute and solo change
-only which tracks you hear.

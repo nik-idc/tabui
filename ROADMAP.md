@@ -39,8 +39,9 @@ The work I plan to start right after `0.5.0`, in this order.
   Element layer, and let each notation style report how much space it needs.
   Also set a minimum beat width, so fast notes don't squeeze fret numbers and
   techniques together.
-  - Grace notes, built on top of the rethink. A grace note takes space before
-    its beat, so it needs the new space reporting.
+
+- Grace notes. Might add more techniques as well in this step, if they fit
+  nicely with grace notes.
 
 - Section markers, with "Jump to..." to move between them. Each marker belongs
   to a master bar, so all tracks share it.
@@ -48,11 +49,7 @@ The work I plan to start right after `0.5.0`, in this order.
 ## Medium term work
 
 These are issues that I want to address in the medium term, after a full web
-app is built on top of `0.5.0`. These are in no particular order.
-
-- Show several tracks together. Currently one track is displayed at a time.
-  Bar widths are already calculated across all tracks, so part of the groundwork
-  exists.
+app is built on top of `0.5.0`, in this order.
 
 - Desloppify editing. This one is admittedly going to be pretty vague.
   Currently `ScoreEditor` just _feels_ a little sloppy. It's not vibe coded but I
@@ -68,15 +65,50 @@ app is built on top of `0.5.0`. These are in no particular order.
   good chunk of these tests **are** vibe coded. I usually only quickly glance at
   the diff to check if there are any red flags, not analyze the code as deeply
   as I do with actual source code, which is part of why I want to audit them.
-  Keep a test only if it checks behavior that someone depends on (rules, inputs
-  and outputs, the API) or guards a real bug that has happened. A good test
-  catches a plausible accidental regression and survives a valid change. Tests
-  that pin a style choice, such as a curve height or a spacing value, fail
-  both. Check visual results by eye or with screenshot tests instead.
+
+- Sheet and drum notation. Arguably one of the most crucial pieces of work
+  described in this file. When complete, this would allow **any** instrument and
+  **any** score, not just guitar focused pieces. "Spiritually" TabUI will remain
+  focused on guitarists, but this would allow transcribing whole scores instead
+  of just the guitar parts. This could be especially useful for drummers in rock
+  and metal bands. This is going to take time though, since I will actually have
+  to learn sheet notation properly.
+
+- Show several tracks together. Currently one track is displayed at a time.
+  Bar widths are already calculated across all tracks, so part of the groundwork
+  exists.
 
 - Formats and parsing. Version 0.5.0 has basic MusicXML import and export: tab
   staves only, and no compressed `.mxl` files. Next are `.mxl` files, then
   preferably Guitar Pro (`.gp`) and MIDI too.
+
+- Examine performance bottlenecks. Some paths still result in long edits of 3
+  seconds or more. It would be ideal if **no** editing path is longer than
+  100ms.
+
+- Visualize bend duration. As in, if a bend ramps up quickly - the curve ramps
+  up quickly too. If the bend ramps up slowly - the curve ramps up slowly too.
+
+## Long term work
+
+- Playback refactor & expansion.
+  - Refactor. The playback layer is currently also a bit sloppy. My main issue
+    is its currently pretty poor separation of concerns & modularization.
+  - Better playback. This would most likely require obtaining/recording a much
+    more detailed set of samples. For example Palm Mutes: instead of emulating
+    them, as TabUI does now, this separate sample set could have a separate set
+    of recordings of palm muted notes.
+
+- Comments. Basically just text, I imagine attached to bars and/or beats.
+
+- Hot config reloading & changing.
+
+- Visible error and status messages. Today, failures that the user should know
+  about are only spoken to screen readers, for example when the browser blocks
+  the clipboard buttons. Sighted users get no feedback. This needs a visible
+  message area, something like a snack bar or a subtle status bar string. Doing
+  it right means tracing every place where such a failure can happen, not just
+  the clipboard.
 
 - Headless use. This entails being able to install TabUI and use it via CLI.
   Something like:
@@ -109,42 +141,10 @@ app is built on top of `0.5.0`. These are in no particular order.
   actual use case my mind jumps to is agentic use. And I think it's easiest to
   understand why it's useful in this context too.
 
-- Examine performance bottlenecks. Some paths still result in long edits of 3
-  seconds or more. It would be ideal if **no** editing path is longer than
-  100ms.
-
-- Visualize bend duration. As in, if a bend ramps up quickly - the curve ramps
-  up quickly too. If the bend ramps up slowly - the curve ramps up slowly too.
-
-## Long term work
-
-- Sheet and drum notation. Arguably one of the most crucial pieces of work
-  described in this file. When complete, this would allow **any** instrument and
-  **any** score. Not just guitar focused pieces. "Spiritually" TabUI will remain
-  focused on guitarists, but this would allow transcribing whole scores instead
-  of just the guitar parts. This could be especially useful for drummers in rock
-  and metal bands.
-
-- Realistic playback. This would most likely require obtaining/recording a much
-  more detailed set of samples. For example Palm Mutes: instead of emulating
-  them, as TabUI does now, this separate sample set could have a separate set of
-  recordings of palm muted notes.
-
-- Comments. Basically just text, I imagine attached to bars.
-
-- Hot config reloading & changing.
-
-- Visible error and status messages. Today, failures that the user should know
-  about are only spoken to screen readers, for example when the browser blocks
-  the clipboard buttons. Sighted users get no feedback. This needs a visible
-  message area, something like a snack bar or a subtle status bar string. Doing
-  it right means tracing every place where such a failure can happen, not just
-  the clipboard.
-
 ## Unsure
 
-- Plugin system. Not really sure what this means in the context of TabUI, just
-  putting it here so that this isn't forgotten.
+- Plugin system. Not really sure what this even means in the context of TabUI,
+  just putting it here so that I don't forget.
 
 - Canvas-based notation rendering. Currently rendering is done via SVG, which is
   much easier to develop and debug. Canvas may improve performance, but only if

@@ -91,7 +91,7 @@ physical keys on every keyboard layout, even where they type other characters.
 | Shorten the duration     | -                     | Duration buttons (**1/1 note** to **1/64 note**) |
 | Lengthen the duration    | + or =                | Duration buttons                                 |
 | Cycle dots               | .                     | **Dot** / **Double dot**                         |
-| Cycle tuplets            | T                     | **Tuplet preset** / **Triplet preset**           |
+| Cycle tuplets            | T                     | **Duplet preset** / **Triplet preset**           |
 | Custom tuplet            | Shift+T               | **Custom tuplet**                                |
 | Louder dynamic           | >                     | Dynamic buttons (`ppp` to `fff`)                 |
 | Softer dynamic           | <                     | Dynamic buttons                                  |

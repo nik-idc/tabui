@@ -185,8 +185,7 @@ from Guitar Pro come in without them.
 ### Build a score in code
 
 `new Score()` creates one guitar track, one staff, and one empty 4/4 bar. This
-function fills that bar with four quarter notes on the first (highest-pitched)
-string:
+function fills that bar with four quarter notes on the first string:
 
 ```ts
 import { Beat, GuitarNote, NoteDuration, Score } from "@atikincode/tabui";
@@ -225,7 +224,8 @@ for larger examples.
 ## Styles and icons
 
 The package is framework-agnostic. Import its styles from
-`@atikincode/tabui/styles.css`.
+`@atikincode/tabui/styles.css`. Fine-grained CSS customization isn't
+supported yet.
 
 ### Editor size
 
@@ -247,6 +247,8 @@ scrolls.
 Default SVG icons are bundled as data URLs, so no public asset folder or external
 hosting is needed. Use `assets.variant: "dark"` for the dark icons; the default is
 `"light"`.
+
+**All default icons are 100% made by me in Inkscape.**
 
 ### Custom and hosted icons
 
@@ -317,10 +319,9 @@ before disposal.
 
 ## Framework integration
 
-The host framework owns the root element; TabUI owns its children while mounted.
+The host owns the root element; TabUI owns its children while mounted.
 Create the editor after the root is attached to the DOM, and dispose it when
-the component unmounts. Keep the score and setup dependencies stable so normal
-framework updates do not recreate the editor.
+the component unmounts.
 
 For React, see the [runnable demo and lifecycle guide](https://github.com/nik-idc/tabui/blob/master/demo/react/README.md)
 and its [wrapper component](https://github.com/nik-idc/tabui/blob/master/demo/react/tabui.tsx). The wrapper creates a fresh
@@ -337,9 +338,7 @@ reactivity.
 
 All four examples—[raw JavaScript/TypeScript](https://github.com/nik-idc/tabui/blob/master/demo/raw/README.md), React,
 Angular, and Vue—are tested using a locally built npm package, as a separate app
-would install it. The framework examples run in the browser. They do not cover
-server-side rendering (SSR) or hydration; create the editor after its container
-is mounted in the browser.
+would install it.
 
 ## State and events
 
@@ -378,7 +377,7 @@ the score, and mount a fresh editor. Prepare programmatic scores before mounting
 `interaction.mode` accepts `TabUIEditorMode.Edit` (the default) or
 `TabUIEditorMode.ViewOnly`. View-only mode permits playback, seeking, scrolling,
 copying, and active-track selection. It removes editing controls and prevents
-score mutations at the controller boundary.
+score mutations at the controller level.
 
 ## Themes and fonts
 

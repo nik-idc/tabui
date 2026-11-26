@@ -1,5 +1,8 @@
 # Playback Architecture
 
+Note: This file is mostly AI-written. The point of this file is to record
+the how & why behind the playback's less obvious decisions.
+
 TabUI playback uses the Web Audio API directly. Playback is deliberately small
 and scheduling-oriented: score traversal decides what should play, then Web
 Audio nodes are scheduled on the audio context timeline.

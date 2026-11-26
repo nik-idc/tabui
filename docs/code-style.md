@@ -58,7 +58,8 @@ class RemoveBarsCommand {
   to format the repository.
 - Keep `for`, `if`, and similar control-flow headers on one line. If a header
   becomes too long, extract local variables before the statement.
-- Prefer one-letter callback parameters for internal array operations:
+- Prefer one-letter callback parameters for internal array operations
+  when that can keep the statement on one line.
 
 ```ts
 array.find((v) => v.property === neededProp);
@@ -68,14 +69,13 @@ array.find((v) => v.property === neededProp);
 
 ## Readability and Structure
 
-- Keep behavior changes small and verifiable with tests.
 - Fix the root cause, not the symptom. If that needs a small or medium refactor,
   include it in the change. If it needs a large refactor, discuss it first in an
   issue.
 - Keep related behavior close together. Inline a one-use helper or getter that
   only wraps a simple property access, such as `return this._foo?.bar;`.
-- Extract logic when it is reused, needs a meaningful name, or is complex enough
-  that the abstraction improves readability.
+- Extract logic only when it is reused, needs a meaningful name, or is complex
+  enough that the abstraction improves readability.
 - Use named local variables to make long expressions easier to read:
 
 ```ts
@@ -109,16 +109,6 @@ const result = await fetch(targetUrl, {
   body: JSON.stringify(document),
 });
 ```
-
-## Editing Responsibilities
-
-- Model classes own local operations and keep their local data valid.
-- `ScoreEditor` owns complex edits and business rules that span models and do
-  not naturally belong to one model, such as building tie chains across beats.
-- Commands delegate those edits to `ScoreEditor`, report affected model anchors,
-  and save and restore state for undo and redo. Keep edit rules out of commands.
-  Save state before any affected model changes, and use fixed saved state for
-  redo when repeating the edit would run selection or search rules again.
 
 ## Documentation
 

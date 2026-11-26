@@ -95,20 +95,21 @@ No registry or generation command is needed.
 
 ## Architecture
 
-It helps to think about TabUI's code in layers. These are concepts, not strict
-definitions.
+I find it helpful to think about TabUI in terms of layers. These are concepts,
+not strict definitions.
 
 - **Model**: the musical data, in `src/notation/model/`.
 - **Editor**: code that changes the model, such as `ScoreEditor`.
 - **Command**: undoable edits (execute, undo, redo), built on the editor layer.
 - **Element**: geometry calculated from the model, from `TrackElement` down the
-  tree. The name "Element" is a bit awkward, but it is deeply ingrained in
-  TabUI, so it stays.
+  tree. The name "Element" might feel a bit awkward, but it is deeply ingrained
+  in TabUI, so it stays.
 - **Player**: playback scheduling with the Web Audio API, based on the model.
   See [Playback Architecture](docs/playback.md).
 - **Controller**: the editor state. It runs model edits through commands, and
   handles selection and playback. For example, it tracks whether playback is
-  active and whether editing is allowed.
+  active and whether editing is allowed. Naming here might also feel a bit
+  awkward (e.g. `TrackController`), but it stays for now as well.
 - **Renderer**: turns element geometry into DOM output. Currently SVG only.
 - **UI**: the editor UI in `src/ui/`.
 
@@ -123,6 +124,16 @@ See [Domain Model and Terms](docs/domain.md) for the musical concepts.
   family from note techniques, with their own types, options, and edit rules. Do
   not merge the two families or their enums: both are numeric enums, so one
   value would mean two techniques.
+
+### Editing responsibilities
+
+- Model classes own local operations and keep their local data valid.
+- `ScoreEditor` owns complex edits and business rules that span models and do
+  not naturally belong to one model, such as building tie chains across beats.
+- Commands delegate those edits to `ScoreEditor`, report affected model anchors,
+  and save and restore state for undo and redo. Keep edit rules out of commands.
+  Save state before any affected model changes, and use fixed saved state for
+  redo when repeating the edit would run selection or search rules again.
 
 ## Score format versions
 
@@ -161,12 +172,5 @@ ignores it. `docs/api-introduction.md` is the reference's start page.
   including the demo. Run `npm run docs:build` again after you change API
   comments.
 
-Set the Pages
-source to **GitHub Actions**. The maintainer creates and pushes release tags.
-
-Before a release, review [ROADMAP.md](ROADMAP.md), run the update benchmark, and
-smoke-test editing, playback, persistence, and editor mount/disposal in the demo.
-Record user-visible changes in the GitHub release notes.
-
-To publish the package, run `npm publish` from `master`. It runs
-`npm run verify` first, through `prepublishOnly`, and stops if any check fails.
+Set the Pages source to **GitHub Actions**. The maintainer creates and pushes
+release tags.

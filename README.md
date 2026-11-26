@@ -51,8 +51,7 @@ With that said, along the way it got a few things I haven't seen elsewhere:
   with a small score under 10 bars. I spent a lot of time making sure most edits
   in large scores stay under 100ms. It's not perfect yet: some paths can still
   make an edit take a couple of seconds. But overall, TabUI performs well with
-  large scores. Performance is a core part of TabUI, and I don't want to
-  compromise on it.
+  large scores.
 
 - Accessibility. I want anything a sighted user can do to also be possible for
   blind and low-vision users, and for users with limited mobility. I focus on two
@@ -79,9 +78,7 @@ The following limits are planned work:
 
 - **Only guitar tablature is supported.** Standard and drum notation are
   planned. I try to keep the code independent of notation style, so I can add
-  them later without rewriting everything. I learned this from voices: I
-  initially assumed that TabUI would not support multiple voices, so adding them
-  later required rewriting every layer of the code.
+  them later without rewriting everything.
 - **One track is displayed at a time.** Playback still includes all tracks.
   Showing several tracks together is planned.
 - **Only basic MusicXML import and export.** Scores are saved in TabUI's own

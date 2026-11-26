@@ -5,6 +5,20 @@ tuplets, dynamics, and guitar techniques. These are TabUI's rules, not a claim
 about how other tablature editors interpret the same marks. For what each term
 means, see [Domain Model and Terms](domain.md).
 
+## Staves
+
+A track has one to four staves. Each staff has its own bars and voices, and all
+staves play together. See [Domain model and terms](domain.md#staff).
+
+- Set the number of staves when you create a track: use **Staves** in the
+  **New track** dialog.
+- **Add staff below** (Alt+N) adds an empty staff below the selected one and
+  moves the cursor into it.
+- **Remove staff** (Alt+Delete) removes the selected staff and its content. A
+  track always keeps one staff. Undo brings the staff back.
+- Ctrl+Up and Ctrl+Down move the cursor to the same moment in the staff above
+  or below.
+
 ## Repeat sections
 
 Repeat signs mark a section to play again.
@@ -44,26 +58,12 @@ Examples:
 With nested repeats, the first example would have an outer section from
 **Bar 1 to Bar 5** and an inner section from **Bar 2 to Bar 4**.
 
-## Staves
-
-A track has one to four staves. Each staff has its own bars and voices, and all
-staves play together. See [Domain model and terms](domain.md#staff).
-
-- Set the number of staves when you create a track: use **Staves** in the
-  **New track** dialog.
-- **Add staff below** (Alt+N) adds an empty staff below the selected one and
-  moves the cursor into it.
-- **Remove staff** (Alt+Delete) removes the selected staff and its content. A
-  track always keeps one staff. Undo brings the staff back.
-- Ctrl+Up and Ctrl+Down move the cursor to the same moment in the staff above
-  or below.
-
 ## Tuplets
 
 A tuplet plays a number of notes in the time of a different number, such as
 three eighths in the time of two (3:2).
 
-- **Tuplet preset** makes a duplet: two notes in the time of three (2:3), such
+- **Duplet preset** makes a duplet: two notes in the time of three (2:3), such
   as two eighths in a dotted quarter.
 - **Triplet preset** makes three notes in the time of two (3:2).
 - **Custom tuplet** (Shift+T) sets any ratio.
@@ -113,8 +113,7 @@ with the score.
 Select a note, beat, or beat range, then use the technique's button or
 shortcut. A cursor edits one string; a beat or range selection edits eligible
 slots in musical order. Compatibility is checked per note, so different strings
-in a beat can use different techniques. A button shows as pressed when the
-selected notes have that technique.
+in a beat can use different techniques.
 
 A shortcut removes a technique when all selected notes already have it.
 Otherwise, it sets the technique on them.
@@ -129,6 +128,12 @@ Otherwise, it sets the technique on them.
 | Stroke    | See [Stroke controls](#stroke-controls)                          |
 
 ### Tie
+
+Note: TabUI implements ties a little differently than other notation software,
+from what I have gathered. There is no grand reason for this - this
+implementation just makes more sense to me. Maybe with time I will re-implement
+them so that they behave like everywhere else - but for now they stay as they
+are.
 
 A tie continues the previous note on the same string without a new attack. The
 tied notes sound as one long note.
@@ -147,6 +152,10 @@ empty slots and the same fret, and ties everything in between. It stops at a
 different fret, a dead note, or a rest.
 
 ### Let Ring
+
+Note: Same as ties, I think most people would find TabUI's implementation of
+Let Ring different from other notation software. Again, no grand reason - this
+just makes more sense to me.
 
 Let Ring lets a string keep ringing. Unlike a tie, later notes on the string are
 still new attacks.
@@ -173,13 +182,12 @@ Palm Mute damps the string with the picking hand, for a short, muted attack.
 - A note cannot have both Palm Mute and Let Ring. Different strings in one beat
   can use them separately.
 
-In tab, a passage of Let Ring or Palm Mute starts with `L.R.` or `P.M.` and
+A passage of Let Ring or Palm Mute starts with `L.R.` or `P.M.` and
 continues with dashes. The text starts again after a gap or a line break.
 
 ### Bends
 
 A bend raises the pitch by pushing the string. The written fret does not change.
-An open string cannot be bent.
 
 - Amounts are in whole tones: `½` is one semitone, and `1` is two semitones.
 - The shapes are **Bend**, **Bend and Release**, **Prebend** (starts already
@@ -188,7 +196,7 @@ An open string cannot be bent.
   pitch, and Release lowers it. Prebend shapes need a new attack, so they cannot
   be on a tied note.
 
-### Legato (hammer-on and pull-off)
+### Legato (hammer-on/pull-off)
 
 Legato connects a note to the next beat's note on the same string and voice. The
 next note must be played (not empty or dead), and the frets must differ. Open
@@ -205,6 +213,10 @@ neither note can be an open string.
 
 The second note is not attacked again.
 
+Playback of slides currently sounds a lot like bends. In the future,
+once I get to the playback refactor, this will be changed and slides will
+sound like actual slides with identifiable fret transitions.
+
 ### Vibrato
 
 Vibrato moves the pitch slightly up and down. It applies to one note, not to the
@@ -220,7 +232,6 @@ not calculate the real harmonic pitch.
 Tap means the note is played by tapping the string onto the fret, usually with
 the picking hand.
 
-- Tap works only on played notes: not on dead notes, empty slots, or tied notes.
 - Each tapped beat shows its own `T`. Taps never join into a passage with dashes.
 - Playback plays a tapped note like a normal attack.
 
@@ -243,11 +254,6 @@ accent (`^`) is much louder.
 A stroke strums the notes of a beat one after another. It belongs to the whole
 beat, so a rest cannot have one.
 
-- **The arrow points the other way.** String 1 is the top line of the tab, and
-  the arrow points toward the last string played. So a down stroke points
-  **up**, and an up stroke points **down**.
-- TabUI strums in string order, not by pitch. Re-entrant tunings sound like on
-  the real instrument.
 - **Duration** is the time from the first to the last note, from a 64th note to a
   half note. **Alignment** sets whether the stroke **starts on time** (the
   default) or **falls on time**, which means the last note lands on the beat.
@@ -264,5 +270,4 @@ beat, so a rest cannot have one.
   16th note long and starts on time.
 - **Stroke** or **Shift+D** opens a dialog with direction, duration, and timing.
   The timing slider reads like a timeline: the left end is "falls on time", and
-  the right end is "starts on time". The sliders work with the arrow keys, Page
-  Up, Page Down, Home, and End.
+  the right end is "starts on time".
