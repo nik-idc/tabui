@@ -1,6 +1,6 @@
 {
   "name": "@atikincode/tabui",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Framework-agnostic tablature editor library",
   "license": "MIT",
   "repository": {
